@@ -23,6 +23,43 @@
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <!-- Supabase 客戶端庫 -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- 屏蔽 file 協議導致的 CORS 警告（不影響核心功能） -->
+<script>
+(function() {
+  // 屏蔽 Fetch API 的 CORS 警告
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    return originalFetch.apply(this, args).catch(err => {
+      // 如果是 file 協議的 CORS 錯誤，靜默忽略
+      if (window.location.protocol === 'file:' && err.message && (err.message.includes('CORS') || err.message.includes('cross-origin'))) {
+        return Promise.resolve({ ok: false, status: 0, statusText: 'File protocol' });
+      }
+      throw err;
+    });
+  };
+  
+  // 屏蔽 Console 中的 CORS 警告
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    const msg = args.join(' ');
+    if (msg.includes('CORS') || msg.includes('cross-origin') || msg.includes('Access-Control')) {
+      return; // 靜默忽略 CORS 相關錯誤
+    }
+    originalConsoleError.apply(console, args);
+  };
+  
+  // 屏蔽 Console 中的 CORS 警告（warn 級別）
+  const originalConsoleWarn = console.warn;
+  console.warn = function(...args) {
+    const msg = args.join(' ');
+    if (msg.includes('CORS') || msg.includes('cross-origin') || msg.includes('Access-Control')) {
+      return; // 靜默忽略 CORS 相關警告
+    }
+    originalConsoleWarn.apply(console, args);
+  };
+})();
+</script>
 <style>
 * { font-family: system-ui, -apple-system, sans-serif; }
 body { background: #FFFFFF; } /* 純白色基底 */
@@ -932,7 +969,7 @@ button { cursor: pointer; }
   <td v-else-if="col.key === 'address'">{{ emp.address || '-' }}</td>
   <td v-else-if="col.key === 'line'">{{ emp.line || '-' }}</td>
   <td v-else-if="col.key === 'role'"><span :class="emp.role==='系統管理員'?'bg-purple-100 text-purple-700':'status-active'">{{ emp.role }}</span></td>
-  <td v-else-if="col.key === 'isActive'"><span :class="emp.isActive?'status-active':'status-inactive'">{{ emp.isActive?'在職':'離職' }}</span></td>
+  <td v-else-if="col.key === 'isActive'"><span :class="emp.is_active?'status-active':'status-inactive'">{{ emp.is_active?'在職':'離職' }}</span></td>
   <td v-else-if="col.key === 'action'"><button @click="openHrModal(emp)" :disabled="!canEdit" class="text-[#DEC8B6] mr-2 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">編輯</button><button @click="confirmDelete('employee',emp.id)" :disabled="!canEdit" class="text-rose-400 hover:underline disabled:opacity-50 disabled:cursor-not-allowed">刪除</button></td>
 </template>
 </tr><tr v-if="!employees.length"><td :colspan="columnOrders.employee.length" class="text-center">暫無員工資料</td></tr></tbody></table>
@@ -990,7 +1027,7 @@ button { cursor: pointer; }
       </div>
       <div class="md:col-span-2">
         <label class="flex items-center">
-          <input type="checkbox" v-model="hrForm.isActive" class="w-4 h-4 mr-2">
+          <input type="checkbox" v-model="hrForm.is_active" class="w-4 h-4 mr-2">
           <span class="text-sm text-[#6B4E2E]">在職狀態</span>
         </label>
       </div>
@@ -1058,7 +1095,7 @@ button { cursor: pointer; }
 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 bg-[#F5EDE4] p-4 rounded-xl">
 <div><label>📅 活動日期</label><date-picker v-model="posForm.activityDate" /></div>
 <div><label>📍 活動地點/場域</label><input v-model="posForm.activityLocation" class="form-input-cute" placeholder="例如：台北信義區市集"></div>
-<div><label>👤 負責人員</label><select v-model="posForm.staffId" class="form-input-cute"><option :value="0">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.isActive)" :value="e.id">{{ e.name }}</option></select></div>
+<div><label>👤 負責人員</label><select v-model="posForm.staffId" class="form-input-cute"><option :value="0">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.is_active)" :value="e.id">{{ e.name }}</option></select></div>
 </div>
 
 <!-- 資金與庫存資訊 -->
@@ -1414,7 +1451,7 @@ button { cursor: pointer; }
 <h3 class="font-bold text-lg mb-3"><span class="text-xl">🧾</span> 銷貨單</h3>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
 <div><label>日期</label><date-picker v-model="salesForm.date" /></div>
-<div><label>承辦人</label><select v-model="salesForm.clerk" class="form-input-cute"><option value="">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.isActive)" :value="e.name">{{ e.name }}</option></select></div>
+<div><label>承辦人</label><select v-model="salesForm.clerk" class="form-input-cute"><option value="">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.is_active)" :value="e.name">{{ e.name }}</option></select></div>
 <div class="relative" style="position: relative; overflow: visible !important;">
     <label>客戶 (輸入名稱或點擊搜尋)</label>
     <div class="flex gap-2" style="position: relative; overflow: visible !important;">
@@ -1652,7 +1689,7 @@ button { cursor: pointer; }
 <div><label>盤點倉庫</label><select v-model.number="inventoryCheckWarehouseId" @change="filterInventoryCheckRows" class="form-input-cute"><option value="0">全部</option><option v-for="w in warehouses" :value="w.id">{{ w.name }}</option></select></div>
 <div><label>盤點類別</label><select v-model.number="inventoryCheckCategoryId" @change="filterInventoryCheckRows" class="form-input-cute"><option value="0">全部類別</option><option v-for="c in categories" :value="c.id">{{ c.name }}</option></select></div>
 <div><label>盤點日期</label><date-picker v-model="inventoryCheckDate" /></div>
-<div><label>盤點人員</label><select v-model.number="inventoryCheckStaffId" class="form-input-cute"><option value="0">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.isActive)" :value="e.id">{{ e.name }}</option></select></div>
+<div><label>盤點人員</label><select v-model.number="inventoryCheckStaffId" class="form-input-cute"><option value="0">請選擇</option><option v-for="e in (employees || []).filter(x=>x && x.is_active)" :value="e.id">{{ e.name }}</option></select></div>
 </div>
 <div class="overflow-x-auto"><table class="w-full text-sm table-cute"><thead><tr><th>品項</th><th>類別</th><th>倉庫</th><th>系統庫存</th><th>實際盤點數</th><th>差異</th></tr></thead><tbody><tr v-for="row in inventoryCheckRows" :key="row.stockId"><td>{{ getProductName(row.stock.product_id) }}</td><td>{{ getCategoryName(getProductCategoryById(row.stock.product_id)) }}</td><td>{{ getWarehouseName(row.stock.warehouse_id) }}</td><td>{{ row.stock.qty }}</td><td><input type="number" v-model.number="row.checkQty" @change="calcInventoryDifference(row)" class="form-input-cute w-24 text-center"></td><td :class="row.difference!==0?'text-rose-600 font-bold':'text-green-600'">{{ row.difference >= 0 ? '+' : '' }}{{ row.difference }}</td></tr><tr v-if="!inventoryCheckRows.length"><td colspan="6" class="text-center">尚無庫存資料</td></tr></tbody></table></div>
 <div class="flex justify-end mt-3 gap-2"><button @click="saveInventoryCheck" :disabled="!canEdit" class="bg-green-600 text-white px-6 py-2 rounded-full btn-cute disabled:opacity-50 disabled:cursor-not-allowed">💾 儲存盤點結果</button></div>
@@ -1851,17 +1888,30 @@ button { cursor: pointer; }
         <select v-model="customerSearchTypeFilter" class="form-input-cute w-40"><option value="">全部群組</option><option v-for="t in customerTypes" :value="t">{{ t }}</option></select>
         <button @click="searchCustomerModal" class="bg-[#DEC8B6] text-white px-6 py-2 rounded-full btn-cute">查詢/篩選</button>
     </div>
-    <table class="w-full text-sm table-cute"><thead><tr><th @click="sortSearchCustomer('id')">客戶編碼 <span class="sort-icon">{{ getSortIcon('searchCustomer','id') }}</span></th><th @click="sortSearchCustomer('name')">客戶名稱 <span class="sort-icon">{{ getSortIcon('searchCustomer','name') }}</span></th><th @click="sortSearchCustomer('tel')">電話 <span class="sort-icon">{{ getSortIcon('searchCustomer','tel') }}</span></th><th @click="sortSearchCustomer('taxId')">統編 <span class="sort-icon">{{ getSortIcon('searchCustomer','taxId') }}</span></th><th @click="sortSearchCustomer('type')">群組 <span class="sort-icon">{{ getSortIcon('searchCustomer','type') }}</span></th><th>操作</th></tr></thead>
+    <table class="w-full text-sm table-cute"><thead><tr><th v-for="(col, idx) in columnOrders.searchCustomer" :key="col.key"
+     draggable="true"
+     @dragstart="onColumnDragStart('searchCustomer', idx, $event)"
+     @dragover="onColumnDragOver(idx, $event)"
+     @drop="onColumnDrop('searchCustomer', idx, $event)"
+     @dragend="onColumnDragEnd"
+     @dblclick="onColumnSort('searchCustomer', col.key)"
+     :class="col.headerClass || ''"
+     class="cursor-move transition-all hover:bg-[#DEC8B6] relative group select-none">
+     <span>{{ col.label }}<span v-if="getColumnSortIcon('searchCustomer', col.key)" class="ml-1 text-xs">{{ getColumnSortIcon('searchCustomer', col.key) }}</span></span>
+     <span class="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">⋮</span>
+</th></tr></thead>
     <tbody>
         <tr v-for="c in filteredSearchCustomers" :key="c.id">
-            <td>{{ c.id }}</td>
-            <td class="text-left">{{ c.name }}</td>
-            <td>{{ c.tel }}</td>
-            <td>{{ c.taxId || '-' }}</td>
-            <td>{{ c.type }}</td>
-            <td><button @click="selectCustomerForSales(c)" class="text-blue-500 hover:underline">選取</button></td>
+        <template v-for="col in columnOrders.searchCustomer" :key="col.key">
+            <td v-if="col.key === 'id'">{{ c.id }}</td>
+            <td v-else-if="col.key === 'name'" class="text-left">{{ c.name }}</td>
+            <td v-else-if="col.key === 'tel'">{{ c.tel }}</td>
+            <td v-else-if="col.key === 'taxId'">{{ c.taxId || '-' }}</td>
+            <td v-else-if="col.key === 'type'">{{ c.type }}</td>
+            <td v-else-if="col.key === 'action'"><button @click="selectCustomerForSales(c)" class="text-blue-500 hover:underline">選取</button></td>
+        </template>
         </tr>
-        <tr v-if="!filteredSearchCustomers.length"><td colspan="6" class="text-center">查無此人，請嘗試其他關鍵字</td></tr>
+        <tr v-if="!filteredSearchCustomers.length"><td :colspan="columnOrders.searchCustomer.length" class="text-center">查無此人，請嘗試其他關鍵字</td></tr>
     </tbody></table>
     <div class="flex justify-end gap-2 mt-4"><button @click="customerSearchModalOpen=false" class="bg-gray-200 px-4 py-2 rounded-full">關閉</button></div>
 </div>
@@ -1876,15 +1926,28 @@ button { cursor: pointer; }
         <select v-model="productSearchCategoryFilter" class="form-input-cute w-40"><option value="">全部類別</option><option v-for="c in categories" :value="c.id">{{ c.name }}</option></select>
         <button @click="searchProductModal" class="bg-[#DEC8B6] text-white px-6 py-2 rounded-full btn-cute">查詢/篩選</button>
     </div>
-    <table class="w-full text-sm table-cute"><thead><tr><th @click="sortSearchProduct('code')">品項編碼 <span class="sort-icon">{{ getSortIcon('searchProduct','code') }}</span></th><th @click="sortSearchProduct('name')">品項名稱 [規格] <span class="sort-icon">{{ getSortIcon('searchProduct','name') }}</span></th><th @click="sortSearchProduct('sale_price')">售價 <span class="sort-icon">{{ getSortIcon('searchProduct','sale_price') }}</span></th><th>操作</th></tr></thead>
+    <table class="w-full text-sm table-cute"><thead><tr><th v-for="(col, idx) in columnOrders.searchProduct" :key="col.key"
+     draggable="true"
+     @dragstart="onColumnDragStart('searchProduct', idx, $event)"
+     @dragover="onColumnDragOver(idx, $event)"
+     @drop="onColumnDrop('searchProduct', idx, $event)"
+     @dragend="onColumnDragEnd"
+     @dblclick="onColumnSort('searchProduct', col.key)"
+     :class="col.headerClass || ''"
+     class="cursor-move transition-all hover:bg-[#DEC8B6] relative group select-none">
+     <span>{{ col.label }}<span v-if="getColumnSortIcon('searchProduct', col.key)" class="ml-1 text-xs">{{ getColumnSortIcon('searchProduct', col.key) }}</span></span>
+     <span class="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">⋮</span>
+</th></tr></thead>
     <tbody>
         <tr v-for="p in filteredSearchProducts" :key="p.id">
-            <td>{{ p.code }}</td>
-            <td class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
-            <td>${{ p.sale_price }}</td>
-            <td><button @click="selectProductForSales(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        <template v-for="col in columnOrders.searchProduct" :key="col.key">
+            <td v-if="col.key === 'code'">{{ p.code }}</td>
+            <td v-else-if="col.key === 'name'" class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
+            <td v-else-if="col.key === 'sale_price'">${{ p.sale_price }}</td>
+            <td v-else-if="col.key === 'action'"><button @click="selectProductForSales(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        </template>
         </tr>
-        <tr v-if="!filteredSearchProducts.length"><td colspan="4" class="text-center">查無品項</td></tr>
+        <tr v-if="!filteredSearchProducts.length"><td :colspan="columnOrders.searchProduct.length" class="text-center">查無品項</td></tr>
     </tbody></table>
     <div class="flex justify-end gap-2 mt-4"><button @click="productSearchModalOpen=false" class="bg-gray-200 px-4 py-2 rounded-full">關閉</button></div>
 </div>
@@ -1899,15 +1962,28 @@ button { cursor: pointer; }
         <select v-model="purchaseProductSearchCategoryFilter" class="form-input-cute w-40"><option value="">全部類別</option><option v-for="c in categories" :value="c.id">{{ c.name }}</option></select>
         <button @click="searchPurchaseProductModal" class="bg-[#DEC8B6] text-white px-6 py-2 rounded-full btn-cute">查詢/篩選</button>
     </div>
-    <table class="w-full text-sm table-cute"><thead><tr><th @click="sortTable('searchPurchaseProduct','code')">品項編碼 <span class="sort-icon">{{ getSortIcon('searchPurchaseProduct','code') }}</span></th><th @click="sortTable('searchPurchaseProduct','name')">品項名稱 [規格] <span class="sort-icon">{{ getSortIcon('searchPurchaseProduct','name') }}</span></th><th @click="sortTable('searchPurchaseProduct','cost_price')">成本 <span class="sort-icon">{{ getSortIcon('searchPurchaseProduct','cost_price') }}</span></th><th>操作</th></tr></thead>
+    <table class="w-full text-sm table-cute"><thead><tr><th v-for="(col, idx) in columnOrders.searchPurchaseProduct" :key="col.key"
+     draggable="true"
+     @dragstart="onColumnDragStart('searchPurchaseProduct', idx, $event)"
+     @dragover="onColumnDragOver(idx, $event)"
+     @drop="onColumnDrop('searchPurchaseProduct', idx, $event)"
+     @dragend="onColumnDragEnd"
+     @dblclick="onColumnSort('searchPurchaseProduct', col.key)"
+     :class="col.headerClass || ''"
+     class="cursor-move transition-all hover:bg-[#DEC8B6] relative group select-none">
+     <span>{{ col.label }}<span v-if="getColumnSortIcon('searchPurchaseProduct', col.key)" class="ml-1 text-xs">{{ getColumnSortIcon('searchPurchaseProduct', col.key) }}</span></span>
+     <span class="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">⋮</span>
+</th></tr></thead>
     <tbody>
         <tr v-for="p in filteredPurchaseSearchProducts" :key="p.id">
-            <td>{{ p.code }}</td>
-            <td class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
-            <td>${{ p.cost_price }}</td>
-            <td><button @click="selectProductForPurchase(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        <template v-for="col in columnOrders.searchPurchaseProduct" :key="col.key">
+            <td v-if="col.key === 'code'">{{ p.code }}</td>
+            <td v-else-if="col.key === 'name'" class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
+            <td v-else-if="col.key === 'cost_price'">${{ p.cost_price }}</td>
+            <td v-else-if="col.key === 'action'"><button @click="selectProductForPurchase(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        </template>
         </tr>
-        <tr v-if="!filteredPurchaseSearchProducts.length"><td colspan="4" class="text-center">查無品項</td></tr>
+        <tr v-if="!filteredPurchaseSearchProducts.length"><td :colspan="columnOrders.searchPurchaseProduct.length" class="text-center">查無品項</td></tr>
     </tbody></table>
     <div class="flex justify-end gap-2 mt-4"><button @click="purchaseProductSearchModalOpen=false" class="bg-gray-200 px-4 py-2 rounded-full">關閉</button></div>
 </div>
@@ -1922,15 +1998,28 @@ button { cursor: pointer; }
         <select v-model="invoiceProductSearchCategoryFilter" class="form-input-cute w-40"><option value="">全部類別</option><option v-for="c in categories" :value="c.id">{{ c.name }}</option></select>
         <button @click="searchInvoiceProductModal" class="bg-[#DEC8B6] text-white px-6 py-2 rounded-full btn-cute">查詢/篩選</button>
     </div>
-    <table class="w-full text-sm table-cute"><thead><tr><th @click="sortTable('searchInvoiceProduct','code')">品項編碼 <span class="sort-icon">{{ getSortIcon('searchInvoiceProduct','code') }}</span></th><th @click="sortTable('searchInvoiceProduct','name')">品項名稱 [規格] <span class="sort-icon">{{ getSortIcon('searchInvoiceProduct','name') }}</span></th><th @click="sortTable('searchInvoiceProduct','cost_price')">成本 <span class="sort-icon">{{ getSortIcon('searchInvoiceProduct','cost_price') }}</span></th><th>操作</th></tr></thead>
+    <table class="w-full text-sm table-cute"><thead><tr><th v-for="(col, idx) in columnOrders.searchInvoiceProduct" :key="col.key"
+     draggable="true"
+     @dragstart="onColumnDragStart('searchInvoiceProduct', idx, $event)"
+     @dragover="onColumnDragOver(idx, $event)"
+     @drop="onColumnDrop('searchInvoiceProduct', idx, $event)"
+     @dragend="onColumnDragEnd"
+     @dblclick="onColumnSort('searchInvoiceProduct', col.key)"
+     :class="col.headerClass || ''"
+     class="cursor-move transition-all hover:bg-[#DEC8B6] relative group select-none">
+     <span>{{ col.label }}<span v-if="getColumnSortIcon('searchInvoiceProduct', col.key)" class="ml-1 text-xs">{{ getColumnSortIcon('searchInvoiceProduct', col.key) }}</span></span>
+     <span class="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">⋮</span>
+</th></tr></thead>
     <tbody>
         <tr v-for="p in filteredInvoiceSearchProducts" :key="p.id">
-            <td>{{ p.code }}</td>
-            <td class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
-            <td>${{ p.cost_price }}</td>
-            <td><button @click="selectProductForInvoice(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        <template v-for="col in columnOrders.searchInvoiceProduct" :key="col.key">
+            <td v-if="col.key === 'code'">{{ p.code }}</td>
+            <td v-else-if="col.key === 'name'" class="text-left">{{ p.name }} {{ p.barcode ? '['+p.barcode+']' : '' }}</td>
+            <td v-else-if="col.key === 'cost_price'">${{ p.cost_price }}</td>
+            <td v-else-if="col.key === 'action'"><button @click="selectProductForInvoice(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        </template>
         </tr>
-        <tr v-if="!filteredInvoiceSearchProducts.length"><td colspan="4" class="text-center">查無品項</td></tr>
+        <tr v-if="!filteredInvoiceSearchProducts.length"><td :colspan="columnOrders.searchInvoiceProduct.length" class="text-center">查無品項</td></tr>
     </tbody></table>
     <div class="flex justify-end gap-2 mt-4"><button @click="invoiceProductSearchModalOpen=false" class="bg-gray-200 px-4 py-2 rounded-full">關閉</button></div>
 </div>
@@ -1945,16 +2034,29 @@ button { cursor: pointer; }
         <select v-model="posProductSearchCategoryFilter" class="form-input-cute w-40"><option value="0">全部類別</option><option v-for="c in categories" :value="c.id">{{ c.name }}</option></select>
         <button @click="searchPosProductModal" class="bg-[#DEC8B6] text-white px-6 py-2 rounded-full btn-cute">查詢/篩選</button>
     </div>
-    <table class="w-full text-sm table-cute"><thead><tr><th>條碼</th><th>品名</th><th>售價</th><th>庫存</th><th>操作</th></tr></thead>
+    <table class="w-full text-sm table-cute"><thead><tr><th v-for="(col, idx) in columnOrders.searchPosProduct" :key="col.key"
+     draggable="true"
+     @dragstart="onColumnDragStart('searchPosProduct', idx, $event)"
+     @dragover="onColumnDragOver(idx, $event)"
+     @drop="onColumnDrop('searchPosProduct', idx, $event)"
+     @dragend="onColumnDragEnd"
+     @dblclick="onColumnSort('searchPosProduct', col.key)"
+     :class="col.headerClass || ''"
+     class="cursor-move transition-all hover:bg-[#DEC8B6] relative group select-none">
+     <span>{{ col.label }}<span v-if="getColumnSortIcon('searchPosProduct', col.key)" class="ml-1 text-xs">{{ getColumnSortIcon('searchPosProduct', col.key) }}</span></span>
+     <span class="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-gray-400 opacity-0 group-hover:opacity-100">⋮</span>
+</th></tr></thead>
     <tbody>
         <tr v-for="p in filteredPosSearchProducts" :key="p.id">
-            <td>{{ p.barcode || '-' }}</td>
-            <td class="text-left">{{ p.name }}</td>
-            <td class="font-mono font-bold text-[#DEC8B6]">${{ p.sale_price }}</td>
-            <td>{{ getProductStock(p.id) }}</td>
-            <td><button @click="selectProductForPos(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        <template v-for="col in columnOrders.searchPosProduct" :key="col.key">
+            <td v-if="col.key === 'barcode'">{{ p.barcode || '-' }}</td>
+            <td v-else-if="col.key === 'name'" class="text-left">{{ p.name }}</td>
+            <td v-else-if="col.key === 'sale_price'" class="font-mono font-bold text-[#DEC8B6]">${{ p.sale_price }}</td>
+            <td v-else-if="col.key === 'stock'">{{ getProductStock(p.id) }}</td>
+            <td v-else-if="col.key === 'action'"><button @click="selectProductForPos(p)" class="bg-[#DEC8B6] text-white px-2 py-1 rounded-full text-xs">選擇</button></td>
+        </template>
         </tr>
-        <tr v-if="!filteredPosSearchProducts.length"><td colspan="5" class="text-center">查無商品</td></tr>
+        <tr v-if="!filteredPosSearchProducts.length"><td :colspan="columnOrders.searchPosProduct.length" class="text-center">查無商品</td></tr>
     </tbody></table>
     <div class="flex justify-end gap-2 mt-4"><button @click="posProductSearchModalOpen=false" class="bg-gray-200 px-4 py-2 rounded-full">關閉</button></div>
 </div>
@@ -2695,6 +2797,39 @@ async function syncDataFromSupabase() {
   console.log(` [Sync] 同步完成！成功: ${successCount} 個表格，失敗: ${failCount} 個表格`);
 }
 
+// ==================== UUID 生成與 ID 轉換工具函數 ====================
+// 生成標準 UUID v4
+function generateUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// 將數字 ID 轉換為 UUID 格式（用於 Supabase 外鍵）
+function convertIdToUUID(id) {
+  if (!id || id === 0 || id === null || id === undefined) return null;
+  
+  // 檢查是否已經是標準 UUID 格式（36 字元，包含 4 個連字號）
+  if (typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return id; // 已經是有效的 UUID
+  }
+  
+  // 將輸入轉換為數字（處理字串或數字）
+  const numId = Number(id);
+  if (isNaN(numId)) return null; // 無法轉換為數字，返回 null
+  
+  // 將數字轉換為整數（處理 Date.now() + Math.random() 產生的小數）
+  const intId = Math.floor(numId);
+  
+  // 將整數轉換為 8 位十六進制，確保不超過 8 個字元
+  const hexId = intId.toString(16).padStart(8, '0').slice(0, 8);
+  
+  // 生成標準 UUID 格式：xxxxxxxx-0000-4000-a000-000000000000
+  return `${hexId}-0000-4000-a000-000000000000`;
+}
+
 // 將 LocalStorage 數據同步到 Supabase
 async function syncDataToSupabase() {
   if (!dbConnected.value) {
@@ -2705,6 +2840,7 @@ async function syncDataToSupabase() {
   console.log('🔄 [Sync] 開始同步數據到 Supabase...');
   
   const tableMappings = {
+    // 注意：同步順序很重要！必須先同步 products，再同步 bom_list（外鍵依賴）
     'vendors': { key: 'vendors', isArray: true },
     'warehouses': { key: 'warehouses', isArray: true },
     'categories': { key: 'categories', isArray: true },
@@ -2723,13 +2859,14 @@ async function syncDataToSupabase() {
     'expense_categories': { key: 'expenseCategories', isArray: true },
     'expense_sub_categories': { key: 'expenseSubCategories', isArray: true },
     'employees': { key: 'employees', isArray: true },
-    'bom_list': { key: 'bomList', isArray: true },
     'transfer_history': { key: 'transferHistory', isArray: true },
     'todos': { key: 'todos', isArray: true },
     'quick_links': { key: 'quickLinks', isArray: true },
-    'company_settings': { key: 'companySettings', isArray: false },
     'pos_activities': { key: 'posActivities', isArray: true },
-    'inventory_check_history': { key: 'inventoryCheckHistory', isArray: true }
+    'inventory_check_history': { key: 'inventoryCheckHistory', isArray: true },
+    'company_settings': { key: 'companySettings', isArray: false },
+    // bom_list 必須在 products 之後同步（外鍵依賴）
+    'bom_list': { key: 'bomList', isArray: true }
   };
   
   let successCount = 0;
@@ -2758,20 +2895,113 @@ async function syncDataToSupabase() {
         // 移除 id 讓 Supabase 自動生成
         let records = data.map(({ id, ...rest }) => rest);
         
-        // 欄位映射：employees
-        if (table === 'employees') {
-          records = records.map(({ isActive, ...rest }) => ({
+        // 欄位映射：vendors
+        if (table === 'vendors') {
+          records = records.map(item => {
+            return {
+              ...item,
+              tax_id: item.taxId || item.tax_id || '',
+              is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+            };
+          });
+        }
+        
+        // 欄位映射：products
+        if (table === 'products') {
+          records = records.map(item => {
+            return {
+              ...item,
+              category_id: convertIdToUUID(item.category_id),
+              is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+            };
+          });
+        }
+        
+        // 欄位映射：bom_list
+        // 移除 is_active 欄位（資料庫中不存在此欄位）
+        // 轉換 parent_id 和 components 中的 product_id 為 UUID 格式
+        // 過濾掉 parent_id 不存在於 products 表的無效記錄
+        if (table === 'bom_list') {
+          // 獲取有效的 product_id 列表
+          const { data: validProducts } = await supabaseClient.from('products').select('id');
+          const validProductIds = new Set((validProducts || []).map(p => p.id));
+          
+          records = records.map(({ is_active, ...rest }) => ({
             ...rest,
-            is_active: isActive !== undefined ? isActive : (rest.is_active !== undefined ? rest.is_active : true)
+            parent_id: convertIdToUUID(rest.parent_id),
+            components: (rest.components || []).map(comp => ({
+              ...comp,
+              product_id: convertIdToUUID(comp.product_id)
+            }))
           }));
+          
+          // 過濾掉 parent_id 不在 products 表中的記錄
+          records = records.filter(record => validProductIds.has(record.parent_id));
+          
+          if (records.length === 0) {
+            console.log(` [Sync] ${table}: 無有效數據（已過濾外鍵不匹配記錄），跳過`);
+            continue;
+          }
+        }
+        
+        // 欄位映射：stock_levels
+        if (table === 'stock_levels') {
+          records = records.map(item => {
+            return {
+              ...item,
+              product_id: convertIdToUUID(item.product_id),
+              warehouse_id: convertIdToUUID(item.warehouse_id)
+            };
+          });
+        }
+        
+        // 欄位映射：customers
+        // 注意：客戶表使用 type 欄位（文本類型）記錄群組，不是 group_id（UUID 外鍵）
+        // type 範例：'一般客戶'、'VIP客戶' 等
+        // 同時修復 CamelCase 欄位為 snake_case
+        if (table === 'customers') {
+          records = records.map(item => {
+            return {
+              ...item,
+              type: item.type || '一般客戶',
+              // 轉換 CamelCase 為 snake_case
+              tax_id: item.taxId || item.tax_id || '',
+              invoice_title: item.invoiceTitle || item.invoice_title || '',
+              shipping_method: item.shippingMethod || item.shipping_method || '',
+              contact_channel: item.contactChannel || item.contact_channel || ''
+            };
+          });
         }
         
         // 欄位映射：payment_methods
         if (table === 'payment_methods') {
-          records = records.map(item => ({
-            ...item,
-            bank_account_id: (item.bank_account_id === 0 || item.bank_account_id === '0' || item.bank_account_id === '') ? null : item.bank_account_id
-          }));
+          // 先獲取有效的 bank_account_id 列表
+          const { data: validBanks } = await supabaseClient.from('bank_accounts').select('id');
+          const validBankIds = new Set((validBanks || []).map(b => b.id));
+          
+          records = records.map(item => {
+            // 將 bank_account_id 轉為數字比較
+            const bankId = item.bank_account_id;
+            const numericId = typeof bankId === 'string' ? parseInt(bankId) : bankId;
+            
+            return {
+              ...item,
+              // 如果 bank_account_id 不在有效列表中，設為 null
+              bank_account_id: (!bankId || bankId === 0 || bankId === '0' || bankId === '' || !validBankIds.has(numericId)) ? null : numericId
+            };
+          });
+        }
+        
+        // 欄位映射：employees
+        // 注意：資料庫使用中文欄位名稱
+        if (table === 'employees') {
+          records = records.map(item => {
+            return {
+              ...item,
+              // 轉換 isActive 為 is_active（資料庫使用 is_active）
+              is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+            };
+          });
         }
         
         const { error } = await supabaseClient.from(table).insert(records);
@@ -2781,15 +3011,16 @@ async function syncDataToSupabase() {
         let { id, ...rest } = data;
         
         // 欄位映射：company_settings
+        // 注意：資料庫使用 snake_case 英文欄位名稱
         if (table === 'company_settings') {
           rest = {
-            company_name: rest.name || rest.company_name || '',
-            uniform_number: rest.taxId || rest.uniform_number || '',
-            phone: rest.tel || rest.phone || '',
-            email: rest.email || '',
-            address: rest.address || '',
+            name: rest.name || rest['姓名'] || '',
+            tax_id: rest.taxId || rest.tax_id || rest.uniform_number || rest['稅號'] || '',
+            tel: rest.tel || rest.phone || rest['電話'] || '',
+            email: rest.email || rest['電子郵件'] || '',
+            address: rest.address || rest['地址'] || '',
             settings: {
-              owner: rest.owner || '',
+              owner: rest.owner || rest['負責人'] || '',
               logo: rest.logo || ''
             }
           };
@@ -2821,10 +3052,137 @@ async function syncTableToSupabase(tableName, vueRef) {
     // 插入新數據
     const data = vueRef.value;
     if (Array.isArray(data) && data.length > 0) {
-      const records = data.map(({ id, ...rest }) => rest);
+      let records = data.map(({ id, ...rest }) => rest);
+      
+      // 根據表格類型進行欄位映射和 UUID 轉換
+      if (tableName === 'vendors') {
+        records = records.map(item => ({
+          ...item,
+          tax_id: item.taxId || item.tax_id || '',
+          is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+        }));
+      } else if (tableName === 'products') {
+        records = records.map(item => ({
+          ...item,
+          category_id: convertIdToUUID(item.category_id),
+          is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+        }));
+      } else if (tableName === 'bom_list') {
+        // 移除 is_active 欄位（資料庫中不存在此欄位）
+        // 轉換 parent_id 和 components 中的 product_id 為 UUID 格式
+        // 過濾掉 parent_id 不存在於 products 表的無效記錄
+        
+        // 獲取有效的 product_id 列表
+        const { data: validProducts } = await supabaseClient.from('products').select('id');
+        const validProductIds = new Set((validProducts || []).map(p => p.id));
+        
+        records = records.map(({ is_active, ...rest }) => ({
+          ...rest,
+          parent_id: convertIdToUUID(rest.parent_id),
+          components: (rest.components || []).map(comp => ({
+            ...comp,
+            product_id: convertIdToUUID(comp.product_id)
+          }))
+        }));
+        
+        // 過濾掉 parent_id 不在 products 表中的記錄
+        records = records.filter(record => validProductIds.has(record.parent_id));
+        
+        if (records.length === 0) {
+          console.log(` [Sync] ${tableName}: 無有效數據（已過濾外鍵不匹配記錄），跳過`);
+          return;
+        }
+      } else if (tableName === 'stock_levels') {
+        records = records.map(item => ({
+          ...item,
+          product_id: convertIdToUUID(item.product_id),
+          warehouse_id: convertIdToUUID(item.warehouse_id)
+        }));
+      } else if (tableName === 'customers') {
+        // 注意：客戶表使用 type 欄位（文本類型）記錄群組，不是 group_id（UUID 外鍵）
+        // 同時修復 CamelCase 欄位為 snake_case
+        records = records.map(item => ({
+          ...item,
+          type: item.type || '一般客戶',
+          tax_id: item.taxId || item.tax_id || '',
+          invoice_title: item.invoiceTitle || item.invoice_title || '',
+          shipping_method: item.shippingMethod || item.shipping_method || '',
+          contact_channel: item.contactChannel || item.contact_channel || ''
+        }));
+      } else if (tableName === 'payment_methods') {
+        records = records.map(item => ({
+          ...item,
+          bank_account_id: convertIdToUUID(item.bank_account_id)
+        }));
+      } else if (tableName === 'purchase_orders') {
+        records = records.map(item => ({
+          ...item,
+          supplier_id: convertIdToUUID(item.supplier_id),
+          warehouse_id: convertIdToUUID(item.warehouse_id),
+          category_id: convertIdToUUID(item.category_id),
+          tax_type: item.taxType || item.tax_type || '免發票',
+          status: item.status || 'pending',
+          items: item.items ? JSON.stringify(item.items) : '[]'
+        }));
+      } else if (tableName === 'purchase_invoices') {
+        records = records.map(item => ({
+          ...item,
+          supplier_id: convertIdToUUID(item.supplier_id),
+          total_ex: item.totalEx || item.total_ex || 0,
+          total_tax: item.totalTax || item.total_tax || 0,
+          total_inc: item.totalInc || item.total_inc || 0,
+          remark: item.remark || '',
+          items: item.items ? JSON.stringify(item.items) : '[]'
+        }));
+      } else if (tableName === 'sales_orders') {
+        records = records.map(item => ({
+          ...item,
+          customer_id: convertIdToUUID(item.customer_id),
+          warehouse_id: convertIdToUUID(item.warehouse_id),
+          channel_id: convertIdToUUID(item.channel_id),
+          channel_commission: item.channelCommission || item.channel_commission || 0,
+          payment_commission: item.paymentCommission || item.payment_commission || 0,
+          freight_type: item.freightType || item.freight_type || '不含運費',
+          freight_amount: item.freightAmount || item.freight_amount || 0
+        }));
+      } else if (tableName === 'sales_details') {
+        records = records.map(item => ({
+          ...item,
+          order_id: convertIdToUUID(item.orderId || item.order_id),
+          product_id: convertIdToUUID(item.product_id),
+          customer_id: convertIdToUUID(item.customer_id),
+          subtotal_ex: item.subtotalEx || item.subtotal_ex || 0,
+          tax_amount: item.taxAmount || item.tax_amount || 0,
+          subtotal_inc: item.subtotalInc || item.subtotal_inc || 0
+        }));
+      } else if (tableName === 'income_ledger') {
+        records = records.map(item => ({
+          ...item,
+          bank_account_id: convertIdToUUID(item.bankId || item.bank_id || item.bank_account_id),
+          note: item.note || '',
+          payment_method_name: item.paymentMethodName || item.payment_method_name || ''
+        }));
+      } else if (tableName === 'expense_ledger') {
+        records = records.map(item => ({
+          ...item,
+          category_id: convertIdToUUID(item.category_id),
+          sub_category_id: convertIdToUUID(item.sub_category_id),
+          bank_account_id: convertIdToUUID(item.bank_account_id),
+          item_type: item.itemType || item.item_type || '',
+          payment_method_name: item.paymentMethodName || item.payment_method_name || ''
+        }));
+      } else if (tableName === 'employees') {
+        // 修復 CamelCase 欄位為 snake_case
+        records = records.map(item => ({
+          ...item,
+          // 轉換 isActive 為 is_active（資料庫使用 snake_case）
+          is_active: item.is_active !== undefined ? item.is_active : (item.isActive !== undefined ? item.isActive : true)
+        }));
+      }
+      
       await supabaseClient.from(tableName).insert(records);
     } else if (typeof data === 'object' && Object.keys(data).length > 0) {
-      const { id, ...rest } = data;
+      let { id, ...rest } = data;
       await supabaseClient.from(tableName).insert(rest);
     }
   } catch (err) {
@@ -3305,6 +3663,39 @@ const defaultColumnOrders = {
     {key:'itemCount', label:'盤點品項數'},
     {key:'adjustedItems', label:'調整項目數'},
     {key:'totalDifference', label:'總差異'}
+  ],
+  searchCustomer: [
+    {key:'id', label:'客戶編碼'},
+    {key:'name', label:'客戶名稱'},
+    {key:'tel', label:'電話'},
+    {key:'taxId', label:'統編'},
+    {key:'type', label:'群組'},
+    {key:'action', label:'操作'}
+  ],
+  searchProduct: [
+    {key:'code', label:'品項編碼'},
+    {key:'name', label:'品項名稱 [規格]'},
+    {key:'sale_price', label:'售價'},
+    {key:'action', label:'操作'}
+  ],
+  searchPurchaseProduct: [
+    {key:'code', label:'品項編碼'},
+    {key:'name', label:'品項名稱 [規格]'},
+    {key:'cost_price', label:'成本'},
+    {key:'action', label:'操作'}
+  ],
+  searchInvoiceProduct: [
+    {key:'code', label:'品項編碼'},
+    {key:'name', label:'品項名稱 [規格]'},
+    {key:'cost_price', label:'成本'},
+    {key:'action', label:'操作'}
+  ],
+  searchPosProduct: [
+    {key:'barcode', label:'條碼'},
+    {key:'name', label:'品名'},
+    {key:'sale_price', label:'售價'},
+    {key:'stock', label:'庫存'},
+    {key:'action', label:'操作'}
   ]
 };
 
@@ -3330,7 +3721,16 @@ const sortState = ref({
   salesReport: { column: null, direction: 'asc' },
   purchaseReport: { column: null, direction: 'asc' },
   inventory: { column: null, direction: 'asc' },
-  customer: { column: null, direction: 'asc' }
+  customer: { column: null, direction: 'asc' },
+  todo: { column: null, direction: 'asc' },
+  transfer: { column: null, direction: 'asc' },
+  invoice: { column: null, direction: 'asc' },
+  inventoryHistory: { column: null, direction: 'asc' },
+  searchCustomer: { column: null, direction: 'asc' },
+  searchProduct: { column: null, direction: 'asc' },
+  searchPurchaseProduct: { column: null, direction: 'asc' },
+  searchInvoiceProduct: { column: null, direction: 'asc' },
+  searchPosProduct: { column: null, direction: 'asc' }
 });
 
 // 表格排序功能
@@ -3454,7 +3854,7 @@ function getSortedData(table, data) {
 
 function getColumnSortIcon(table, columnKey) {
   const state = sortState.value[table];
-  if (state.column !== columnKey) return '';
+  if (!state || state.column !== columnKey) return '';
   return state.direction === 'asc' ? '↑' : '↓';
 }
 
@@ -3490,9 +3890,9 @@ const receiveSelectedIds = ref([]);
 const invoiceForm = ref({date:new Date().toISOString().slice(0,10),supplier_id:0,items:[{product_id:0, qty:1, price:0, subtotal:0}], remark:''});
 const salesForm = ref({date:new Date().toISOString().slice(0,10),clerk:'',invoiceType:'免發票',invoiceStyle:'二聯',invoiceNumber:'',invoiceTitle:'',invoiceUniform:'',paymentMethod:'',bankAccountId:'',customer_name:'',customer_id:0,customer_tel:'',customer_address:'',shippingMethod:'',warehouse_id:0,channel_id:0,channelCommission:0,paymentCommission:0,freightType:'不含運費',freightAmount:0,items:[]});
 const salesTotalEx = ref(0), salesTotalTax = ref(0), salesTotalInc = ref(0);
-const bomModalOpen = ref(false), bomEditId = ref(null), bomForm = ref({parent_id:0,components:[]});
+const bomModalOpen = ref(false), bomEditId = ref(null), bomForm = ref({parent_id:'',components:[]});
 const categoryModalOpen = ref(false), catEditId = ref(null), catForm = ref({name:'',desc:''});
-const hrModalOpen = ref(false), hrForm = ref({id:null,name:'',phone:'',address:'',line:'',role:'員工',isActive:true,username:'',password:'',permissions:{}}), hrModalTitle = ref('');
+const hrModalOpen = ref(false), hrForm = ref({id:null,name:'',phone:'',address:'',line:'',role:'員工',is_active:true,username:'',password:'',permissions:{}}), hrModalTitle = ref('');
 const quickLinkModalOpen = ref(false);
 const reportEditModalOpen = ref(false), reportEditForm = ref({_uid:'', date:'', product_id:0, supplier_id:0, price:0, qty:0, freight:0, tax:0, amount_inc:0});
 const crmGroupModalOpen = ref(false), newCustomerGroup = ref('');
@@ -4181,7 +4581,7 @@ function editSalesReportItem(item) {
 // ========================================
 function openBomModal(bom) {
   if(bom) { bomEditId.value = bom.id; bomForm.value = { parent_id: bom.parent_id, components: JSON.parse(JSON.stringify(bom.components)) }; }
-  else { bomEditId.value = null; bomForm.value = { parent_id: 0, components: [{product_id:0, qty:1}] }; }
+  else { bomEditId.value = null; bomForm.value = { parent_id: '', components: [{product_id:'', qty:1}] }; }
   bomModalOpen.value = true;
 }
 function saveBom() {
@@ -4191,7 +4591,8 @@ function saveBom() {
     return;
   }
   if(!bomForm.value.parent_id || !bomForm.value.components[0]?.product_id) { alertMsg.value = '請填寫完整資料'; return; }
-  let obj = { id: bomEditId.value || Date.now() + Math.random(), parent_id: bomForm.value.parent_id, components: bomForm.value.components.filter(c => c.product_id), is_active: true };
+  // 生成 UUID 格式的 ID
+  let obj = { id: bomEditId.value || generateUUID(), parent_id: bomForm.value.parent_id, components: bomForm.value.components.filter(c => c.product_id), is_active: true };
   if(bomEditId.value) { let idx = bomList.value.findIndex(b => b.id === bomEditId.value); if(idx >= 0) bomList.value[idx] = obj; }
   else bomList.value.push(obj);
   persistData(); bomModalOpen.value = false; alertMsg.value = 'BOM已儲存';
@@ -6685,7 +7086,7 @@ function openHrModal(emp) {
       address: emp.address||'', 
       line: emp.line||'', 
       role: emp.role||'員工', 
-      isActive: emp.isActive !== undefined ? emp.isActive : true,
+      is_active: emp.is_active !== undefined ? emp.is_active : true,
       username: emp.username || '',
       password: emp.password || '',
       permissions: emp.permissions || {}
@@ -6699,7 +7100,7 @@ function openHrModal(emp) {
       address:'', 
       line:'', 
       role:'員工', 
-      isActive:true,
+      is_active:true,
       username: '',
       password: '',
       permissions: {}
@@ -6956,7 +7357,7 @@ function handleLogin() {
   const employee = (employees.value || []).find(e => 
     e.username === loginForm.value.username && 
     e.password === loginForm.value.password &&
-    e.isActive !== false
+    e.is_active !== false
   );
   
   console.log('找到的員工:', employee);
@@ -7401,7 +7802,7 @@ function exportModuleData(moduleName) {
         '職位': e.position || '',
         '電話': e.tel || '',
         'Email': e.email || '',
-        '狀態': e.isActive ? '在職' : '離職'
+        '狀態': e.is_active ? '在職' : '離職'
       }));
       break;
     case 'bankAccounts': 
@@ -7636,7 +8037,7 @@ function importModuleData(event) {
                 address: d.address || d['地址'] || '',
                 line: d.line || d['LINE'] || '',
                 permissions: d.permissions || {},
-                isActive: d.isActive !== undefined ? d.isActive : (d['在職狀態'] !== undefined ? d['在職狀態'] : true)
+                isActive: d.is_active !== undefined ? d.is_active : (d['在職狀態'] !== undefined ? d['在職狀態'] : true)
               });
             }
           });
@@ -8009,7 +8410,7 @@ function exportAllDataExcel() {
         '職位': e.position || '',
         '電話': e.tel || '',
         'Email': e.email || '',
-        '狀態': e.isActive ? '在職' : '離職'
+        '狀態': e.is_active ? '在職' : '離職'
       }));
       let ws = XLSX.utils.json_to_sheet(empData);
       ws['!cols'] = [{wch: 20}];
@@ -8243,7 +8644,7 @@ onMounted(async () => {
         reports: 'edit',
         settings: 'edit'
       },
-      isActive: true
+      is_active: true
     });
     persistData();
     console.log('已創建初始管理員帳號，現在有', employees.value.length, '筆員工資料');
@@ -8434,10 +8835,16 @@ if (!isStandalone && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     // 註冊 Service Worker（使用相對路徑以支援 GitHub Pages 子目錄）
     try {
-      const registration = await navigator.serviceWorker.register('./sw.js');
-      console.log('✅ Service Worker registered:', registration.scope);
+      // 只在不使用 file 協議時註冊 Service Worker（本地打開會報錯）
+      if (window.location.protocol !== 'file:') {
+        const registration = await navigator.serviceWorker.register('./sw.js');
+        console.log('✅ Service Worker registered:', registration.scope);
+      } else {
+        console.log('ℹ️ [PWA] 本地文件模式，跳過 Service Worker 註冊');
+      }
     } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
+      // 靜默處理 Service Worker 錯誤（不影響功能）
+      console.log('️ [PWA] Service Worker 未啟用（本地文件模式）');
     }
 
     // 監聽安裝提示事件
