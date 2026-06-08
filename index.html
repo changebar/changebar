@@ -1857,7 +1857,7 @@ button { cursor: pointer; }
 </div>
 <div><h4 class="font-bold mb-2 text-[#DEC8B6]">細項設定</h4>
 <div class="flex gap-2 mb-3"><select :value="selectedExpCatForSub" @input="selectedExpCatForSub = Number($event.target.value)" class="form-input-cute w-40"><option value="">選擇大類</option><option v-for="c in expenseCategories" :value="c.id">{{ c.name }}</option></select><input v-model="newExpSubCatName" class="form-input-cute flex-1" placeholder="輸入細項名稱"><button @click="addExpenseSubCategory" class="bg-[#DEC8B6] text-white px-4 py-2 rounded-full text-sm">新增</button></div>
-<div v-for="(sc, idx) in filteredSubCategories" :key="sc.id" class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-xl mb-2"><span>{{ sc.name }} <span class="text-xs text-gray-400">({{ getExpenseCatName(sc.parentId) }})</span></span><button @click="confirmDelete('expenseSubCategory',sc.id)" class="text-rose-400 text-sm">刪除</button></div>
+<div v-for="(sc, idx) in filteredSubCategories" :key="sc.id" class="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-xl mb-2"><span>{{ sc.name }} <span class="text-xs text-gray-400">({{ getExpenseCatName(sc.category_id) }})</span></span><button @click="confirmDelete('expenseSubCategory',sc.id)" class="text-rose-400 text-sm">刪除</button></div>
 </div>
 </div>
 </div>
@@ -3047,7 +3047,7 @@ function mapTableFields(tableName, data) {
 function mapRecordFields(tableName, item) {
   // 🔥 通用處理：確保 id 有效
   if (!item.id || !String(item.id).trim()) {
-    console.warn(`⚠️ [AutoFix] ${tableName}: 發現無效 id，已自動生成`);
+    console.log(`[AutoFix] ${tableName}: 缺少 id，已自動生成新 ID`);
     item.id = generateUUID();
   }
   
@@ -3206,6 +3206,7 @@ function mapRecordFields(tableName, item) {
         status: String(item.status || 'pending').trim(),
         total_amount: Number(item.total_amount || item.totalAmount) || 0,
         remark: String(item.remark || '').trim(),
+        operator: String(item.operator || '').trim(),
         items: item.items ? JSON.stringify(item.items) : '[]'
       };
     
@@ -3253,7 +3254,8 @@ function mapRecordFields(tableName, item) {
         unit_price: Number(item.unit_price || item.unitPrice) || 0,
         subtotal_ex: Number(item.subtotalEx || item.subtotal_ex) || 0,
         tax_amount: Number(item.taxAmount || item.tax_amount) || 0,
-        subtotal_inc: Number(item.subtotalInc || item.subtotal_inc) || 0
+        subtotal_inc: Number(item.subtotalInc || item.subtotal_inc) || 0,
+        memo: String(item.memo || '').trim()
       };
     
     case 'income_ledger':
@@ -3265,7 +3267,8 @@ function mapRecordFields(tableName, item) {
         bank_account_id: convertIdToUUID(item.bankId || item.bank_id || item.bank_account_id),
         category: String(item.category || '').trim(),
         note: String(item.note || '').trim(),
-        payment_method_name: String(item.paymentMethodName || item.payment_method_name || '').trim()
+        payment_method_name: String(item.paymentMethodName || item.payment_method_name || '').trim(),
+        type: String(item.type || '').trim()
       };
     
     case 'expense_ledger': {
@@ -3280,19 +3283,21 @@ function mapRecordFields(tableName, item) {
         bank_account_id: convertIdToUUID(rest.bank_account_id),
         vendor_id: convertIdToUUID(rest.vendor_id),
         note: String(rest.note || '').trim(),
-        payment_method: String(rest.paymentMethod || rest.payment_method || '').trim()
+        payment_method: String(rest.paymentMethod || rest.payment_method || '').trim(),
+        type: String(rest.type || '').trim()
       };
     }
     
     case 'expense_categories':
+      // 前台已确保数据格式正确，直接映射
       return {
         ...item,
         id: String(item.id),
-        name: String(item.name || '').trim(),
-        parent_id: item.parent_id ? convertIdToUUID(item.parent_id) : null
+        name: String(item.name || '').trim()
       };
     
     case 'expense_sub_categories':
+      // 前台已确保使用 category_id 而不是 parentId
       return {
         ...item,
         id: String(item.id),
@@ -3319,15 +3324,14 @@ function mapRecordFields(tableName, item) {
     }
     
     case 'operation_logs': {
-      // 排除可能不存在的欄位
-      const { description, ...rest } = item;
+      // 前台已确保只使用 description 字段
       return {
-        ...rest,
-        id: String(rest.id),
-        timestamp: rest.timestamp || new Date().toISOString(),
-        module: String(rest.module || '').trim(),
-        action: String(rest.action || '').trim(),
-        detail: String(rest.detail || '').trim()
+        ...item,
+        id: String(item.id),
+        timestamp: item.timestamp || new Date().toISOString(),
+        module: String(item.module || '').trim(),
+        action: String(item.action || '').trim(),
+        description: String(item.description || '').trim()
       };
     }
     
@@ -3365,6 +3369,7 @@ function mapRecordFields(tableName, item) {
     
     case 'company_settings':
       return {
+        id: item.id || generateUUID(),
         name: String(item.name || item['姓名'] || '').trim(),
         tax_id: String(item.taxId || item.tax_id || item.uniform_number || item['稅號'] || '').trim(),
         tel: String(item.tel || item.phone || item['電話'] || '').trim(),
@@ -7339,7 +7344,7 @@ function refreshMonthlyReport() {
 function onExpenseCategoryChange() { newExpense.value.subCategoryId = 0; }
 const filteredSubCategories = computed(() => {
   if (!expenseSubCategories.value || !Array.isArray(expenseSubCategories.value)) return [];
-  return (expenseSubCategories.value || []).filter(s => !selectedExpCatForSub.value || s.parentId === selectedExpCatForSub.value);
+  return (expenseSubCategories.value || []).filter(s => !selectedExpCatForSub.value || s.category_id === selectedExpCatForSub.value);
 });
 function addExpenseCategory() {
   // 權限檢查
@@ -7356,7 +7361,15 @@ function addExpenseSubCategory() {
     return;
   }
   if(!selectedExpCatForSub.value) { alertMsg.value = '請先選擇大類'; return; }
-  if(newExpSubCatName.value.trim()) { expenseSubCategories.value.push({id: generateUUID(), parentId: selectedExpCatForSub.value, name: newExpSubCatName.value.trim()}); newExpSubCatName.value = ''; persistData(); }
+  if(newExpSubCatName.value.trim()) { 
+    expenseSubCategories.value.push({
+      id: generateUUID(), 
+      category_id: selectedExpCatForSub.value,  // 使用 category_id 而不是 parentId
+      name: newExpSubCatName.value.trim()
+    }); 
+    newExpSubCatName.value = ''; 
+    persistData(); 
+  }
 }
 function saveNewExpense() {
   // 權限檢查
@@ -7879,8 +7892,7 @@ function addOperationLog(module, action, description, details = {}) {
     timestamp: new Date().toISOString(),
     module: module,
     action: action,
-    description: description,
-    details: details
+    description: description + (Object.keys(details).length > 0 ? ' - ' + JSON.stringify(details) : '')  // 將 details 合併到 description 中
   };
   operationLogs.value.unshift(log);
   
