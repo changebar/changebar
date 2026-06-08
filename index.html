@@ -389,10 +389,39 @@ button { cursor: pointer; }
 <body>
 <div id="app">
 
+<!-- Supabase 连接状态指示器 -->
+<div v-if="!isFileProtocol || fileWarningDismissed" class="fixed top-0 right-0 m-4 z-50">
+  <div v-if="dbLoading" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+    <i class="fas fa-spinner fa-spin"></i>
+    <span>正在连接 Supabase...</span>
+  </div>
+  <div v-else-if="dbConnected" class="bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+    <i class="fas fa-check-circle"></i>
+    <span>Supabase 已连接</span>
+  </div>
+  <div v-else class="bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 cursor-pointer" @click="showConnectionDetails = !showConnectionDetails">
+    <i class="fas fa-times-circle"></i>
+    <span>Supabase 未连接（本地模式）</span>
+    <i class="fas fa-chevron-down ml-2"></i>
+  </div>
+  
+  <!-- 连接详情弹窗 -->
+  <div v-if="!dbConnected && showConnectionDetails" class="absolute top-full right-0 mt-2 bg-white border-2 border-red-300 rounded-lg shadow-xl p-4 w-80 text-left">
+    <h4 class="font-bold text-red-600 mb-2">连接失败详情</h4>
+    <div class="text-sm space-y-2 text-gray-700">
+      <p><strong>当前网址：</strong>{{ currentUrl }}</p>
+      <p><strong>协议：</strong>{{ currentProtocol }}</p>
+      <p class="text-xs text-gray-500 mt-2">请查看 F12 Console 获取完整错误信息</p>
+    </div>
+    <button @click="showConnectionDetails = false" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm">关闭</button>
+  </div>
+</div>
+
 <!-- ===== 登入頁面 ===== -->
 <div v-if="!isLoggedIn" class="login-page">
   <div class="login-container">
     <div class="login-header">
+      
       <div class="text-6xl mb-3 text-[#8BC34A]"></div>
       <h2 class="text-2xl font-bold text-[#6B4E2E]">{{ companySettings.name || '養芯健康管理系統' }}</h2>
       <p class="text-[#8BC34A] font-medium mt-2 text-lg">健飽卡ChangeBar</p>
@@ -2714,6 +2743,40 @@ const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/**
+ * ============================================================
+ * 📌 初始管理員帳號設定（重要！）
+ * ============================================================
+ * 
+ * 系統會在首次啟動時自動創建以下初始管理員帳號：
+ * 
+ * 👤 帳號 (Username)：0987305415
+ * 🔑 密碼 (Password)：12345
+ * 👔 角色：系統管理員
+ * 
+ * ⚠️ 注意事項：
+ * 1. 此帳號會自動保存在瀏覽器的 LocalStorage 中
+ * 2. 如果連接到 Supabase，帳號也會同步到雲端資料庫
+ * 3. 登入後可以在「人事管理」模組中修改密碼或創建新員工
+ * 4. 建議首次登入後立即修改預設密碼以確保安全
+ * 
+ * ❓ 如果看到 "AuthApiError" 錯誤：
+ * - 這個錯誤與您的系統無關（您的系統不使用 Supabase Auth）
+ * - 可能是瀏覽器擴展或之前的緩存請求導致
+ * - 請清除瀏覽器緩存或使用無痕模式測試
+ * - 系統仍可正常使用，會自動切換到本地模式
+ * ============================================================
+ */
+
+// 检测是否为 file:// 协议
+const isFileProtocol = ref(window.location.protocol === 'file:');
+const fileWarningDismissed = ref(false);
+
+// Supabase 连接状态详情
+const showConnectionDetails = ref(false);
+const currentUrl = ref(window.location.href);
+const currentProtocol = ref(window.location.protocol);
+
 // 數據庫操作工具
 const db = {
   async getAll(table, options = {}) {
@@ -2741,15 +2804,55 @@ const db = {
   },
   async testConnection() {
     try {
+      console.log('🔍 [DB] 正在连接 Supabase...');
+      console.log('[DB] Supabase URL:', SUPABASE_URL);
+      console.log('[DB] Supabase Key 前缀:', SUPABASE_KEY.substring(0, 20) + '...');
+      
+      // 首先测试基本连接
+      const { data: healthData, error: healthError } = await supabaseClient.rpc('version');
+      if (healthError && healthError.code !== '42883') {
+        console.warn('[DB] 健康检查警告:', healthError);
+      }
+      
+      // 测试 employees 表访问
       const { data, error } = await supabaseClient.from('employees').select('*').limit(1);
+      
       if (error) {
-        console.error('[DB] 連接測試錯誤:', error);
+        console.error('❌ [DB] 连接测试失败!');
+        console.error('[DB] 错误对象:', JSON.stringify(error, null, 2));
+        console.error('[DB] 错误代码:', error.code);
+        console.error('[DB] 错误信息:', error.message);
+        console.error('[DB] 错误详情:', error.details);
+        console.error('[DB] 错误提示:', error.hint);
+        
+        // 特别处理认证相关错误
+        if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
+          console.error('⚠️ [DB] 检测到 API Key 问题！请检查 SUPABASE_KEY 是否正确');
+        }
+        if (error.message.includes('relation') && error.message.includes('does not exist')) {
+          console.error('⚠️ [DB] 数据库表不存在！请确认已执行 complete-setup.sql');
+        }
+        
         return false;
       }
-      console.log('[DB] 連接測試成功，員工數量:', data ? data.length : 0);
+      
+      console.log('✅ [DB] 连接测试成功！');
+      console.log('[DB] 员工数据示例:', data ? data.length : 0, '笔记录');
       return true;
     } catch (err) {
-      console.error('[DB] 連接測試異常:', err);
+      console.error('❌ [DB] 连接测试异常!');
+      console.error('[DB] 异常类型:', err.name || 'Unknown');
+      console.error('[DB] 异常信息:', err.message);
+      console.error('[DB] 异常堆栈:', err.stack);
+      
+      // 特别处理网络错误
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        console.error('⚠️ [DB] 网络连接失败！请检查：');
+        console.error('   1. 是否使用 http://localhost 而非 file://');
+        console.error('   2. 网络连接是否正常');
+        console.error('   3. Supabase 服务是否可用');
+      }
+      
       return false;
     }
   }
@@ -2762,20 +2865,50 @@ window.supabaseClient = supabaseClient;
 const dbConnected = ref(false);
 const dbLoading = ref(false);
 
+// 关闭文件协议警告
+function dismissFileWarning() {
+  fileWarningDismissed.value = true;
+}
+
 // 初始化數據庫連接
 async function initDatabase() {
   dbLoading.value = true;
   try {
+    // 不再阻擋 file:// 協議，嘗試連接 Supabase
+    console.log('🔍 [DB] 正在測試 Supabase 連接...');
+    console.log('[DB] 當前網址:', window.location.href);
+    console.log('[DB] 協議:', window.location.protocol);
+    
     const connected = await db.testConnection();
     dbConnected.value = connected;
+    
     if (connected) {
-      console.log('✅ [DB] Supabase 連接成功！');
+      console.log('✅ [DB] Supabase 連接成功！系統將使用雲端數據庫。');
+      console.log('🌐 [DB] 所有設備的數據將自動同步到雲端。');
     } else {
-      console.warn('⚠️ [DB] Supabase 連接失敗，將使用 LocalStorage');
+      console.warn('⚠️ [DB] Supabase 連接失敗，將使用 LocalStorage 本地模式');
+      console.warn('⚠️ [DB] 本地模式的數據不會同步到其他設備。');
+      
+      // 顯示友好提示（非阻擋性）
+      setTimeout(() => {
+        console.log('💡 [提示] 如果需要多設備同步，請確保：');
+        console.log('   1. Supabase 專案正常運行');
+        console.log('   2. 已執行 complete-setup.sql 創建所有表格');
+        console.log('   3. RLS 政策已正確設定');
+      }, 500);
     }
   } catch (err) {
-    console.error('❌ [DB] 連接失敗:', err);
-    console.warn('⚠️ [DB] 將使用 LocalStorage');
+    console.error('❌ [DB] 連接過程發生異常:', err);
+    console.error('❌ [DB] 異常類型:', err.name || 'Unknown');
+    console.error('❌ [DB] 異常信息:', err.message);
+    console.warn('️ [DB] 將使用 LocalStorage 本地模式');
+    dbConnected.value = false;
+    
+    // 記錄錯誤但不阻擋系統使用
+    setTimeout(() => {
+      console.log('⚠️ Supabase 連接失敗，但不影響本地使用');
+      console.log('詳細錯誤請查看上面的 Console 輸出');
+    }, 500);
   } finally {
     dbLoading.value = false;
   }
@@ -7742,8 +7875,19 @@ function handleLogin() {
     return;
   }
   
-  console.log('嘗試登入 - 帳號:', loginForm.value.username, '密碼:', loginForm.value.password);
-  console.log('所有員工資料:', employees.value);
+  console.log('🔐 [Login] 嘗試登入 - 帳號:', loginForm.value.username);
+  console.log('[Login] 員工資料數量:', employees.value ? employees.value.length : 0);
+  
+  // 檢查員工資料是否已載入
+  if (!employees.value || employees.value.length === 0) {
+    console.warn('⚠️ [Login] 警告：員工資料尚未載入！');
+    loginError.value = '系統資料尚未準備完成，請稍後再試';
+    
+    setTimeout(() => {
+      alert('⚠️ 系統初始化中\n\n員工資料尚未載入完成，這可能是因為：\n1. Supabase 連接失敗\n2. LocalStorage 資料損毀\n\n請嘗試：\n- 清除瀏覽器緩存後重新整理\n- 檢查 F12 Console 獲取詳細錯誤信息');
+    }, 500);
+    return;
+  }
   
   // 查找員工
   const employee = (employees.value || []).find(e => 
@@ -7752,7 +7896,7 @@ function handleLogin() {
     e.is_active !== false
   );
   
-  console.log('找到的員工:', employee);
+  console.log('[Login] 找到的員工:', employee ? employee.name : '未找到');
   
   if (employee) {
     // 登入成功
@@ -9156,40 +9300,49 @@ onMounted(async () => {
   resetIdleTimer();
   
   // 設置初始管理員帳號（強制創建，如果不存在）
-  console.log('檢查員工資料，目前有', employees.value.length, '筆');
+  console.log('🔍 [Init] 檢查員工資料，目前有', employees.value.length, '筆');
   const adminByUsername = (employees.value || []).find(e => e.username === '0987305415');
+  
   if(!adminByUsername) {
-    console.log('創建初始管理員帳號：0987305415 / 12345');
-    employees.value.push({
-      id: generateUUID(),
-      name: '系統管理員',
-      username: '0987305415',
-      password: '12345',
-      role: '系統管理員',
-      phone: '0987305415',
-      address: '',
-      line: '',
-      permissions: {
-        dashboard: 'edit',
-        pos: 'edit',
-        purchase: 'edit',
-        sales: 'edit',
-        customer: 'edit',
-        inventory: 'edit',
-        hr: 'edit',
-        finance: 'edit',
-        reports: 'edit',
-        settings: 'edit'
-      },
-      is_active: true
-    });
-    persistData();
-    console.log('已創建初始管理員帳號，現在有', employees.value.length, '筆員工資料');
-    setTimeout(() => {
-      alertMsg.value = '✅ 已創建初始管理員帳號\n帳號：0987305415\n密碼：12345';
-    }, 500);
+    console.log('✅ [Init] 創建初始管理員帳號：0987305415 / 12345');
+    try {
+      employees.value.push({
+        id: generateUUID(),
+        name: '系統管理員',
+        username: '0987305415',
+        password: '12345',
+        role: '系統管理員',
+        phone: '0987305415',
+        address: '',
+        line: '',
+        permissions: {
+          dashboard: 'edit',
+          pos: 'edit',
+          purchase: 'edit',
+          sales: 'edit',
+          customer: 'edit',
+          inventory: 'edit',
+          hr: 'edit',
+          finance: 'edit',
+          reports: 'edit',
+          settings: 'edit'
+        },
+        is_active: true
+      });
+      persistData();
+      console.log('✅ [Init] 已創建初始管理員帳號，現在有', employees.value.length, '筆員工資料');
+      
+      setTimeout(() => {
+        alertMsg.value = '✅ 已創建初始管理員帳號\n\n👤 帳號：0987305415\n🔑 密碼：12345\n\n請使用此帳號登入系統。';
+      }, 500);
+    } catch (err) {
+      console.error('❌ [Init] 創建初始帳號失敗:', err);
+      setTimeout(() => {
+        alert('❌ 創建初始帳號失敗\n\n錯誤信息：' + err.message + '\n\n請嘗試清除瀏覽器緩存後重新整理頁面。');
+      }, 500);
+    }
   } else {
-    console.log('初始管理員帳號已存在，跳過創建');
+    console.log('ℹ️ [Init] 初始管理員帳號已存在，跳過創建');
   }
   
   addSalesItem();
@@ -9357,6 +9510,10 @@ return {
   
   // Supabase 數據庫連接狀態
   dbConnected, dbLoading,
+  
+  // Supabase 连接状态详情
+  isFileProtocol, fileWarningDismissed, showConnectionDetails, currentUrl, currentProtocol,
+  dismissFileWarning,
   
   // 數據同步功能
   syncFromSupabaseUI, syncToSupabaseUI, testSyncUI
