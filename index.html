@@ -9556,11 +9556,12 @@ onMounted(async () => {
   resetIdleTimer();
   
   // 設置初始管理員帳號（強制創建，如果不存在）
+  //  修復：只在 LocalStorage 中沒有員工資料時才創建（避免覆蓋雲端數據）
   console.log('🔍 [Init] 檢查員工資料，目前有', employees.value.length, '筆');
-  const adminByUsername = (employees.value || []).find(e => e.username === '0987305415');
-  
-  if(!adminByUsername) {
-    console.log('✅ [Init] 創建初始管理員帳號：0987305415 / 12345');
+    
+  // 只有在員工資料為空時才創建初始管理員
+  if(employees.value.length === 0) {
+    console.log('✅ [Init] 員工資料為空，創建初始管理員帳號：0987305415 / 12345');
     try {
       employees.value.push({
         id: generateUUID(),
@@ -9587,7 +9588,7 @@ onMounted(async () => {
       });
       persistData();
       console.log('✅ [Init] 已創建初始管理員帳號，現在有', employees.value.length, '筆員工資料');
-      
+        
       setTimeout(() => {
         alertMsg.value = '✅ 已創建初始管理員帳號\n\n👤 帳號：0987305415\n🔑 密碼：12345\n\n請使用此帳號登入系統。';
       }, 500);
@@ -9598,7 +9599,40 @@ onMounted(async () => {
       }, 500);
     }
   } else {
-    console.log('ℹ️ [Init] 初始管理員帳號已存在，跳過創建');
+    console.log('ℹ️ [Init] 員工資料已存在（' + employees.value.length + ' 筆），跳過創建初始管理員');
+      
+    // 檢查管理員帳號是否存在，如果不存在則添加
+    const adminByUsername = employees.value.find(e => e.username === '0987305415');
+    if(!adminByUsername) {
+      console.log('✅ [Init] 管理員帳號不存在，添加管理員帳號');
+      employees.value.push({
+        id: generateUUID(),
+        name: '系統管理員',
+        username: '0987305415',
+        password: '12345',
+        role: '系統管理員',
+        phone: '0987305415',
+        address: '',
+        line: '',
+        permissions: {
+          dashboard: 'edit',
+          pos: 'edit',
+          purchase: 'edit',
+          sales: 'edit',
+          customer: 'edit',
+          inventory: 'edit',
+          hr: 'edit',
+          finance: 'edit',
+          reports: 'edit',
+          settings: 'edit'
+        },
+        is_active: true
+      });
+      persistData();
+      console.log('✅ [Init] 已添加管理員帳號，現在有', employees.value.length, '筆員工資料');
+    } else {
+      console.log('️ [Init] 管理員帳號已存在');
+    }
   }
   
   addSalesItem();
