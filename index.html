@@ -3003,13 +3003,28 @@ async function syncDataFromSupabase() {
   for (const [table, refVar] of Object.entries(tableMappings)) {
     try {
       console.log(` [Sync] 開始載入 ${table}...`);
+      
+      // 🔥 特別檢查 employees 表格
+      if (table === 'employees') {
+        console.log('🔍 [Sync] employees 開始從 Supabase 載入...');
+      }
+      
       const data = await db.getAll(table);
       
       // 🔥 重要：檢查數據是否正確載入
       if (!Array.isArray(data) && typeof data !== 'object') {
-        console.error(`❌ [Sync] ${table}: 數據格式錯誤！`, data);
+        console.error(` [Sync] ${table}: 數據格式錯誤！`, data);
         failCount++;
         continue;
+      }
+            
+      // 🔥 特別檢查 employees 表格
+      if (table === 'employees') {
+        console.log('🔍 [Sync] employees 從 Supabase 載入完成');
+        console.log('[Sync] employees 數據:', data);
+        console.log('[Sync] employees 數據類型:', typeof data);
+        console.log('[Sync] employees 是否為陣列:', Array.isArray(data));
+        console.log('[Sync] employees 數量:', Array.isArray(data) ? data.length : '非陣列');
       }
       
       // 更新 Vue 響應式變數
@@ -3021,6 +3036,14 @@ async function syncDataFromSupabase() {
         // 其他是陣列
         refVar.value = data;
         localStorage.setItem(`erp_${table}`, JSON.stringify(data));
+        
+        // 🔥 特別檢查 employees 表格
+        if (table === 'employees') {
+          console.log('🔍 [Sync] employees Vue 變數已更新');
+          console.log('[Sync] employees.value:', refVar.value);
+          console.log('[Sync] employees.value.length:', refVar.value.length);
+          console.log('[Sync] LocalStorage 中的 employees:', JSON.parse(localStorage.getItem(`erp_${table}`)));
+        }
       }
       
       successCount++;
