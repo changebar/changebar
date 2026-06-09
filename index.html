@@ -3567,6 +3567,23 @@ window.syncDataFromSupabase = syncDataFromSupabase;
 window.syncDataToSupabase = syncDataToSupabase;
 window.syncTableToSupabase = syncTableToSupabase;
 
+// 🔥 新增：雲端診斷工具（供 Console 使用）
+window.checkCloudEmployees = async function() {
+  try {
+    const { data, error } = await supabaseClient.from('employees').select('*');
+    console.log('🔍 [雲端診斷] 雲端員工總數:', data ? data.length : 0);
+    console.table(data);
+    return data;
+  } catch (err) {
+    console.error('❌ [雲端診斷] 查詢失敗:', err);
+  }
+};
+
+// 暴露 employees 變數供 Console 檢查
+window.getEmployees = function() {
+  return employees.value;
+};
+
 // 即時同步所有數據（帶防抖功能）
 let syncTimeout = null;
 async function syncAllToSupabase() {
