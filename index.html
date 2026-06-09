@@ -2780,12 +2780,42 @@ const currentProtocol = ref(window.location.protocol);
 // 數據庫操作工具
 const db = {
   async getAll(table, options = {}) {
+    console.log(` [DB] 開始查詢表格: ${table}`);
     let query = supabaseClient.from(table).select('*');
     if (options.orderBy) query = query.order(options.orderBy, { ascending: options.ascending !== false });
     if (options.limit) query = query.limit(options.limit);
+    
     const { data, error } = await query;
-    if (error) { console.error(`[DB] 讀取 ${table} 失敗:`, error); return []; }
-    return (data || []).map(item => ({ ...item, id: item.id.toString() }));
+    
+    // 🔥 重要：詳細記錄 Supabase 響應
+    if (error) {
+      console.error(`❌ [DB] 讀取 ${table} 失敗!`);
+      console.error(` [DB] 錯誤對象:`, JSON.stringify(error, null, 2));
+      console.error(` [DB] 錯誤代碼:`, error.code);
+      console.error(` [DB] 錯誤信息:`, error.message);
+      console.error(` [DB] 錯誤詳情:`, error.details);
+      return [];
+    }
+    
+    // 🔥 檢查數據是否正確返回
+    if (!data || !Array.isArray(data)) {
+      console.warn(`️ [DB] ${table} 返回數據異常:`, data);
+      console.warn(` [DB] 數據類型:`, typeof data);
+      console.warn(` [DB] 是否為陣列:`, Array.isArray(data));
+      return [];
+    }
+    
+    console.log(` [DB] ${table} 成功載入 ${data.length} 筆記錄`);
+    
+    // 處理數據：確保 id 是字符串
+    const processedData = data.map(item => {
+      if (!item.id) {
+        console.warn(`️ [DB] ${table} 中的記錄缺少 id:`, item);
+      }
+      return { ...item, id: String(item.id) };
+    });
+    
+    return processedData;
   },
   async insert(table, record) {
     const { id, ...rest } = record;
@@ -2969,7 +2999,15 @@ async function syncDataFromSupabase() {
   
   for (const [table, refVar] of Object.entries(tableMappings)) {
     try {
+      console.log(` [Sync] 開始載入 ${table}...`);
       const data = await db.getAll(table);
+      
+      // 🔥 重要：檢查數據是否正確載入
+      if (!Array.isArray(data) && typeof data !== 'object') {
+        console.error(`❌ [Sync] ${table}: 數據格式錯誤！`, data);
+        failCount++;
+        continue;
+      }
       
       // 更新 Vue 響應式變數
       if (refVar.value && typeof refVar.value === 'object' && !Array.isArray(refVar.value)) {
@@ -2983,10 +3021,28 @@ async function syncDataFromSupabase() {
       }
       
       successCount++;
-      console.log(`✅ [Sync] ${table}: ${Array.isArray(data) ? data.length : (data ? 1 : 0)} 筆`);
+      const count = Array.isArray(data) ? data.length : (data ? 1 : 0);
+      console.log(`✅ [Sync] ${table}: ${count} 筆`);
+      
+      // 🔥 特別檢查 employees 表格
+      if (table === 'employees') {
+        console.log('🔍 [Sync] employees 詳細數據:', data);
+        if (count > 0) {
+          console.table(data.map(e => ({
+            id: e.id,
+            name: e.name,
+            username: e.username,
+            role: e.role
+          })));
+        }
+      }
     } catch (err) {
       failCount++;
       console.error(`❌ [Sync] ${table} 同步失敗:`, err);
+      console.error(` [Sync] ${table} 錯誤詳情:`, {
+        message: err.message,
+        stack: err.stack
+      });
     }
   }
   
