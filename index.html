@@ -9765,8 +9765,9 @@ function handleMenuClick(item) {
 onMounted(async () => {
   // 初始化 Supabase 數據庫連接（必須等待完成）
   await initDatabase();
-  // 等待連接完成後再載入數據
-  loadData();
+  //  關鍵修復：等待數據載入完成後再執行後續邏輯
+  await loadData();
+  console.log(' [Init] 數據載入完成，開始初始化...');
   // 載入字體大小設定
   const savedFontSize = localStorage.getItem('yangxin_fontSize');
   if(savedFontSize) {
