@@ -2957,6 +2957,9 @@ const useSupabaseData = ref(false);
 
 // 從 Supabase 載入所有數據到 LocalStorage 和 Vue 響應式變數
 async function syncDataFromSupabase() {
+  console.log(' [Sync] syncDataFromSupabase() 被調用');
+  console.log('[Sync] dbConnected.value:', dbConnected.value);
+  
   if (!dbConnected.value) {
     console.log('⚠️ [Sync] Supabase 未連接，跳過同步');
     return;
@@ -8715,13 +8718,19 @@ async function persistData() {
   }
 }
 async function loadData() {
+  console.log('🔍 [Load] loadData() 被調用');
+  console.log('[Load] dbConnected.value:', dbConnected.value);
+  
   // 如果 Supabase 已連接，先從 Supabase 載入數據（優先使用雲端數據）
   if (dbConnected.value) {
     console.log(' [Load] Supabase 已連接，從雲端載入數據...');
+    console.log('[Load] 開始調用 syncDataFromSupabase()...');
     await syncDataFromSupabase();
     console.log(' [Load] 雲端數據載入完成');
     return; // 載入完成後直接返回
   }
+  
+  console.log('⚠️ [Load] Supabase 未連接，從 LocalStorage 載入...');
   
   // 如果 Supabase 未連接，才從 LocalStorage 載入
   console.log(' [Load] Supabase 未連接，從 LocalStorage 載入...');
