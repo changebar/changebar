@@ -4985,14 +4985,14 @@ function toggleSelectAllEmployee() { selectedEmployeeIds.value = isAllEmployeeSe
 // ========================================
 // 5. 通用刪除功能 (Delete Operations)
 // ========================================
-function confirmDelete(type, id) {
+async function confirmDelete(type, id) {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除資料';
     return;
   }
   let msg = '確定刪除？此操作將同時清除相關聯的數據（如庫存、訂單明細等）。';
-  let onConfirm = () => {
+  let onConfirm = async () => {
     if(type==='bom') bomList.value = (bomList.value || []).filter(b => b.id !== id);
     else if(type==='vendor') {
       // 刪除廠商時，刪除相關的採購單
@@ -5095,65 +5095,73 @@ function confirmDelete(type, id) {
             }
         }
     }
-    persistData();
+    console.log('🔄 [Delete] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete] 同步完成');
     alertMsg.value = '已刪除並同步更新相關數據';
   };
   showConfirm(msg, onConfirm);
 }
 
-function confirmDeleteMultiple(type, ids) {
+async function confirmDeleteMultiple(type, ids) {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除資料';
     return;
   }
-  showConfirm(`確定刪除 ${ids.length} 筆資料？`, () => {
+  showConfirm(`確定刪除 ${ids.length} 筆資料？`, async () => {
     if(type==='receive') purchaseOrders.value = (purchaseOrders.value || []).filter(po => !ids.includes(po.id));
     else if(type==='customer') customers.value = (customers.value || []).filter(c => !ids.includes(c.id));
-    persistData();
+    console.log(' [Delete Multiple] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Multiple] 同步完成');
   });
 }
 
-function deleteSelectedBom() {
+async function deleteSelectedBom() {
   // 權限檢查
   if (!canEdit.value) {
-    alertMsg.value = '⚠️ 您只有查看權限，無法刪除 BOM';
+    alertMsg.value = '️ 您只有查看權限，無法刪除 BOM';
     return;
   }
   if(!selectedBomIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedBomIds.value.length} 筆？`, () => {
+  showConfirm(`確定刪除 ${selectedBomIds.value.length} 筆？`, async () => {
     bomList.value = (bomList.value || []).filter(b => !selectedBomIds.value.includes(b.id));
     selectedBomIds.value = [];
-    persistData();
+    console.log(' [Delete BOM] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete BOM] 同步完成');
     alertMsg.value = '已刪除並同步更新';
   });
 }
-function deleteSelectedCategory() {
+async function deleteSelectedCategory() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除類別';
     return;
   }
   if(!selectedCategoryIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedCategoryIds.value.length} 筆類別？這將影響相關商品。`, () => {
+  showConfirm(`確定刪除 ${selectedCategoryIds.value.length} 筆類別？這將影響相關商品。`, async () => {
     categories.value = (categories.value || []).filter(c => !selectedCategoryIds.value.includes(c.id));
     // 清除相關商品的類別
     (products.value || []).forEach(p => {
       if(selectedCategoryIds.value.includes(p.category_id)) p.category_id = 0;
     });
     selectedCategoryIds.value = [];
-    persistData();
+    console.log(' [Delete Category] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Category] 同步完成');
     alertMsg.value = '已刪除類別並更新相關商品';
   });
 }
-function deleteSelectedProduct() {
+async function deleteSelectedProduct() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除商品';
     return;
   }
   if(!selectedProductIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedProductIds.value.length} 筆商品？這將清除相關庫存和訂單明細。`, () => {
+  showConfirm(`確定刪除 ${selectedProductIds.value.length} 筆商品？這將清除相關庫存和訂單明細。`, async () => {
     products.value = (products.value || []).filter(p => !selectedProductIds.value.includes(p.id));
     // 清除相關庫存記錄
     stockLevels.value = (stockLevels.value || []).filter(s => !selectedProductIds.value.includes(s.product_id));
@@ -5178,110 +5186,126 @@ function deleteSelectedProduct() {
       }
     });
     selectedProductIds.value = [];
-    persistData();
+    console.log(' [Delete Product] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Product] 同步完成');
     alertMsg.value = '已刪除商品並同步更新相關數據';
   });
 }
-function deleteSelectedVendor() {
+async function deleteSelectedVendor() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除廠商';
     return;
   }
   if(!selectedVendorIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedVendorIds.value.length} 筆廠商？這將影響相關採購單。`, () => {
+  showConfirm(`確定刪除 ${selectedVendorIds.value.length} 筆廠商？這將影響相關採購單。`, async () => {
     vendors.value = (vendors.value || []).filter(v => !selectedVendorIds.value.includes(v.id));
     // 刪除相關廠商的採購單
     purchaseOrders.value = (purchaseOrders.value || []).filter(po => !selectedVendorIds.value.includes(po.supplier_id));
     selectedVendorIds.value = [];
-    persistData();
+    console.log(' [Delete Vendor] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Vendor] 同步完成');
     alertMsg.value = '已刪除廠商並更新相關採購單';
   });
 }
-function deleteSelectedWarehouse() {
+async function deleteSelectedWarehouse() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除倉庫';
     return;
   }
   if(!selectedWarehouseIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedWarehouseIds.value.length} 筆倉庫？這將清除該倉庫的所有庫存。`, () => {
+  showConfirm(`確定刪除 ${selectedWarehouseIds.value.length} 筆倉庫？這將清除該倉庫的所有庫存。`, async () => {
     warehouses.value = (warehouses.value || []).filter(w => !selectedWarehouseIds.value.includes(w.id));
     // 清除該倉庫的所有庫存記錄
     stockLevels.value = (stockLevels.value || []).filter(s => !selectedWarehouseIds.value.includes(s.warehouse_id));
     selectedWarehouseIds.value = [];
-    persistData();
+    console.log(' [Delete Warehouse] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Warehouse] 同步完成');
     alertMsg.value = '已刪除倉庫並清除相關庫存';
   });
 }
-function deleteSelectedBank() {
+async function deleteSelectedBank() {
   // 權限檢查
   if (!canEdit.value) {
-    alertMsg.value = '⚠️ 您只有查看權限，無法刪除銀行帳戶';
+    alertMsg.value = '️ 您只有查看權限，無法刪除銀行帳戶';
     return;
   }
   if(!selectedBankIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedBankIds.value.length} 筆？`, () => {
+  showConfirm(`確定刪除 ${selectedBankIds.value.length} 筆？`, async () => {
     bankAccounts.value = (bankAccounts.value || []).filter(b => !selectedBankIds.value.includes(b.id));
     selectedBankIds.value = [];
-    persistData();
+    console.log(' [Delete Bank] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Bank] 同步完成');
   });
 }
-function deleteSelectedChannel() {
+async function deleteSelectedChannel() {
   // 權限檢查
   if (!canEdit.value) {
-    alertMsg.value = '⚠️ 您只有查看權限，無法刪除渠道';
+    alertMsg.value = '️ 您只有查看權限，無法刪除渠道';
     return;
   }
   if(!selectedChannelIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedChannelIds.value.length} 筆？`, () => {
+  showConfirm(`確定刪除 ${selectedChannelIds.value.length} 筆？`, async () => {
     salesChannels.value = (salesChannels.value || []).filter(c => !selectedChannelIds.value.includes(c.id));
     selectedChannelIds.value = [];
-    persistData();
+    console.log(' [Delete Channel] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Channel] 同步完成');
   });
 }
-function deleteSelectedPaymentMethod() {
+async function deleteSelectedPaymentMethod() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除收款方式';
     return;
   }
   if(!selectedPaymentMethodIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedPaymentMethodIds.value.length} 筆？`, () => {
+  showConfirm(`確定刪除 ${selectedPaymentMethodIds.value.length} 筆？`, async () => {
     paymentMethods.value = (paymentMethods.value || []).filter(p => !selectedPaymentMethodIds.value.includes(p.id));
     selectedPaymentMethodIds.value = [];
-    persistData();
+    console.log(' [Delete Payment Method] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Payment Method] 同步完成');
   });
 }
-function deleteSelectedCustomers() {
+async function deleteSelectedCustomers() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除客戶';
     return;
   }
   if(!selectedCustomerIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedCustomerIds.value.length} 筆客戶？`, () => {
+  showConfirm(`確定刪除 ${selectedCustomerIds.value.length} 筆客戶？`, async () => {
     customers.value = (customers.value || []).filter(c => !selectedCustomerIds.value.includes(c.id));
     selectedCustomerIds.value = [];
-    persistData();
+    console.log(' [Delete Customer] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Customer] 同步完成');
   });
 }
-function deleteSelectedEmployee() {
+async function deleteSelectedEmployee() {
   // 權限檢查
   if (!canEdit.value) {
     alertMsg.value = '⚠️ 您只有查看權限，無法刪除員工';
     return;
   }
   if(!selectedEmployeeIds.value.length) return;
-  showConfirm(`確定刪除 ${selectedEmployeeIds.value.length} 筆員工？`, () => {
+  showConfirm(`確定刪除 ${selectedEmployeeIds.value.length} 筆員工？`, async () => {
     employees.value = (employees.value || []).filter(e => !selectedEmployeeIds.value.includes(e.id));
     selectedEmployeeIds.value = [];
-    persistData();
+    console.log(' [Delete Employee] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Employee] 同步完成');
   });
 }
-function deleteSelectedSalesReport() {
+async function deleteSelectedSalesReport() {
     if(!selectedSalesReportIds.value.length) return;
-    showConfirm(`確定刪除 ${selectedSalesReportIds.value.length} 筆銷售紀錄？`, () => {
+    showConfirm(`確定刪除 ${selectedSalesReportIds.value.length} 筆銷售紀錄？`, async () => {
         (selectedSalesReportIds.value || []).forEach(id => {
             let item = (salesDetails.value || []).find(d => d.id === id);
             if(item) {
@@ -5289,7 +5313,9 @@ function deleteSelectedSalesReport() {
             }
         });
         selectedSalesReportIds.value = [];
-        persistData();
+        console.log(' [Delete Sales Report] 開始同步到 Supabase...');
+        await persistData();
+        console.log('✅ [Delete Sales Report] 同步完成');
     });
 }
 function deleteSalesReportItem(item) {
@@ -6685,9 +6711,9 @@ const filteredSortedReportDetails = computed(() => {
   });
 });
 
-function deleteSelectedReportItems() {
+async function deleteSelectedReportItems() {
   if(!reportSelectedIds.value.length) return;
-  showConfirm(`刪除 ${reportSelectedIds.value.length} 筆？`, () => {
+  showConfirm(`刪除 ${reportSelectedIds.value.length} 筆？`, async () => {
     (reportSelectedIds.value || []).forEach(uid => {
       if(uid.startsWith('INV_')) {
         // 刪除發票時同步刪除對應的支出紀錄
@@ -7847,12 +7873,14 @@ function sortExpense(field) {
   else { tableSort.value.expense.field = field; tableSort.value.expense.order = 'asc'; }
 }
 
-function deleteSelectedExpenses() {
+async function deleteSelectedExpenses() {
   if(!selectedExpenseIds.value.length) return;
-  showConfirm(`刪除 ${selectedExpenseIds.value.length} 筆支出？`, () => {
+  showConfirm(`刪除 ${selectedExpenseIds.value.length} 筆支出？`, async () => {
     expenseLedger.value = (expenseLedger.value || []).filter(e => !selectedExpenseIds.value.includes(e.id));
     selectedExpenseIds.value = [];
-    persistData();
+    console.log(' [Delete Expense] 開始同步到 Supabase...');
+    await persistData();
+    console.log('✅ [Delete Expense] 同步完成');
   });
 }
 
