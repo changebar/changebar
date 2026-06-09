@@ -2808,13 +2808,8 @@ const db = {
       console.log('[DB] Supabase URL:', SUPABASE_URL);
       console.log('[DB] Supabase Key 前缀:', SUPABASE_KEY.substring(0, 20) + '...');
       
-      // 首先测试基本连接
-      const { data: healthData, error: healthError } = await supabaseClient.rpc('version');
-      if (healthError && healthError.code !== '42883') {
-        console.warn('[DB] 健康检查警告:', healthError);
-      }
-      
-      // 测试 employees 表访问
+      // 測試 employees 表訪問（使用 Anon Key 匿名訪問）
+      console.log('🔑 [DB] 使用 Anon Key 匿名訪問模式');
       const { data, error } = await supabaseClient.from('employees').select('*').limit(1);
       
       if (error) {
@@ -2823,19 +2818,13 @@ const db = {
         console.error('[DB] 错误代码:', error.code);
         console.error('[DB] 错误信息:', error.message);
         console.error('[DB] 错误详情:', error.details);
-        console.error('[DB] 错误提示:', error.hint);
-        
-        // 特别处理认证相关错误
-        if (error.message.includes('Invalid API key') || error.message.includes('JWT')) {
-          console.error('⚠️ [DB] 检测到 API Key 问题！请检查 SUPABASE_KEY 是否正确');
-        }
-        if (error.message.includes('relation') && error.message.includes('does not exist')) {
-          console.error('⚠️ [DB] 数据库表不存在！请确认已执行 complete-setup.sql');
-        }
-        
+        console.warn('⚠️ [DB] 可能原因：');
+        console.warn('   1. employees 表格不存在（需要先執行 SQL 腳本創建表格）');
+        console.warn('   2. RLS 政策未正確設定（需要允許匿名訪問）');
+        console.warn('   3. Supabase 專案配置錯誤');
         return false;
       }
-      
+            
       console.log('✅ [DB] 连接测试成功！');
       console.log('[DB] 员工数据示例:', data ? data.length : 0, '笔记录');
       return true;
@@ -3318,12 +3307,12 @@ function mapRecordFields(tableName, item) {
       };
     
     case 'payment_methods':
+      // 修正：使用 description 而非 fee_rate（匹配 Supabase 資料庫結構）
       return {
         ...item,
         id: String(item.id),
         name: String(item.name || '').trim(),
-        bank_account_id: convertIdToUUID(item.bank_account_id),
-        fee_rate: Number(item.fee_rate) || 0
+        description: String(item.description || item.remark || '').trim()
       };
     
     case 'purchase_orders':
@@ -3458,13 +3447,16 @@ function mapRecordFields(tableName, item) {
     
     case 'operation_logs': {
       // 前台已确保只使用 description 字段
+      // 修正：使用 performed_at 而非 timestamp（匹配 Supabase 資料庫結構）
       return {
-        ...item,
         id: String(item.id),
-        timestamp: item.timestamp || new Date().toISOString(),
-        module: String(item.module || '').trim(),
-        action: String(item.action || '').trim(),
-        description: String(item.description || '').trim()
+        action: String(item.action || item.type || '').trim(),
+        table_name: String(item.table_name || item.module || '').trim(),
+        record_id: item.record_id || null,
+        details: item.details || item.description || null,
+        performed_by: String(item.performed_by || item.operator || '').trim(),
+        performed_at: item.performed_at || item.timestamp || new Date().toISOString(),
+        created_at: item.created_at || new Date().toISOString()
       };
     }
     
@@ -5168,13 +5160,34 @@ function openCrmModal(c) {
 }
 function saveCrm() {
   if(!crmForm.value.name) { alertMsg.value = '請填寫客戶名稱'; return; }
+  
+  const action = crmForm.value.id ? 'update' : 'create';
+  
   if(crmForm.value.id) {
     let idx = customers.value.findIndex(c => c.id === crmForm.value.id);
-    if(idx !== -1) customers.value[idx] = {...customers.value[idx], ...crmForm.value};
+    if(idx !== -1) {
+      const oldData = {...customers.value[idx]};
+      customers.value[idx] = {...customers.value[idx], ...crmForm.value};
+      
+      // 記錄操作日誌
+      addOperationLog('客戶管理', 'update', `更新客戶資料：${crmForm.value.name}`, {
+        customerId: crmForm.value.id,
+        changedFields: Object.keys(crmForm.value).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(crmForm.value[k]))
+      });
+    }
   } else {
-    customers.value.push({id: generateUUID(), ...crmForm.value});
+    const newId = generateUUID();
+    customers.value.push({id: newId, ...crmForm.value});
+    
+    // 記錄操作日誌
+    addOperationLog('客戶管理', 'create', `新增客戶：${crmForm.value.name}`, {
+      customerId: newId
+    });
   }
-  persistData(); crmModalOpen.value = false; alertMsg.value = '已儲存';
+  
+  persistData(); 
+  crmModalOpen.value = false; 
+  alertMsg.value = '已儲存';
 }
 function openCrmGroupModal() { crmGroupModalOpen.value = true; }
 function addCustomerGroup() {
@@ -7590,24 +7603,114 @@ function openHrModal(emp) {
   }
   hrModalOpen.value = true;
 }
-function saveHr() {
+async function saveHr() {
   // 權限檢查
   if (!canEdit.value) {
-    alertMsg.value = '️ 您只有查看權限，無法編輯員工資料';
+    alertMsg.value = '⚠️ 您只有查看權限，無法編輯員工資料';
     return;
   }
-  if(!hrForm.value.name || !hrForm.value.name.trim()) { alertMsg.value = '⚠️ 請填寫姓名'; return; }
-  if(!hrForm.value.username || !hrForm.value.username.trim()) { alertMsg.value = '⚠️ 請填寫登入帳號'; return; }
-  if(!hrForm.value.password || !hrForm.value.password.trim()) { alertMsg.value = '⚠️ 請填寫密碼'; return; }
-  if(hrForm.value.id) {
-    let idx = employees.value.findIndex(e => e.id === hrForm.value.id);
-    if(idx !== -1) employees.value[idx] = {...employees.value[idx], ...hrForm.value};
-  } else {
-    employees.value.push({id: generateUUID(), ...hrForm.value});
+  
+  // 表單驗證
+  if(!hrForm.value.name || !hrForm.value.name.trim()) { 
+    alertMsg.value = '⚠️ 請填寫姓名'; 
+    return; 
   }
-  persistData(); 
-  hrModalOpen.value = false; 
-  alertMsg.value = '已儲存';
+  if(!hrForm.value.username || !hrForm.value.username.trim()) { 
+    alertMsg.value = '⚠️ 請填寫登入帳號'; 
+    return; 
+  }
+  if(!hrForm.value.password || !hrForm.value.password.trim()) { 
+    alertMsg.value = '⚠️ 請填寫密碼'; 
+    return; 
+  }
+  
+  try {
+    console.log('💾 [HR] 開始保存員工資料...');
+    console.log('[HR] 員工資料:', hrForm.value);
+    console.log('[HR] Supabase 連接狀態:', dbConnected.value);
+    
+    // 新增或更新員工
+    if(hrForm.value.id) {
+      // 更新現有員工
+      let idx = employees.value.findIndex(e => e.id === hrForm.value.id);
+      if(idx !== -1) {
+        const oldData = {...employees.value[idx]};
+        employees.value[idx] = {...employees.value[idx], ...hrForm.value};
+        console.log('✅ [HR] 已更新員工:', hrForm.value.name);
+        
+        // 記錄操作日誌
+        addOperationLog('人事管理', 'update', `更新員工資料：${hrForm.value.name}`, {
+          employeeId: hrForm.value.id,
+          changedFields: Object.keys(hrForm.value).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(hrForm.value[k]))
+        });
+      } else {
+        console.warn('⚠️ [HR] 找不到員工 ID:', hrForm.value.id);
+        throw new Error('找不到指定的員工');
+      }
+    } else {
+      // 新增員工
+      // 確保生成有效的 UUID
+      const newId = generateUUID();
+      console.log('[HR] 生成新員工 ID:', newId);
+        
+      const newEmployee = {
+        id: newId,
+        name: hrForm.value.name || '',
+        username: hrForm.value.username || '',
+        password: hrForm.value.password || '',
+        role: hrForm.value.role || '員工',
+        phone: hrForm.value.phone || '',
+        address: hrForm.value.address || '',
+        line: hrForm.value.line || '',
+        is_active: hrForm.value.is_active !== undefined ? hrForm.value.is_active : true,
+        permissions: hrForm.value.permissions || {}
+      };
+        
+      console.log('[HR] 新員工對象:', newEmployee);
+      employees.value.push(newEmployee);
+      console.log('✅ [HR] 已新增員工:', newEmployee.name, 'ID:', newEmployee.id);
+      
+      // 記錄操作日誌
+      addOperationLog('人事管理', 'create', `新增員工：${newEmployee.name}（帳號：${newEmployee.username}）`, {
+        employeeId: newId,
+        role: newEmployee.role
+      });
+    }
+    
+    // 保存到 LocalStorage 並同步到 Supabase
+    persistData();
+    
+    // 關閉 Modal
+    hrModalOpen.value = false;
+    
+    // 顯示成功提示
+    const action = hrForm.value.id ? '更新' : '新增';
+    alertMsg.value = `✅ ${action}員工成功：${hrForm.value.name}`;
+    
+    // 如果 Supabase 已連接，等待同步完成並顯示提示
+    if (dbConnected.value) {
+      console.log('🔄 [HR] 正在同步到 Supabase...');
+      setTimeout(() => {
+        console.log('✅ [HR] Supabase 同步完成');
+        alert(`✅ ${action}員工成功！\n\n姓名：${hrForm.value.name}\n帳號：${hrForm.value.username}\n\n數據已同步到雲端 Supabase。\n其他設備可以立即看到此員工。`);
+      }, 1500);
+    } else {
+      console.log('⚠️ [HR] Supabase 未連接，數據僅保存在本地');
+      setTimeout(() => {
+        alert(`✅ ${action}員工成功！\n\n姓名：${hrForm.value.name}\n帳號：${hrForm.value.username}\n\n⚠️ 注意：Supabase 未連接，數據僅保存在本機瀏覽器。\n如需多設備同步，請檢查 Supabase 連線狀態。`);
+      }, 500);
+    }
+    
+  } catch (err) {
+    console.error('❌ [HR] 保存員工失敗:', err);
+    console.error('[HR] 錯誤詳情:', err.message);
+    
+    // 顯示詳細錯誤信息
+    alert(`❌ 保存員工失敗\n\n錯誤原因：${err.message}\n\n請檢查：\n1. 所有必填欄位是否已填寫\n2. Supabase 連線是否正常\n3. 控制台 (F12) 查看详细錯誤信息`);
+    
+    // 保持 Modal 開啟，讓用戶修正
+    hrModalOpen.value = true;
+  }
 }
 
 // ========================================
@@ -7666,7 +7769,24 @@ function saveModal() {
     const validId = (modalData.value.id && String(modalData.value.id).trim()) ? String(modalData.value.id) : generateUUID();
     let obj = {id: validId, name: modalData.value.name.trim(), taxId: modalData.value.taxId || '', contact: modalData.value.contact || '', tel: modalData.value.tel || '', address: modalData.value.address || '', remark: modalData.value.remark || '', is_active: true};
     let idx = vendors.value.findIndex(v => v.id == obj.id);
-    idx >= 0 ? vendors.value[idx] = obj : vendors.value.push(obj);
+    
+    if (idx >= 0) {
+      const oldData = {...vendors.value[idx]};
+      vendors.value[idx] = obj;
+      
+      // 記錄操作日誌
+      addOperationLog('供應商管理', 'update', `更新供應商：${obj.name}`, {
+        vendorId: validId,
+        changedFields: Object.keys(obj).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(obj[k]))
+      });
+    } else {
+      vendors.value.push(obj);
+      
+      // 記錄操作日誌
+      addOperationLog('供應商管理', 'create', `新增供應商：${obj.name}`, {
+        vendorId: validId
+      });
+    }
   } else if(modalType.value === 'product') {
     // 驗證必填欄位
     if(!modalData.value.name || !modalData.value.name.trim()) { alertMsg.value = '⚠️ 請填寫商品名稱'; return; }
@@ -7695,7 +7815,27 @@ function saveModal() {
     // 否則保留原始值（不轉換為 Number，因為可能是 UUID）
     let obj = {id: validId, code: modalData.value.code.trim(), barcode: modalData.value.barcode || '', name: modalData.value.name.trim(), spec: '', cost_price: Number(modalData.value.cost_price), sale_price: Number(modalData.value.sale_price), category_id: catId, category_name: catName, is_active: true};
     let idx = products.value.findIndex(p => p.id == obj.id);
-    idx >= 0 ? products.value[idx] = obj : products.value.push(obj);
+    
+    if (idx >= 0) {
+      const oldData = {...products.value[idx]};
+      products.value[idx] = obj;
+      
+      // 記錄操作日誌
+      addOperationLog('商品管理', 'update', `更新商品：${obj.name}（${obj.code}）`, {
+        productId: validId,
+        changedFields: Object.keys(obj).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(obj[k]))
+      });
+    } else {
+      products.value.push(obj);
+      
+      // 記錄操作日誌
+      addOperationLog('商品管理', 'create', `新增商品：${obj.name}（${obj.code}）`, {
+        productId: validId,
+        code: obj.code,
+        costPrice: obj.cost_price,
+        salePrice: obj.sale_price
+      });
+    }
   } else if(modalType.value === 'warehouse') {
     // 驗證必填欄位
     if(!modalData.value.name || !modalData.value.name.trim()) { alertMsg.value = '⚠️ 請填寫倉庫名稱'; return; }
@@ -7704,7 +7844,24 @@ function saveModal() {
     const validId = (modalData.value.id && String(modalData.value.id).trim()) ? String(modalData.value.id) : generateUUID();
     let obj = {id: validId, name: modalData.value.name.trim(), location: modalData.value.location || ''};
     let idx = warehouses.value.findIndex(w => w.id == obj.id);
-    idx >= 0 ? warehouses.value[idx] = obj : warehouses.value.push(obj);
+    
+    if (idx >= 0) {
+      const oldData = {...warehouses.value[idx]};
+      warehouses.value[idx] = obj;
+      
+      // 記錄操作日誌
+      addOperationLog('倉庫管理', 'update', `更新倉庫：${obj.name}`, {
+        warehouseId: validId,
+        changedFields: Object.keys(obj).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(obj[k]))
+      });
+    } else {
+      warehouses.value.push(obj);
+      
+      // 記錄操作日誌
+      addOperationLog('倉庫管理', 'create', `新增倉庫：${obj.name}`, {
+        warehouseId: validId
+      });
+    }
   } else if(modalType.value === 'bank') {
     // 驗證必填欄位
     if(!modalData.value.bank_name || !modalData.value.bank_name.trim()) { alertMsg.value = '⚠️ 請填寫銀行名稱'; return; }
@@ -7714,7 +7871,24 @@ function saveModal() {
     const validId = (modalData.value.id && String(modalData.value.id).trim()) ? String(modalData.value.id) : generateUUID();
     let obj = {id: validId, bank_name: modalData.value.bank_name.trim(), account_number: modalData.value.account_number.trim(), remark: modalData.value.remark || ''};
     let idx = bankAccounts.value.findIndex(b => b.id == obj.id);
-    idx >= 0 ? bankAccounts.value[idx] = obj : bankAccounts.value.push(obj);
+    
+    if (idx >= 0) {
+      const oldData = {...bankAccounts.value[idx]};
+      bankAccounts.value[idx] = obj;
+      
+      // 記錄操作日誌
+      addOperationLog('銀行帳戶', 'update', `更新銀行帳戶：${obj.bank_name} (${obj.account_number})`, {
+        bankAccountId: validId,
+        changedFields: Object.keys(obj).filter(k => k !== 'id' && JSON.stringify(oldData[k]) !== JSON.stringify(obj[k]))
+      });
+    } else {
+      bankAccounts.value.push(obj);
+      
+      // 記錄操作日誌
+      addOperationLog('銀行帳戶', 'create', `新增銀行帳戶：${obj.bank_name} (${obj.account_number})`, {
+        bankAccountId: validId
+      });
+    }
   }
   persistData(); modalOpen.value = false; alertMsg.value = '已儲存';
 }
@@ -8027,22 +8201,85 @@ function checkRememberedLogin() {
   }
 }
 
-// 添加操作紀錄
+// 添加操作紀錄（統一入口，確保所有操作都被記錄）
 function addOperationLog(module, action, description, details = {}) {
+  // 如果未登入，不記錄操作
+  if (!currentUser.value) {
+    console.warn('⚠️ [OperationLog] 用戶未登入，跳過日誌記錄');
+    return;
+  }
+  
   const log = {
     id: generateUUID(),
-    userId: currentUser.value?.id || 0,
-    userName: currentUser.value?.name || '未知',
+    userId: currentUser.value.id || 'unknown',
+    userName: currentUser.value.name || '未知',
+    userRole: currentUser.value.role || '未知',
     timestamp: new Date().toISOString(),
     module: module,
-    action: action,
-    description: description + (Object.keys(details).length > 0 ? ' - ' + JSON.stringify(details) : '')  // 將 details 合併到 description 中
+    action: action, // create, update, delete, login, logout, reset
+    description: description,
+    details: Object.keys(details).length > 0 ? JSON.stringify(details) : null,
+    performed_by: currentUser.value.name || '未知',
+    performed_at: new Date().toISOString()
   };
+  
+  // 添加到前端陣列
   operationLogs.value.unshift(log);
   
-  // 只保留最近 500 筆紀錄
-  if (operationLogs.value.length > 500) {
-    operationLogs.value = operationLogs.value.slice(0, 500);
+  // 只保留最近 1000 筆紀錄
+  if (operationLogs.value.length > 1000) {
+    operationLogs.value = operationLogs.value.slice(0, 1000);
+  }
+  
+  // 立即保存到 LocalStorage
+  localStorage.setItem('erp_operation_logs', JSON.stringify(operationLogs.value));
+  
+  // 如果 Supabase 已連接，同步到雲端
+  if (dbConnected.value) {
+    syncOperationLogToSupabase(log).catch(err => {
+      console.error('❌ [OperationLog] 同步到 Supabase 失敗:', err);
+    });
+  }
+  
+  console.log(`📝 [OperationLog] ${module} - ${action}: ${description} (by ${log.userName})`);
+}
+
+// 將單筆操作日誌同步到 Supabase
+async function syncOperationLogToSupabase(log) {
+  try {
+    const { error } = await supabaseClient.from('operation_logs').insert({
+      id: log.id,
+      action: log.action,
+      table_name: log.module,
+      record_id: log.details ? extractRecordId(log.details) : null,
+      details: log.description + (log.details ? ' - ' + log.details : ''),
+      performed_by: log.performed_by,
+      performed_at: log.performed_at,
+      created_at: log.timestamp
+    });
+    
+    if (error) {
+      console.error('❌ [Sync] operation_logs 插入失敗:', error.message);
+      throw error;
+    }
+    
+    console.log('✅ [Sync] 操作日誌已同步到 Supabase');
+  } catch (err) {
+    console.error('❌ [Sync] 操作日誌同步錯誤:', err);
+    throw err;
+  }
+}
+
+// 從詳細資訊中提取記錄 ID（輔助函數）
+function extractRecordId(details) {
+  try {
+    if (typeof details === 'string') {
+      const match = details.match(/ID[:\s]*([a-f0-9-]+)/i);
+      return match ? match[1] : null;
+    }
+    return null;
+  } catch (e) {
+    return null;
   }
 }
 
