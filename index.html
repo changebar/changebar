@@ -3153,20 +3153,49 @@ async function syncDataToSupabase() {
       if (config.isArray) {
         // 過濾掉沒有 id 的記錄（避免 null 錯誤）
         const validData = data.filter(item => item && item.id);
-        
+              
         if (validData.length === 0) {
-          console.log(`⚠️ [Sync] ${table}: 沒有有效數據（缺少 id），跳過`);
+          console.log(`️ [Sync] ${table}: 沒有有效數據（缺少 id），跳過`);
           skipCount++;
           continue;
         }
-        
+              
+        // 🔥 特別檢查 employees 表格
+        if (table === 'employees') {
+          console.log('🔍 [Sync] employees 準備同步到 Supabase:');
+          console.log('[Sync] LocalStorage 中的員工總數:', validData.length);
+          console.log('[Sync] 員工列表:', validData.map(e => ({
+            id: e.id,
+            name: e.name,
+            username: e.username,
+            role: e.role
+          })));
+        }
+              
         // 使用共用欄位映射函數
         const records = mapTableFields(table, validData);
-        
+              
         const { error } = await supabaseClient.from(table).insert(records);
         if (error) {
           console.error(`❌ [Sync] ${table} 插入失敗:`, error.message);
           throw error;
+        }
+              
+        // 🔥 特別檢查 employees 表格的同步結果
+        if (table === 'employees') {
+          console.log('✅ [Sync] employees 已插入到 Supabase');
+                
+          // 驗證 Supabase 中的數據
+          const { data: cloudData, error: cloudError } = await supabaseClient.from(table).select('*');
+          if (!cloudError && cloudData) {
+            console.log('🔍 [Sync] Supabase 雲端 employees 總數:', cloudData.length);
+            console.log('[Sync] 雲端員工列表:', cloudData.map(e => ({
+              id: e.id,
+              name: e.name,
+              username: e.username,
+              role: e.role
+            })));
+          }
         }
       } else {
         // companySettings 是單一對象
@@ -4864,7 +4893,37 @@ function confirmDelete(type, id) {
       }
     }
     else if(type==='purchaseOrder') purchaseOrders.value = (purchaseOrders.value || []).filter(p => p.id !== id);
-    else if(type==='employee') employees.value = (employees.value || []).filter(e => e.id !== id);
+    else if(type==='employee') {
+      console.log('️ [Delete] 開始刪除員工:', id);
+      console.log('[Delete] 刪除前員工總數:', employees.value.length);
+      
+      // 記錄被刪除的員工資訊
+      const deletedEmployee = (employees.value || []).find(e => e.id === id);
+      if (deletedEmployee) {
+        console.log('[Delete] 被刪除的員工:', {
+          id: deletedEmployee.id,
+          name: deletedEmployee.name,
+          username: deletedEmployee.username
+        });
+      }
+      
+      // 執行刪除
+      employees.value = (employees.value || []).filter(e => e.id !== id);
+      
+      console.log('[Delete] 刪除後員工總數:', employees.value.length);
+      console.log('[Delete] 剩餘員工列表:', employees.value.map(e => ({
+        id: e.id,
+        name: e.name,
+        username: e.username
+      })));
+      
+      // 記錄操作日誌
+      addOperationLog('人事管理', 'delete', `刪除員工：${deletedEmployee?.name || '未知'}`, {
+        employeeId: id,
+        employeeName: deletedEmployee?.name,
+        employeeUsername: deletedEmployee?.username
+      });
+    }
     else if(type==='customerGroup') customerTypes.value.splice(id, 1);
     else if(type==='expenseCategory') {
       expenseCategories.value = (expenseCategories.value || []).filter(c => c.id !== id);
