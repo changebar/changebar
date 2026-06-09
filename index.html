@@ -7697,24 +7697,24 @@ async function saveHr() {
     }
     
     // 保存到 LocalStorage 並同步到 Supabase
-    persistData();
-    
+    await persistData();
+        
     // 關閉 Modal
     hrModalOpen.value = false;
-    
+        
     // 顯示成功提示
     const action = hrForm.value.id ? '更新' : '新增';
     alertMsg.value = `✅ ${action}員工成功：${hrForm.value.name}`;
-    
+        
     // 如果 Supabase 已連接，等待同步完成並顯示提示
     if (dbConnected.value) {
       console.log('🔄 [HR] 正在同步到 Supabase...');
-      setTimeout(() => {
-        console.log('✅ [HR] Supabase 同步完成');
-        alert(`✅ ${action}員工成功！\n\n姓名：${hrForm.value.name}\n帳號：${hrForm.value.username}\n\n數據已同步到雲端 Supabase。\n其他設備可以立即看到此員工。`);
-      }, 1500);
+      // 等待同步完成
+      await syncDataToSupabase();
+      console.log('✅ [HR] Supabase 同步完成');
+      alert(`✅ ${action}員工成功！\n\n姓名：${hrForm.value.name}\n帳號：${hrForm.value.username}\n\n數據已同步到雲端 Supabase。\n其他設備可以立即看到此員工。`);
     } else {
-      console.log('⚠️ [HR] Supabase 未連接，數據僅保存在本地');
+      console.log('️ [HR] Supabase 未連接，數據僅保存在本地');
       setTimeout(() => {
         alert(`✅ ${action}員工成功！\n\n姓名：${hrForm.value.name}\n帳號：${hrForm.value.username}\n\n⚠️ 注意：Supabase 未連接，數據僅保存在本機瀏覽器。\n如需多設備同步，請檢查 Supabase 連線狀態。`);
       }, 500);
@@ -8454,7 +8454,7 @@ function validateAndNormalizeData() {
   console.log('✅ [Validate] 資料格式驗證完成');
 }
 
-function persistData() {
+async function persistData() {
   // 在儲存前自動執行連動檢查
   autoSyncData();
   
@@ -8464,11 +8464,11 @@ function persistData() {
   const dataMap = {vendors, warehouses, products, categories, bankAccounts, customers, salesChannels, paymentMethods, purchaseOrders, stockLevels, incomeLedger, expenseLedger, bomList, salesOrders, salesDetails, customerTypes, purchaseInvoices, employees, expenseCategories, expenseSubCategories, transferHistory, quickLinks, companySettings, posActivities, inventoryCheckHistory, operationLogs};
   for(let k in dataMap) localStorage.setItem(`erp_${k}`, JSON.stringify(dataMap[k].value));
   
-  // 即時同步到 Supabase（非阻塞式，失敗不影響本地保存）
+  // 即時同步到 Supabase（阻塞式，確保同步完成）
   if (dbConnected.value) {
-    syncAllToSupabase().catch(err => {
-      console.warn('⚠️ [Persist] Supabase 同步失敗，但數據已保存到本地:', err);
-    });
+    console.log(' [Persist] 開始同步到 Supabase...');
+    await syncDataToSupabase();
+    console.log('✅ [Persist] Supabase 同步完成');
   }
 }
 async function loadData() {
