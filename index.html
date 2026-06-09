@@ -3669,6 +3669,134 @@ window.getEmployees = function() {
   return employees.value;
 };
 
+// 🔥 新增：完整的前後端串接診斷工具
+window.diagnoseSync = async function() {
+  console.log('\n========================================');
+  console.log('🔍 開始前後端串接診斷');
+  console.log('========================================\n');
+  
+  // 1. 檢查 Supabase 連接
+  console.log('1️⃣ 檢查 Supabase 連接...');
+  try {
+    const { data, error } = await supabaseClient.from('employees').select('*').limit(1);
+    if (error) {
+      console.error('❌ Supabase 連接失敗:', error);
+      console.log('   可能原因：RLS 政策未設定或網絡問題');
+    } else {
+      console.log('✅ Supabase 連接成功');
+    }
+  } catch (err) {
+    console.error('❌ Supabase 連接異常:', err);
+  }
+  
+  // 2. 檢查 LocalStorage 中的員工數據
+  console.log('\n2️⃣ 檢查 LocalStorage 中的員工數據...');
+  const localEmployees = JSON.parse(localStorage.getItem('erp_employees') || '[]');
+  console.log('   LocalStorage 員工總數:', localEmployees.length);
+  if (localEmployees.length > 0) {
+    console.log('   員工列表:');
+    console.table(localEmployees.map(e => ({
+      id: e.id,
+      name: e.name,
+      username: e.username,
+      role: e.role
+    })));
+  } else {
+    console.warn('   ⚠️ LocalStorage 中沒有員工數據！');
+  }
+  
+  // 3. 檢查前端 Vue 變數中的員工數據
+  console.log('\n3️⃣ 檢查前端 Vue 變數中的員工數據...');
+  const vueEmployees = employees.value || [];
+  console.log('   Vue 變數員工總數:', vueEmployees.length);
+  if (vueEmployees.length > 0) {
+    console.log('   員工列表:');
+    console.table(vueEmployees.map(e => ({
+      id: e.id,
+      name: e.name,
+      username: e.username,
+      role: e.role
+    })));
+  } else {
+    console.warn('   ⚠️ Vue 變數中沒有員工數據！');
+  }
+  
+  // 4. 檢查 Supabase 雲端數據
+  console.log('\n4️⃣ 檢查 Supabase 雲端數據...');
+  try {
+    const { data: cloudData, error: cloudError } = await supabaseClient.from('employees').select('*');
+    if (cloudError) {
+      console.error('❌ 查詢雲端數據失敗:', cloudError);
+    } else {
+      console.log('   雲端員工總數:', cloudData ? cloudData.length : 0);
+      if (cloudData && cloudData.length > 0) {
+        console.log('   員工列表:');
+        console.table(cloudData.map(e => ({
+          id: e.id,
+          name: e.name,
+          username: e.username,
+          role: e.role
+        })));
+      } else {
+        console.warn('   ️ 雲端沒有員工數據！');
+      }
+    }
+  } catch (err) {
+    console.error('❌ 查詢雲端數據異常:', err);
+  }
+  
+  // 5. 比較三者數據是否一致
+  console.log('\n5️⃣ 比較數據一致性...');
+  const localCount = localEmployees.length;
+  const vueCount = vueEmployees.length;
+  let cloudCount = 0;
+  try {
+    const { data: cloudData } = await supabaseClient.from('employees').select('*');
+    cloudCount = cloudData ? cloudData.length : 0;
+  } catch (err) {
+    console.error('   ❌ 無法獲取雲端數據');
+  }
+  
+  console.log(`   LocalStorage: ${localCount} 筆`);
+  console.log(`   Vue 變數: ${vueCount} 筆`);
+  console.log(`   Supabase 雲端: ${cloudCount} 筆`);
+  
+  if (localCount === vueCount && vueCount === cloudCount) {
+    console.log('   ✅ 三者數據一致！');
+  } else {
+    console.warn('   ⚠️ 三者數據不一致！');
+    if (localCount !== vueCount) {
+      console.warn('   - LocalStorage 與 Vue 變數不一致');
+    }
+    if (vueCount !== cloudCount) {
+      console.warn('   - Vue 變數與 Supabase 雲端不一致');
+    }
+    if (localCount !== cloudCount) {
+      console.warn('   - LocalStorage 與 Supabase 雲端不一致');
+    }
+  }
+  
+  // 6. 總結
+  console.log('\n========================================');
+  console.log(' 診斷總結');
+  console.log('========================================');
+  
+  if (localCount === vueCount && vueCount === cloudCount && localCount > 0) {
+    console.log('✅ 前後端串接正常！');
+    console.log('   - LocalStorage、Vue 變數、Supabase 雲端數據一致');
+    console.log('   - 數據同步功能運作正常');
+  } else {
+    console.log('❌ 前後端串接異常！');
+    console.log('   請檢查：');
+    console.log('   1. RLS 政策是否已正確設定（執行 ERP RLS 通用允許政策重建.sql）');
+    console.log('   2. 前端同步邏輯是否正常（檢查 Console 中的 [Sync] 日誌）');
+    console.log('   3. 網絡連接是否正常');
+    console.log('   4. Supabase 專案配置是否正確');
+  }
+  
+  console.log('\n========================================\n');
+};
+
 // 即時同步所有數據（帶防抖功能）
 let syncTimeout = null;
 async function syncAllToSupabase() {
