@@ -3701,12 +3701,14 @@ const permissionModules = {
   pos: { name: 'POS 銷售', icon: '🛒' },
   purchase: { name: '採購管理', icon: '📥' },
   sales: { name: '銷售管理', icon: '🚚' },
-  customer: { name: '客戶管理', icon: '👥' },
+  customer: { name: '客戶管理', icon: '👥' },  // 舊的 key（已廢棄）
+  crm: { name: '客戶管理', icon: '👥' },  // 修正：使用 crm 以匹配 menuItems
   inventory: { name: '庫存管理', icon: '📦' },
   hr: { name: '人事管理', icon: '👤' },
   finance: { name: '會計財務', icon: '💰' },
   reports: { name: '報表分析', icon: '📊' },
-  settings: { name: '系統設定', icon: '⚙️' }
+  settings: { name: '系統設定', icon: '⚙️' },
+  sync: { name: '數據同步', icon: '🔄' }  // 新增：數據同步模組
 };
 
 // ========================================
