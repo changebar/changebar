@@ -3386,8 +3386,8 @@ function mapRecordFields(tableName, item) {
         ...item,
         id: String(item.id),
         name: String(item.name || '').trim(),
-        desc: String(item.desc || '').trim(),
-        code: String(item.code || '').trim()
+        desc: String(item.desc || '').trim()
+        // code 字段已移除，因为 Supabase 数据库中 categories 表格没有此字段
       };
     
     case 'warehouses':
