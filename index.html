@@ -3418,10 +3418,11 @@ function mapRecordFields(tableName, item) {
       };
     
     case 'payment_methods':
-      // 修正：使用 description 而非 fee_rate（匹配 Supabase 資料庫結構）
+      //  關鍵修復：確保 ID 是有效的 UUID 格式
+      const validId = item.id && String(item.id).trim() && String(item.id) !== '0' ? String(item.id) : generateUUID();
       return {
         ...item,
-        id: String(item.id),
+        id: validId,
         name: String(item.name || '').trim(),
         description: String(item.description || item.remark || '').trim()
       };
@@ -8450,7 +8451,7 @@ function resetSystemData() {
   bankAccounts.value = [];
   customers.value = [];
   salesChannels.value = [];
-  paymentMethods.value = [];
+  paymentMethods.value = [];  // 完全清空，不保留任何默認值
   purchaseOrders.value = [];
   stockLevels.value = [];
   incomeLedger.value = [];
@@ -8460,13 +8461,39 @@ function resetSystemData() {
   salesDetails.value = [];
   customerTypes.value = [];
   purchaseInvoices.value = [];
-  employees.value = [];
+  employees.value = [];  // 完全清空員工資料
   expenseCategories.value = [];
   expenseSubCategories.value = [];
   transferHistory.value = [];
   posActivities.value = [];
   inventoryCheckHistory.value = [];
   operationLogs.value = [];
+  
+  // 🔥 關鍵修復：同時清空 LocalStorage，避免舊數據干擾
+  localStorage.removeItem('erp_vendors');
+  localStorage.removeItem('erp_warehouses');
+  localStorage.removeItem('erp_products');
+  localStorage.removeItem('erp_categories');
+  localStorage.removeItem('erp_bankAccounts');
+  localStorage.removeItem('erp_customers');
+  localStorage.removeItem('erp_salesChannels');
+  localStorage.removeItem('erp_paymentMethods');
+  localStorage.removeItem('erp_purchaseOrders');
+  localStorage.removeItem('erp_stockLevels');
+  localStorage.removeItem('erp_incomeLedger');
+  localStorage.removeItem('erp_expenseLedger');
+  localStorage.removeItem('erp_bomList');
+  localStorage.removeItem('erp_salesOrders');
+  localStorage.removeItem('erp_salesDetails');
+  localStorage.removeItem('erp_customerTypes');
+  localStorage.removeItem('erp_purchaseInvoices');
+  localStorage.removeItem('erp_employees');
+  localStorage.removeItem('erp_expenseCategories');
+  localStorage.removeItem('erp_expenseSubCategories');
+  localStorage.removeItem('erp_transferHistory');
+  localStorage.removeItem('erp_posActivities');
+  localStorage.removeItem('erp_inventoryCheckHistory');
+  localStorage.removeItem('erp_operationLogs');
   
   // 持久化保存
   persistData();
