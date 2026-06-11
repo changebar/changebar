@@ -8435,15 +8435,13 @@ function handleLogout() {
 
 // 確認重置系統數據
 function confirmResetSystem() {
-  if (confirm('⚠️ 警告：此操作將清除所有業務數據！\n\n確定要重置系統嗎？\n\n• 所有供應商、產品、客戶等資料將被清空\n• 所有訂單、庫存、帳本記錄將被刪除\n• 員工資料將被清空（除初始管理員外）\n\n此操作無法復原！')) {
+  if (confirm('⚠️ 警告：此操作將清除所有數據！\n\n確定要重置系統嗎？\n\n• 所有供應商、產品、客戶等資料將被清空\n• 所有訂單、庫存、帳本記錄將被刪除\n• 員工資料將被清空\n• 所有設定將恢復預設值\n\n此操作無法復原！')) {
     resetSystemData();
   }
 }
 
 // 重置系統數據（清除所有業務數據）
 function resetSystemData() {
-  // 保留的數據：companySettings, fontSize, menuItems, settingTabs, columnOrders, quickLinks
-  
   // 清空所有業務數據
   vendors.value = [];
   warehouses.value = [];
@@ -8452,14 +8450,7 @@ function resetSystemData() {
   bankAccounts.value = [];
   customers.value = [];
   salesChannels.value = [];
-  paymentMethods.value = [
-    {id: 1, name: '現金', commission_rate: 0, bank_account_id: 0, remark: ''},
-    {id: 2, name: '匯款', commission_rate: 0, bank_account_id: 0, remark: ''},
-    {id: 3, name: '信用卡', commission_rate: 2, bank_account_id: 0, remark: ''},
-    {id: 4, name: '行動支付', commission_rate: 1.5, bank_account_id: 0, remark: ''},
-    {id: 5, name: 'LINE Pay', commission_rate: 1.5, bank_account_id: 0, remark: ''},
-    {id: 6, name: 'Apple Pay', commission_rate: 1.5, bank_account_id: 0, remark: ''}
-  ];
+  paymentMethods.value = [];
   purchaseOrders.value = [];
   stockLevels.value = [];
   incomeLedger.value = [];
@@ -8467,13 +8458,9 @@ function resetSystemData() {
   bomList.value = [];
   salesOrders.value = [];
   salesDetails.value = [];
-  customerTypes.value = ['一般客戶'];
+  customerTypes.value = [];
   purchaseInvoices.value = [];
-  
-  // 保留初始管理員帳號
-  const adminEmployee = (employees.value || []).find(e => e.username === '0987305415' || e.name === '系統管理員');
-  employees.value = adminEmployee ? [{...adminEmployee}] : [];
-  
+  employees.value = [];
   expenseCategories.value = [];
   expenseSubCategories.value = [];
   transferHistory.value = [];
