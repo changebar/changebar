@@ -26,6 +26,7 @@ body { font-family: 'Segoe UI', sans-serif; }
 </head>
 <body class="bg-gray-100 text-gray-800">
 
+<!-- 登入頁面 -->
 <div id="login-view" class="min-h-screen flex items-center justify-center">
   <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
     <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">企業戰情室登入</h1>
@@ -37,14 +38,15 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
+<!-- 主系統 -->
 <div id="main-system" class="hidden min-h-screen flex">
   <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
     <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統</div>
     <nav class="flex-1 p-4 space-y-2">
-      <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">儀表板</a>
-      <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">客戶管理</a>
-      <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">訂單管理</a>
-      <a href="#" onclick="switchView('inventory')" id="nav-inventory" class="block py-2 px-4 rounded hover:bg-gray-700">倉庫庫存</a>
+      <a href="#" data-view="dashboard" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">儀表板</a>
+      <a href="#" data-view="crm" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">客戶管理</a>
+      <a href="#" data-view="orders" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">訂單管理</a>
+      <a href="#" data-view="inventory" id="nav-inventory" class="block py-2 px-4 rounded hover:bg-gray-700">倉庫庫存</a>
     </nav>
     <div class="p-4 border-t border-gray-700">
       <button id="logout-btn" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded text-sm">登出</button>
@@ -52,6 +54,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </aside>
 
   <main class="flex-1 p-8 overflow-y-auto">
+    <!-- 儀表板 -->
     <div id="view-dashboard">
       <h1 class="text-3xl font-bold mb-6">老闆，早安！戰情總覽：</h1>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -62,13 +65,14 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
+    <!-- 客戶管理 -->
     <div id="view-crm" class="hidden">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">客戶關係管理</h1>
         <div class="space-x-2">
-          <button onclick="openWindowModal()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">管理聯繫窗口</button>
-          <button onclick="openTagModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">管理標籤</button>
-          <button onclick="openCustomerModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md font-bold">+ 新增客戶</button>
+          <button id="btn-open-window-modal" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">管理聯繫窗口</button>
+          <button id="btn-open-tag-modal" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">管理標籤</button>
+          <button id="btn-open-customer-modal" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md font-bold">+ 新增客戶</button>
         </div>
       </div>
       <div class="mb-4 bg-white p-4 rounded-lg shadow">
@@ -87,10 +91,11 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
+    <!-- 訂單管理 -->
     <div id="view-orders" class="hidden">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">訂單管理</h1>
-        <button onclick="openOrderModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
+        <button id="btn-open-order-modal" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
       </div>
       <div class="mb-4 relative">
         <input type="text" id="order-search" placeholder="搜尋訂單 (客戶名稱、發票號碼)..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
@@ -103,6 +108,7 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
+    <!-- 倉庫庫存 -->
     <div id="view-inventory" class="hidden">
       <h1 class="text-3xl font-bold mb-6">倉庫庫存管理</h1>
       <div id="warehouse-inventory-container" class="space-y-6"></div>
@@ -115,13 +121,13 @@ body { font-family: 'Segoe UI', sans-serif; }
   <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
       <h2 id="customer-modal-title" class="text-2xl font-bold">新增客戶</h2>
-      <button onclick="closeCustomerModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+      <button id="btn-close-customer-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
     </div>
     <div class="p-6 overflow-y-auto flex-1">
       <form id="customer-form" onsubmit="return false;" class="space-y-4">
         <input type="hidden" id="cust-id">
         <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-bold mb-1">類型</label><select id="cust-type" class="w-full px-3 py-2 border rounded" onchange="toggleCompanyField()"><option value="B2C">B2C</option><option value="B2B">B2B</option></select></div>
+          <div><label class="block text-sm font-bold mb-1">類型</label><select id="cust-type" class="w-full px-3 py-2 border rounded"><option value="B2C">B2C</option><option value="B2B">B2B</option></select></div>
           <div><label class="block text-sm font-bold mb-1">聯繫窗口</label><select id="cust-window" class="w-full px-3 py-2 border rounded"></select></div>
         </div>
         <div><label class="block text-sm font-bold mb-1">公司/客戶名稱 <span id="company-required" class="text-red-500 hidden">*</span></label><input type="text" id="cust-company" class="w-full px-3 py-2 border rounded"></div>
@@ -130,22 +136,22 @@ body { font-family: 'Segoe UI', sans-serif; }
           <div><label class="block text-sm font-bold mb-1">發票抬頭</label><input type="text" id="cust-invoice-title" class="w-full px-3 py-2 border rounded"></div>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded" oninput="updateAddressPreview()"></div>
-          <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded" oninput="updateAddressPreview()"></div>
+          <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded"></div>
+          <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded"></div>
         </div>
         <div><label class="block text-sm font-bold mb-1">標籤</label><div id="customer-tags-container" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50"></div></div>
         <div class="border-t pt-4">
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-bold text-lg">寄送地址管理</h3>
-            <button type="button" onclick="addCustomerAddress()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ 新增地址</button>
+            <button type="button" id="btn-add-address" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ 新增地址</button>
           </div>
           <div id="customer-addresses-container" class="space-y-3"></div>
         </div>
       </form>
     </div>
     <div class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-lg flex-shrink-0">
-      <button type="button" onclick="closeCustomerModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
-      <button type="button" onclick="saveCustomer()" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存</button>
+      <button type="button" id="btn-cancel-customer" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
+      <button type="button" id="btn-save-customer" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存</button>
     </div>
   </div>
 </div>
@@ -155,7 +161,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
       <h2 id="order-modal-title" class="text-2xl font-bold">新增訂單</h2>
-      <button onclick="closeOrderModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+      <button id="btn-close-order-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
     </div>
     <div class="p-6 overflow-y-auto flex-1">
       <form id="order-form" onsubmit="return false;" class="space-y-6">
@@ -172,8 +178,8 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
           <h3 class="font-bold mb-3">發票與稅金資訊</h3>
           <div class="grid grid-cols-3 gap-4">
-            <div><label class="block text-sm font-bold mb-1">需要發票 *</label><select id="order-need-invoice" class="w-full px-3 py-2 border rounded" onchange="toggleInvoiceFields()"><option value="no">不需要</option><option value="yes">需要</option></select></div>
-            <div><label class="block text-sm font-bold mb-1">稅金處理</label><select id="order-tax-handling" class="w-full px-3 py-2 border rounded" onchange="calculateOrderFinalTotal()"><option value="tax_included">含稅價</option><option value="tax_excluded">稅外加</option><option value="no_invoice">不開發票</option></select></div>
+            <div><label class="block text-sm font-bold mb-1">需要發票 *</label><select id="order-need-invoice" class="w-full px-3 py-2 border rounded"><option value="no">不需要</option><option value="yes">需要</option></select></div>
+            <div><label class="block text-sm font-bold mb-1">稅金處理</label><select id="order-tax-handling" class="w-full px-3 py-2 border rounded"><option value="tax_included">含稅價</option><option value="tax_excluded">稅外加</option><option value="no_invoice">不開發票</option></select></div>
             <div><label class="block text-sm font-bold mb-1">發票類型</label><select id="order-invoice-type" class="w-full px-3 py-2 border rounded"><option value="3">三聯式</option><option value="2">二聯式</option></select></div>
             <div><label class="block text-sm font-bold mb-1">發票抬頭</label><input type="text" id="order-invoice-title" class="w-full px-3 py-2 border rounded"></div>
             <div><label class="block text-sm font-bold mb-1">統一編號</label><input type="text" id="order-tax-id" class="w-full px-3 py-2 border rounded"></div>
@@ -183,8 +189,8 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div>
           <label class="block text-sm font-bold mb-2">2. 寄送地址 *</label>
           <div class="flex gap-2 mb-2">
-            <select id="shipping-address-select" class="flex-1 px-4 py-2 border rounded" onchange="selectSavedAddress()"><option value="">選擇已存地址...</option></select>
-            <button type="button" onclick="enableTempAddress()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">手動輸入</button>
+            <select id="shipping-address-select" class="flex-1 px-4 py-2 border rounded"><option value="">選擇已存地址...</option></select>
+            <button type="button" id="btn-enable-temp-address" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">手動輸入</button>
           </div>
           <div id="temp-address-section" class="hidden grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded border">
             <div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="temp-recipient" class="w-full px-3 py-2 border rounded"></div>
@@ -195,7 +201,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div>
           <label class="block text-sm font-bold mb-2">3. 產品明細</label>
           <div id="order-items-container" class="space-y-3"></div>
-          <button type="button" onclick="addOrderItemRow()" class="mt-3 px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">+ 新增產品</button>
+          <button type="button" id="btn-add-order-item" class="mt-3 px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">+ 新增產品</button>
         </div>
         <div class="bg-gray-50 p-4 rounded-lg border-2 border-purple-200">
           <div class="flex justify-between items-start">
@@ -212,8 +218,8 @@ body { font-family: 'Segoe UI', sans-serif; }
       </form>
     </div>
     <div class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-lg flex-shrink-0">
-      <button type="button" onclick="closeOrderModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
-      <button type="button" onclick="submitOrder()" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存訂單</button>
+      <button type="button" id="btn-cancel-order" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
+      <button type="button" id="btn-save-order" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存訂單</button>
     </div>
   </div>
 </div>
@@ -221,24 +227,33 @@ body { font-family: 'Segoe UI', sans-serif; }
 <!-- 標籤 Modal -->
 <div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
-    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button onclick="closeTagModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button id="btn-close-tag-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
     <div class="p-6 overflow-y-auto flex-1">
-      <div class="flex gap-2 mb-4"><input type="text" id="new-tag-name" placeholder="新標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="new-tag-color" class="px-3 py-2 border rounded"><option value="1">紅色</option><option value="2">粉色</option><option value="3">紫色</option><option value="4">靛藍</option><option value="5">藍色</option><option value="6">青色</option><option value="7">綠色</option><option value="8">黃綠</option><option value="9">黃色</option><option value="10">橘色</option></select><button onclick="addNewTag()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
+      <div class="flex gap-2 mb-4"><input type="text" id="new-tag-name" placeholder="新標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="new-tag-color" class="px-3 py-2 border rounded"><option value="1">紅色</option><option value="2">粉色</option><option value="3">紫色</option><option value="4">靛藍</option><option value="5">藍色</option><option value="6">青色</option><option value="7">綠色</option><option value="8">黃綠</option><option value="9">黃色</option><option value="10">橘色</option></select><button id="btn-add-tag" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
       <div id="tag-list-container" class="space-y-2"></div>
     </div>
-    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button onclick="closeTagModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-tag" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
   </div>
 </div>
 
 <!-- 窗口 Modal -->
 <div id="window-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
-    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button onclick="closeWindowModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button id="btn-close-window-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
     <div class="p-6 overflow-y-auto flex-1">
-      <div class="flex gap-2 mb-4"><input type="text" id="new-window-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><select id="new-window-role" class="px-3 py-2 border rounded"><option value="sales">業務</option><option value="support">客服</option><option value="manager">經理</option></select><button onclick="addNewWindow()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
+      <div class="flex gap-2 mb-4"><input type="text" id="new-window-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><select id="new-window-role" class="px-3 py-2 border rounded"><option value="sales">業務</option><option value="support">客服</option><option value="manager">經理</option></select><button id="btn-add-window" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
       <div id="window-list-container" class="space-y-2"></div>
     </div>
-    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button onclick="closeWindowModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-window" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+  </div>
+</div>
+
+<!-- 客戶詳情 Modal -->
+<div id="customer-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">客戶詳細資料</h2><button id="btn-close-detail-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 overflow-y-auto flex-1" id="customer-detail-content"></div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-detail" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
   </div>
 </div>
 
@@ -262,6 +277,7 @@ let allProducts = [], allWindows = [], allCustomers = [], allTags = [], allWareh
 let editingOrderId = null, originalOrderItems = [], currentCustomerTags = [], currentCustomerType = 'B2C', currentTagFilter = null;
 const STANDARD_SHIPPING_FEE = 100;
 
+// 自訂 Alert/Confirm
 function showAlert(message) {
   return new Promise(function(resolve) {
     document.getElementById('custom-alert-message').textContent = message;
@@ -290,6 +306,7 @@ function showConfirm(message) {
   });
 }
 
+// 登入登出
 document.getElementById('login-btn').addEventListener('click', function() {
   sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value }).then(function(result) {
     if (result.error) { showAlert('登入失敗：' + result.error.message); }
@@ -305,13 +322,16 @@ document.getElementById('logout-btn').addEventListener('click', function() {
   sb.auth.signOut().then(function() { location.reload(); });
 });
 
-function loadInitialData() {
-  Promise.all([loadWindows(), loadTags(), loadWarehouses(), loadProducts()]).then(function() {
-    loadDashboardData();
+// 視圖切換 (使用事件委派)
+document.querySelectorAll('nav a').forEach(function(link) {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    var viewName = this.getAttribute('data-view');
+    switchView(viewName);
   });
-}
+});
 
-window.switchView = function(viewName) {
+function switchView(viewName) {
   ['dashboard', 'crm', 'orders', 'inventory'].forEach(function(v) {
     document.getElementById('view-' + v).classList.add('hidden');
     document.getElementById('nav-' + v).classList.remove('nav-active');
@@ -321,7 +341,13 @@ window.switchView = function(viewName) {
   if (viewName === 'crm') loadCustomers();
   if (viewName === 'orders') loadOrders();
   if (viewName === 'inventory') loadWarehouseInventory();
-};
+}
+
+function loadInitialData() {
+  Promise.all([loadWindows(), loadTags(), loadWarehouses(), loadProducts()]).then(function() {
+    loadDashboardData();
+  });
+}
 
 function loadWindows() {
   return sb.from('contact_windows').select('*').eq('is_active', true).then(function(result) {
@@ -369,29 +395,54 @@ function loadDashboardData() {
   });
 }
 
+// 標籤篩選
 function renderTagFilters() {
   var container = document.getElementById('tag-filters');
-  var html = '<button onclick="filterByTag(null)" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 ' + (currentTagFilter === null ? 'font-bold ring-2 ring-blue-500' : '') + '">全部</button>';
+  var html = '<button data-tag-id="null" class="tag-filter-btn px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 ' + (currentTagFilter === null ? 'font-bold ring-2 ring-blue-500' : '') + '">全部</button>';
   allTags.forEach(function(t) {
-    html += '<button onclick="filterByTag(\'' + t.id + '\')" class="px-3 py-1 tag-' + t.color + ' rounded-full text-sm hover:opacity-80 ' + (currentTagFilter === t.id ? 'ring-2 ring-offset-1 ring-gray-800' : '') + '">' + t.name + '</button>';
+    html += '<button data-tag-id="' + t.id + '" class="tag-filter-btn px-3 py-1 tag-' + t.color + ' rounded-full text-sm hover:opacity-80 ' + (currentTagFilter === t.id ? 'ring-2 ring-offset-1 ring-gray-800' : '') + '">' + t.name + '</button>';
   });
   container.innerHTML = html;
+  
+  // 綁定事件
+  container.querySelectorAll('.tag-filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var tagId = this.getAttribute('data-tag-id');
+      currentTagFilter = tagId === 'null' ? null : tagId;
+      renderTagFilters();
+      loadCustomers();
+    });
+  });
 }
 
-window.filterByTag = function(tagId) { currentTagFilter = tagId; renderTagFilters(); loadCustomers(); };
-
-window.openTagModal = function() { document.getElementById('tag-modal').classList.remove('hidden'); renderTagList(); };
-window.closeTagModal = function() { document.getElementById('tag-modal').classList.add('hidden'); };
+// 標籤管理 Modal
+document.getElementById('btn-open-tag-modal').addEventListener('click', function() {
+  document.getElementById('tag-modal').classList.remove('hidden');
+  renderTagList();
+});
+document.getElementById('btn-close-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
 
 function renderTagList() {
   var html = '';
   allTags.forEach(function(t) {
-    html += '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button onclick="deleteTag(\'' + t.id + '\')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>';
+    html += '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button class="btn-delete-tag text-red-600 hover:text-red-800 text-sm" data-id="' + t.id + '">刪除</button></div>';
   });
   document.getElementById('tag-list-container').innerHTML = html;
+  
+  document.querySelectorAll('.btn-delete-tag').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      showConfirm('確定刪除此標籤？').then(function(ok) {
+        if (ok) {
+          sb.from('tags').delete().eq('id', id).then(function() { loadTags().then(renderTagList); });
+        }
+      });
+    });
+  });
 }
 
-window.addNewTag = function() {
+document.getElementById('btn-add-tag').addEventListener('click', function() {
   var name = document.getElementById('new-tag-name').value.trim();
   var color = document.getElementById('new-tag-color').value;
   if (!name) return;
@@ -399,28 +450,36 @@ window.addNewTag = function() {
     document.getElementById('new-tag-name').value = '';
     loadTags().then(renderTagList);
   });
-};
+});
 
-window.deleteTag = function(id) {
-  showConfirm('確定刪除此標籤？').then(function(ok) {
-    if (ok) {
-      sb.from('tags').delete().eq('id', id).then(function() { loadTags().then(renderTagList); });
-    }
-  });
-};
-
-window.openWindowModal = function() { document.getElementById('window-modal').classList.remove('hidden'); renderWindowList(); };
-window.closeWindowModal = function() { document.getElementById('window-modal').classList.add('hidden'); };
+// 窗口管理 Modal
+document.getElementById('btn-open-window-modal').addEventListener('click', function() {
+  document.getElementById('window-modal').classList.remove('hidden');
+  renderWindowList();
+});
+document.getElementById('btn-close-window-modal').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-window').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
 
 function renderWindowList() {
   var html = '';
   allWindows.forEach(function(w) {
-    html += '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button onclick="deleteWindow(\'' + w.id + '\')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>';
+    html += '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button class="btn-delete-window text-red-600 hover:text-red-800 text-sm" data-id="' + w.id + '">刪除</button></div>';
   });
   document.getElementById('window-list-container').innerHTML = html;
+  
+  document.querySelectorAll('.btn-delete-window').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      showConfirm('確定刪除此窗口？').then(function(ok) {
+        if (ok) {
+          sb.from('contact_windows').update({ is_active: false }).eq('id', id).then(function() { loadWindows().then(renderWindowList); });
+        }
+      });
+    });
+  });
 }
 
-window.addNewWindow = function() {
+document.getElementById('btn-add-window').addEventListener('click', function() {
   var name = document.getElementById('new-window-name').value.trim();
   var role = document.getElementById('new-window-role').value;
   if (!name) return;
@@ -428,16 +487,9 @@ window.addNewWindow = function() {
     document.getElementById('new-window-name').value = '';
     loadWindows().then(renderWindowList);
   });
-};
+});
 
-window.deleteWindow = function(id) {
-  showConfirm('確定刪除此窗口？').then(function(ok) {
-    if (ok) {
-      sb.from('contact_windows').update({ is_active: false }).eq('id', id).then(function() { loadWindows().then(renderWindowList); });
-    }
-  });
-};
-
+// 客戶搜尋
 var searchTimer;
 document.getElementById('customer-search').addEventListener('input', function(e) {
   clearTimeout(searchTimer);
@@ -453,19 +505,34 @@ document.getElementById('customer-search').addEventListener('input', function(e)
       html = '<div class="p-3 text-gray-500">無結果</div>';
     } else {
       filtered.forEach(function(c) {
-        html += '<div class="search-item p-3 border-b" onclick="openCustomerModal(\'' + c.id + '\')">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
+        html += '<div class="search-item p-3 border-b" data-id="' + c.id + '">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
       });
     }
     dd.innerHTML = html;
     dd.classList.remove('hidden');
+    
+    dd.querySelectorAll('.search-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var id = this.getAttribute('data-id');
+        openCustomerModal(id);
+        dd.classList.add('hidden');
+      });
+    });
   }, 300);
 });
+
+// 客戶 Modal
+document.getElementById('btn-open-customer-modal').addEventListener('click', function() { openCustomerModal(); });
+document.getElementById('btn-close-customer-modal').addEventListener('click', function() { closeCustomerModal(); });
+document.getElementById('btn-cancel-customer').addEventListener('click', function() { closeCustomerModal(); });
+document.getElementById('btn-add-address').addEventListener('click', function() { addCustomerAddress(); });
 
 function toggleCompanyField() {
   document.getElementById('company-required').classList.toggle('hidden', document.getElementById('cust-type').value === 'B2C');
 }
+document.getElementById('cust-type').addEventListener('change', toggleCompanyField);
 
-window.openCustomerModal = function(customerId) {
+function openCustomerModal(customerId) {
   document.getElementById('customer-modal-title').textContent = customerId ? '編輯客戶' : '新增客戶';
   document.getElementById('customer-form').reset();
   document.getElementById('cust-id').value = customerId || '';
@@ -479,9 +546,9 @@ window.openCustomerModal = function(customerId) {
   if (customerId) loadCustomerForEdit(customerId);
   else addCustomerAddress();
   document.getElementById('customer-modal').classList.remove('hidden');
-};
+}
 
-window.closeCustomerModal = function() { document.getElementById('customer-modal').classList.add('hidden'); };
+function closeCustomerModal() { document.getElementById('customer-modal').classList.add('hidden'); }
 
 function renderCustomerTags(selectedTags) {
   if (!selectedTags) selectedTags = [];
@@ -493,18 +560,6 @@ function renderCustomerTags(selectedTags) {
   document.getElementById('customer-tags-container').innerHTML = html;
 }
 
-function updateAddressPreview() {
-  var contact = document.getElementById('cust-contact').value;
-  var phone = document.getElementById('cust-phone').value;
-  var divs = document.querySelectorAll('#customer-addresses-container > div');
-  for (var i = 0; i < divs.length; i++) {
-    var recipientInput = divs[i].querySelector('.addr-recipient');
-    var phoneInput = divs[i].querySelector('.addr-phone');
-    if (!recipientInput.dataset.manual) recipientInput.value = contact;
-    if (!phoneInput.dataset.manual) phoneInput.value = phone;
-  }
-}
-
 function addCustomerAddress(addressData) {
   var container = document.getElementById('customer-addresses-container');
   var id = addressData ? addressData.id : 'new-' + Date.now();
@@ -514,8 +569,12 @@ function addCustomerAddress(addressData) {
   var div = document.createElement('div');
   div.className = 'border rounded-lg p-4 bg-gray-50';
   div.dataset.addressId = id;
-  div.innerHTML = '<div class="flex justify-between items-center mb-3"><h4 class="font-bold">地址 ' + (container.children.length + 1) + '</h4><button type="button" onclick="this.closest(\'.border\').remove()" class="text-red-600 hover:text-red-800">刪除</button></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">類型</label><select class="addr-type w-full px-3 py-2 border rounded"><option value="home" ' + (type==='home'?'selected':'') + '>住家</option><option value="office" ' + (type==='office'?'selected':'') + '>公司</option><option value="cvs_711" ' + (type==='cvs_711'?'selected':'') + '>7-11</option><option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option></select></div><div><label class="block text-xs font-bold mb-1">聯絡窗口名</label><input type="text" class="addr-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.address_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">收件人 *</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_name : contact || '') + '" oninput="this.dataset.manual=\'true\'"></div><div><label class="block text-xs font-bold mb-1">電話 *</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_phone : phone || '') + '" oninput="this.dataset.manual=\'true\'"></div><div><label class="block text-xs font-bold mb-1">縣市</label><input type="text" class="addr-city w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.city : '') + '"></div><div><label class="block text-xs font-bold mb-1">區</label><input type="text" class="addr-district w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.district : '') + '"></div><div class="col-span-2"><label class="block text-xs font-bold mb-1">街道</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.street : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市代碼</label><input type="text" class="addr-cvs-code w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_code : '') + '"></div><div class="col-span-2"><label class="flex items-center gap-2"><input type="checkbox" class="addr-default" ' + (addressData && addressData.is_default ? 'checked' : '') + '><span class="text-sm font-bold">設為預設</span></label></div></div>';
+  div.innerHTML = '<div class="flex justify-between items-center mb-3"><h4 class="font-bold">地址 ' + (container.children.length + 1) + '</h4><button type="button" class="btn-remove-address text-red-600 hover:text-red-800">刪除</button></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">類型</label><select class="addr-type w-full px-3 py-2 border rounded"><option value="home" ' + (type==='home'?'selected':'') + '>住家</option><option value="office" ' + (type==='office'?'selected':'') + '>公司</option><option value="cvs_711" ' + (type==='cvs_711'?'selected':'') + '>7-11</option><option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option></select></div><div><label class="block text-xs font-bold mb-1">聯絡窗口名</label><input type="text" class="addr-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.address_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">收件人 *</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_name : contact || '') + '"></div><div><label class="block text-xs font-bold mb-1">電話 *</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_phone : phone || '') + '"></div><div><label class="block text-xs font-bold mb-1">縣市</label><input type="text" class="addr-city w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.city : '') + '"></div><div><label class="block text-xs font-bold mb-1">區</label><input type="text" class="addr-district w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.district : '') + '"></div><div class="col-span-2"><label class="block text-xs font-bold mb-1">街道</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.street : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市代碼</label><input type="text" class="addr-cvs-code w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_code : '') + '"></div><div class="col-span-2"><label class="flex items-center gap-2"><input type="checkbox" class="addr-default" ' + (addressData && addressData.is_default ? 'checked' : '') + '><span class="text-sm font-bold">設為預設</span></label></div></div>';
   container.appendChild(div);
+  
+  div.querySelector('.btn-remove-address').addEventListener('click', function() {
+    div.remove();
+  });
 }
 
 function loadCustomerForEdit(id) {
@@ -545,7 +604,7 @@ function loadCustomerForEdit(id) {
   });
 }
 
-window.saveCustomer = function() {
+document.getElementById('btn-save-customer').addEventListener('click', function() {
   var id = document.getElementById('cust-id').value;
   var type = document.getElementById('cust-type').value;
   var company = document.getElementById('cust-company').value;
@@ -582,7 +641,7 @@ window.saveCustomer = function() {
       }
     });
   }).then(function() {
-    return sb.from('customer_addresses').delete().eq('customer_id', document.getElementById('cust-id').value || document.getElementById('cust-id').value);
+    return sb.from('customer_addresses').delete().eq('customer_id', document.getElementById('cust-id').value);
   }).then(function() {
     var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
     var promises = [];
@@ -611,19 +670,24 @@ window.saveCustomer = function() {
   }).catch(function(err) {
     showAlert('儲存失敗：' + err.message);
   });
-};
+});
 
+// 客戶列表 (使用事件委派)
 function loadCustomers() {
   var query = sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id)');
   if (currentTagFilter) query = query.eq('customer_tags.tag_id', currentTagFilter);
   query.order('created_at', { ascending: false }).then(function(result) {
     allCustomers = result.data || [];
+    var tbody = document.getElementById('customer-table-body');
+    tbody.innerHTML = '';
     if (!allCustomers.length) {
-      document.getElementById('customer-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>';
       return;
     }
-    var html = '';
     allCustomers.forEach(function(c) {
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+      
       var tags = '';
       if (c.customer_tags) {
         c.customer_tags.forEach(function(ct) {
@@ -631,13 +695,26 @@ function loadCustomers() {
           if (tag) tags += '<span class="tag-' + tag.color + ' px-2 py-1 rounded text-xs mr-1">' + tag.name + '</span>';
         });
       }
-      html += '<tr class="hover:bg-gray-50"><td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ' + (c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800') + '">' + c.type + '</span></td><td class="px-6 py-4"><div class="font-medium">' + (c.company_name || c.contact_person) + '</div><div class="text-xs text-gray-500">' + c.phone + '</div></td><td class="px-6 py-4 text-sm">' + (c.tax_id || '-') + '</td><td class="px-6 py-4">' + tags + '</td><td class="px-6 py-4"><button onclick="viewCustomerDetail(\'' + c.id + '\')" class="text-blue-600 hover:underline text-sm mr-2">詳情</button><button onclick="openCustomerModal(\'' + c.id + '\')" class="text-green-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteCustomer(\'' + c.id + '\')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>';
+      
+      tr.innerHTML = '<td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ' + (c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800') + '">' + c.type + '</span></td><td class="px-6 py-4"><div class="font-medium">' + (c.company_name || c.contact_person) + '</div><div class="text-xs text-gray-500">' + c.phone + '</div></td><td class="px-6 py-4 text-sm">' + (c.tax_id || '-') + '</td><td class="px-6 py-4">' + tags + '</td><td class="px-6 py-4"><button class="btn-view-detail text-blue-600 hover:underline text-sm mr-2" data-id="' + c.id + '">詳情</button><button class="btn-edit-customer text-green-600 hover:underline text-sm mr-2" data-id="' + c.id + '">編輯</button><button class="btn-delete-customer text-red-600 hover:underline text-sm" data-id="' + c.id + '">刪除</button></td>';
+      tbody.appendChild(tr);
     });
-    document.getElementById('customer-table-body').innerHTML = html;
+    
+    // 綁定事件
+    tbody.querySelectorAll('.btn-view-detail').forEach(function(btn) {
+      btn.addEventListener('click', function() { viewCustomerDetail(this.getAttribute('data-id')); });
+    });
+    tbody.querySelectorAll('.btn-edit-customer').forEach(function(btn) {
+      btn.addEventListener('click', function() { openCustomerModal(this.getAttribute('data-id')); });
+    });
+    tbody.querySelectorAll('.btn-delete-customer').forEach(function(btn) {
+      btn.addEventListener('click', function() { deleteCustomer(this.getAttribute('data-id')); });
+    });
   });
 }
 
-window.viewCustomerDetail = function(id) {
+// 客戶詳情
+function viewCustomerDetail(id) {
   sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id), customer_addresses(*)').eq('id', id).single().then(function(result) {
     var c = result.data;
     if (!c) return;
@@ -678,9 +755,12 @@ window.viewCustomerDetail = function(id) {
     document.getElementById('customer-detail-content').innerHTML = html;
     document.getElementById('customer-detail-modal').classList.remove('hidden');
   });
-};
+}
 
-window.deleteCustomer = function(id) {
+document.getElementById('btn-close-detail-modal').addEventListener('click', function() { document.getElementById('customer-detail-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-detail').addEventListener('click', function() { document.getElementById('customer-detail-modal').classList.add('hidden'); });
+
+function deleteCustomer(id) {
   showConfirm('確定刪除此客戶？').then(function(ok) {
     if (!ok) return;
     sb.from('customer_tags').delete().eq('customer_id', id).then(function() {
@@ -703,8 +783,9 @@ window.deleteCustomer = function(id) {
       showAlert('刪除失敗：' + err.message);
     });
   });
-};
+}
 
+// 訂單搜尋
 var orderSearchTimer;
 document.getElementById('order-search').addEventListener('input', function(e) {
   clearTimeout(orderSearchTimer);
@@ -712,7 +793,17 @@ document.getElementById('order-search').addEventListener('input', function(e) {
   orderSearchTimer = setTimeout(function() { loadOrders(kw); }, 300);
 });
 
-window.openOrderModal = function(orderId) {
+// 訂單 Modal
+document.getElementById('btn-open-order-modal').addEventListener('click', function() { openOrderModal(); });
+document.getElementById('btn-close-order-modal').addEventListener('click', function() { closeOrderModal(); });
+document.getElementById('btn-cancel-order').addEventListener('click', function() { closeOrderModal(); });
+document.getElementById('btn-add-order-item').addEventListener('click', function() { addOrderItemRow(); });
+document.getElementById('btn-enable-temp-address').addEventListener('click', function() {
+  document.getElementById('temp-address-section').classList.remove('hidden');
+  document.getElementById('shipping-address-select').value = '';
+});
+
+function openOrderModal(orderId) {
   editingOrderId = orderId || null;
   document.getElementById('order-modal-title').textContent = orderId ? '編輯訂單' : '新增訂單';
   document.getElementById('order-form').reset();
@@ -726,13 +817,13 @@ window.openOrderModal = function(orderId) {
   if (orderId) loadOrderForEdit(orderId);
   else addOrderItemRow();
   document.getElementById('order-modal').classList.remove('hidden');
-};
+}
 
-window.closeOrderModal = function() {
+function closeOrderModal() {
   document.getElementById('order-modal').classList.add('hidden');
   editingOrderId = null;
   originalOrderItems = [];
-};
+}
 
 function toggleInvoiceFields() {
   var needInvoice = document.getElementById('order-need-invoice').value === 'yes';
@@ -752,7 +843,9 @@ function toggleInvoiceFields() {
   }
   calculateOrderFinalTotal();
 }
+document.getElementById('order-need-invoice').addEventListener('change', toggleInvoiceFields);
 
+// 訂單客戶搜尋
 var orderSearchTimer2;
 document.getElementById('order-customer-search').addEventListener('input', function(e) {
   clearTimeout(orderSearchTimer2);
@@ -769,15 +862,22 @@ document.getElementById('order-customer-search').addEventListener('input', funct
     } else {
       filtered.forEach(function(c) {
         var tagsJson = c.customer_tags ? JSON.stringify(c.customer_tags.map(function(ct) { return ct.tag_id; })) : '[]';
-        html += '<div class="search-item p-3 border-b" onclick="selectOrderCustomer(\'' + c.id + '\', \'' + (c.company_name || c.contact_person) + '\', \'' + (c.tax_id || '') + '\', \'' + (c.invoice_title || '') + '\', \'' + tagsJson + '\', \'' + c.type + '\')">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
+        html += '<div class="search-item p-3 border-b" data-id="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-tax="' + (c.tax_id || '') + '" data-invoice="' + (c.invoice_title || '') + '" data-tags="' + tagsJson + '" data-type="' + c.type + '">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
       });
     }
     dd.innerHTML = html;
     dd.classList.remove('hidden');
+    
+    dd.querySelectorAll('.search-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        selectOrderCustomer(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-tax'), this.getAttribute('data-invoice'), this.getAttribute('data-tags'), this.getAttribute('data-type'));
+        dd.classList.add('hidden');
+      });
+    });
   }, 300);
 });
 
-window.selectOrderCustomer = function(id, name, taxId, invoiceTitle, tagsJson, type) {
+function selectOrderCustomer(id, name, taxId, invoiceTitle, tagsJson, type) {
   document.getElementById('order-customer-dropdown').classList.add('hidden');
   document.getElementById('order-customer-search').value = name;
   document.getElementById('selected-customer-id').value = id;
@@ -785,11 +885,6 @@ window.selectOrderCustomer = function(id, name, taxId, invoiceTitle, tagsJson, t
   document.getElementById('selected-customer-display').classList.remove('hidden');
   currentCustomerTags = JSON.parse(tagsJson);
   currentCustomerType = type;
-  var needInvoice = document.getElementById('order-need-invoice').value === 'yes';
-  if (needInvoice) {
-    document.getElementById('order-invoice-title').value = invoiceTitle || (type === 'B2B' ? name : '');
-    document.getElementById('order-tax-id').value = taxId || '';
-  }
   toggleInvoiceFields();
   sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(result) {
     var addresses = result.data || [];
@@ -801,18 +896,9 @@ window.selectOrderCustomer = function(id, name, taxId, invoiceTitle, tagsJson, t
     });
   });
   calculateOrderFinalTotal();
-};
+}
 
-window.enableTempAddress = function() {
-  document.getElementById('temp-address-section').classList.remove('hidden');
-  document.getElementById('shipping-address-select').value = '';
-};
-
-window.selectSavedAddress = function() {
-  document.getElementById('temp-address-section').classList.add('hidden');
-};
-
-window.addOrderItemRow = function(productData) {
+function addOrderItemRow(productData) {
   var container = document.getElementById('order-items-container');
   var id = 'row-' + Date.now();
   var options = '<option value="">選擇產品...</option>';
@@ -823,22 +909,29 @@ window.addOrderItemRow = function(productData) {
   var div = document.createElement('div');
   div.id = id;
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded';
-  div.innerHTML = '<div class="flex-1"><label class="block text-xs font-bold mb-1">產品</label><select class="order-product w-full px-3 py-2 border rounded" onchange="updateItemPrice(\'' + id + '\')">' + options + '</select></div><div class="w-24"><label class="block text-xs font-bold mb-1">數量</label><input type="number" class="order-qty w-full px-3 py-2 border rounded" value="' + (productData ? productData.quantity : 1) + '" min="1" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">單價</label><input type="number" class="order-price w-full px-3 py-2 border rounded" value="' + (productData ? productData.unit_price : '') + '" step="0.01" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">小計</label><div class="order-subtotal px-3 py-2 font-bold">$0</div></div><button type="button" onclick="document.getElementById(\'' + id + '\').remove(); calculateOrderFinalTotal()" class="px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">X</button>';
+  div.innerHTML = '<div class="flex-1"><label class="block text-xs font-bold mb-1">產品</label><select class="order-product w-full px-3 py-2 border rounded"><option value="">選擇產品...</option>' + options + '</select></div><div class="w-24"><label class="block text-xs font-bold mb-1">數量</label><input type="number" class="order-qty w-full px-3 py-2 border rounded" value="' + (productData ? productData.quantity : 1) + '" min="1"></div><div class="w-32"><label class="block text-xs font-bold mb-1">單價</label><input type="number" class="order-price w-full px-3 py-2 border rounded" value="' + (productData ? productData.unit_price : '') + '" step="0.01"></div><div class="w-32"><label class="block text-xs font-bold mb-1">小計</label><div class="order-subtotal px-3 py-2 font-bold">$0</div></div><button type="button" class="btn-remove-item px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">X</button>';
   container.appendChild(div);
-  if (productData && productData.unit_price) updateItemPrice(id, productData.unit_price);
+  
+  div.querySelector('.order-product').addEventListener('change', function() {
+    var select = this;
+    var priceInput = div.querySelector('.order-price');
+    if (select.value) priceInput.value = select.options[select.selectedIndex].dataset.price;
+    calculateOrderFinalTotal();
+  });
+  div.querySelector('.order-qty').addEventListener('input', calculateOrderFinalTotal);
+  div.querySelector('.order-price').addEventListener('input', calculateOrderFinalTotal);
+  div.querySelector('.btn-remove-item').addEventListener('click', function() {
+    div.remove();
+    calculateOrderFinalTotal();
+  });
+  
+  if (productData && productData.unit_price) {
+    div.querySelector('.order-price').value = productData.unit_price;
+  }
   calculateOrderFinalTotal();
-};
+}
 
-window.updateItemPrice = function(rowId, forcedPrice) {
-  var row = document.getElementById(rowId);
-  var select = row.querySelector('.order-product');
-  var priceInput = row.querySelector('.order-price');
-  if (forcedPrice !== null && forcedPrice !== undefined) priceInput.value = forcedPrice;
-  else if (select.value) priceInput.value = select.options[select.selectedIndex].dataset.price;
-  calculateOrderFinalTotal();
-};
-
-window.calculateOrderFinalTotal = function() {
+function calculateOrderFinalTotal() {
   var subtotal = 0;
   var rows = document.querySelectorAll('#order-items-container > div');
   for (var i = 0; i < rows.length; i++) {
@@ -882,9 +975,10 @@ window.calculateOrderFinalTotal = function() {
     document.getElementById('display-absorbed-row').classList.add('hidden');
   }
   document.getElementById('order-total-amount').textContent = '$' + Math.round(subtotal + tax + shippingFee).toLocaleString();
-};
+}
+document.getElementById('order-tax-handling').addEventListener('change', calculateOrderFinalTotal);
 
-window.submitOrder = function() {
+document.getElementById('btn-save-order').addEventListener('click', function() {
   var customerId = document.getElementById('selected-customer-id').value;
   if (!customerId) { showAlert('請選擇客戶！'); return; }
   var items = [];
@@ -973,14 +1067,17 @@ window.submitOrder = function() {
   }).catch(function(err) {
     showAlert('儲存失敗：' + err.message);
   });
-};
+});
 
+// 訂單列表 (使用事件委派)
 function loadOrders(searchKw) {
   if (!searchKw) searchKw = '';
   sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false }).then(function(result) {
     var data = result.data || [];
+    var tbody = document.getElementById('order-table-body');
+    tbody.innerHTML = '';
     if (!data.length) {
-      document.getElementById('order-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>';
       return;
     }
     var filteredData = data;
@@ -991,13 +1088,21 @@ function loadOrders(searchKw) {
         return customerName.indexOf(searchKw) !== -1 || invoiceNo.indexOf(searchKw) !== -1;
       });
     }
-    var html = '';
     filteredData.forEach(function(o) {
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
       var dateObj = new Date(o.created_at);
       var dateStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth()+1).padStart(2,'0') + '-' + String(dateObj.getDate()).padStart(2,'0') + ' ' + String(dateObj.getHours()).padStart(2,'0') + ':' + String(dateObj.getMinutes()).padStart(2,'0');
-      html += '<tr class="hover:bg-gray-50"><td class="px-6 py-4 font-bold text-gray-700">' + dateStr + '</td><td class="px-6 py-4">' + (o.customers ? (o.customers.company_name || o.customers.contact_person) : '已刪除客戶') + '</td><td class="px-6 py-4">$' + Math.round(o.total_amount).toLocaleString() + '</td><td class="px-6 py-4 text-sm">' + (o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無') + '</td><td class="px-6 py-4"><button onclick="openOrderModal(\'' + o.id + '\')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteOrder(\'' + o.id + '\')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>';
+      tr.innerHTML = '<td class="px-6 py-4 font-bold text-gray-700">' + dateStr + '</td><td class="px-6 py-4">' + (o.customers ? (o.customers.company_name || o.customers.contact_person) : '已刪除客戶') + '</td><td class="px-6 py-4">$' + Math.round(o.total_amount).toLocaleString() + '</td><td class="px-6 py-4 text-sm">' + (o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無') + '</td><td class="px-6 py-4"><button class="btn-edit-order text-blue-600 hover:underline text-sm mr-2" data-id="' + o.id + '">編輯</button><button class="btn-delete-order text-red-600 hover:underline text-sm" data-id="' + o.id + '">刪除</button></td>';
+      tbody.appendChild(tr);
     });
-    document.getElementById('order-table-body').innerHTML = html;
+    
+    tbody.querySelectorAll('.btn-edit-order').forEach(function(btn) {
+      btn.addEventListener('click', function() { openOrderModal(this.getAttribute('data-id')); });
+    });
+    tbody.querySelectorAll('.btn-delete-order').forEach(function(btn) {
+      btn.addEventListener('click', function() { deleteOrder(this.getAttribute('data-id')); });
+    });
   });
 }
 
@@ -1026,7 +1131,7 @@ function loadOrderForEdit(id) {
   });
 }
 
-window.deleteOrder = function(id) {
+function deleteOrder(id) {
   showConfirm('確定刪除此訂單？庫存會回補。').then(function(ok) {
     if (!ok) return;
     sb.from('invoices').delete().eq('related_order_id', id).then(function() {
@@ -1055,7 +1160,7 @@ window.deleteOrder = function(id) {
       showAlert('刪除失敗：' + err.message);
     });
   });
-};
+}
 
 function loadWarehouseInventory() {
   var container = document.getElementById('warehouse-inventory-container');
