@@ -10,54 +10,53 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .hidden { display: none !important; }
         .nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
+        .search-dropdown { position: absolute; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 400px; overflow-y: auto; }
+        .search-item:hover { background-color: #f3f4f6; cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <!-- 畫面 A：登入頁面 -->
+    <!-- 登入頁面 -->
     <div id="login-view" class="min-h-screen flex items-center justify-center">
         <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
             <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">🏢 企業戰情室登入</h1>
-            <form id="login-form" class="space-y-4" onsubmit="return false;">
+            <form class="space-y-4" onsubmit="return false;">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">密碼</label>
-                    <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
                 </div>
-                <button type="button" id="login-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
-                    登入系統
-                </button>
+                <button type="button" id="login-btn" class="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700">登入系統</button>
             </form>
         </div>
     </div>
 
-    <!-- 畫面 B：主系統 -->
+    <!-- 主系統 -->
     <div id="main-system" class="hidden min-h-screen flex">
-        <!-- 左側導航欄 -->
+        <!-- 側邊欄 -->
         <aside class="w-64 bg-gray-800 text-white flex flex-col">
             <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統</div>
             <nav class="flex-1 p-4 space-y-2">
                 <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">🏠 儀表板總覽</a>
                 <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">👥 客戶管理 (CRM)</a>
                 <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單與庫存</a>
-                <a href="#" onclick="switchView('finance')" id="nav-finance" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票 (開發中)</a>
+                <a href="#" onclick="switchView('finance')" id="nav-finance" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票</a>
             </nav>
             <div class="p-4 border-t border-gray-700">
                 <button id="logout-btn" class="w-full py-2 px-4 bg-red-600 hover:bg-red-700 rounded text-sm">登出系統</button>
             </div>
         </aside>
 
-        <!-- 右側內容區 -->
+        <!-- 主內容區 -->
         <main class="flex-1 p-8 overflow-y-auto">
             
-            <!-- 視圖 1：儀表板 -->
+            <!-- 儀表板 -->
             <div id="view-dashboard">
                 <header class="mb-8">
                     <h1 class="text-3xl font-bold text-gray-800">老闆，早安！這是今天的戰情總覽：</h1>
-                    <p class="text-gray-500 mt-2">系統即時運算中... 享受你的咖啡吧 ☕</p>
                 </header>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -69,7 +68,7 @@
                         <p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow">
-                        <p class="text-gray-500 text-sm">總營收 (預估)</p>
+                        <p class="text-gray-500 text-sm">總營收</p>
                         <p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p>
                     </div>
                     <div class="bg-white p-6 rounded-lg shadow">
@@ -79,15 +78,30 @@
                 </div>
             </div>
 
-            <!-- 視圖 2：客戶管理 -->
+            <!-- 客戶管理 (CRM) - 升級版 -->
             <div id="view-crm" class="hidden">
-                <header class="mb-8 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-800">👥 客戶關係管理 (CRM)</h1>
-                        <p class="text-gray-500 mt-2">掌握所有客戶資訊與消費習性</p>
-                    </div>
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ 新增客戶 (待開發)</button>
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">👥 客戶關係管理</h1>
+                    <p class="text-gray-500 mt-2">智能搜尋 · 多重地址 · 聯絡窗口</p>
                 </header>
+
+                <!-- 🔍 智能搜尋框 -->
+                <div class="mb-6 relative">
+                    <div class="flex items-center">
+                        <input 
+                            type="text" 
+                            id="customer-search"
+                            placeholder="🔍 搜尋客戶姓名、公司、電話、Email...（輸入即搜尋）"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                            autocomplete="off"
+                        >
+                        <button onclick="loadCustomerData()" class="ml-2 px-4 py-3 bg-gray-200 rounded-lg hover:bg-gray-300">清除</button>
+                    </div>
+                    <!-- 搜尋結果下拉 -->
+                    <div id="search-dropdown" class="search-dropdown w-full mt-2 hidden"></div>
+                </div>
+
+                <!-- 客戶列表 -->
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -95,8 +109,9 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤 (習性)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">負責窗口</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">地址</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
                             </tr>
                         </thead>
                         <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200"></tbody>
@@ -104,41 +119,45 @@
                 </div>
             </div>
 
-            <!-- 視圖 3：訂單與庫存 (新功能！) -->
+            <!-- 訂單管理 -->
             <div id="view-orders" class="hidden">
-                <header class="mb-8 flex justify-between items-center">
-                    <div>
-                        <h1 class="text-3xl font-bold text-gray-800"> 訂單管理與出貨追蹤</h1>
-                        <p class="text-gray-500 mt-2">掌握每一筆訂單狀態與金額</p>
-                    </div>
-                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ 新增訂單 (待開發)</button>
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">📦 訂單管理</h1>
                 </header>
-                
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶名稱</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單金額</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">備註</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">負責窗口</th>
                             </tr>
                         </thead>
-                        <tbody id="order-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- JavaScript 會填入這裡 -->
-                        </tbody>
+                        <tbody id="order-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 視圖 4：財務 -->
+            <!-- 財務 -->
             <div id="view-finance" class="hidden">
                 <h1 class="text-3xl font-bold text-gray-800">💰 財務與發票</h1>
-                <p class="text-gray-500 mt-4 text-xl">此模組正在裝修中，請稍候...</p>
+                <p class="text-gray-500 mt-4">開發中...</p>
             </div>
 
         </main>
+    </div>
+
+    <!-- 客戶詳情 Modal -->
+    <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">📋 客戶詳情</h2>
+                <button onclick="closeCustomerModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            </div>
+            <div id="customer-modal-content"></div>
+        </div>
     </div>
 
     <script>
@@ -146,30 +165,26 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const loginView = document.getElementById('login-view');
-        const mainSystem = document.getElementById('main-system');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
+        let allCustomers = []; // 儲存所有客戶資料
+        let searchTimeout; // 搜尋防抖動
 
-        // 登入邏輯
-        loginBtn.addEventListener('click', async () => {
+        // 登入
+        document.getElementById('login-btn').addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            loginBtn.textContent = '登入中...';
             const { data, error } = await sb.auth.signInWithPassword({ email, password });
-            loginBtn.textContent = '登入系統';
-            if (error) { alert('登入失敗：' + error.message); } 
+            if (error) { alert('登入失敗：' + error.message); }
             else {
-                loginView.classList.add('hidden');
-                mainSystem.classList.remove('hidden');
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('main-system').classList.remove('hidden');
                 loadDashboardData();
             }
         });
 
-        logoutBtn.addEventListener('click', async () => {
+        // 登出
+        document.getElementById('logout-btn').addEventListener('click', async () => {
             await sb.auth.signOut();
-            mainSystem.classList.add('hidden');
-            loginView.classList.remove('hidden');
+            location.reload();
         });
 
         // 切換視圖
@@ -180,99 +195,285 @@
             });
             document.getElementById('view-' + viewName).classList.remove('hidden');
             document.getElementById('nav-' + viewName).classList.add('nav-active');
-
             if (viewName === 'crm') loadCustomerData();
-            if (viewName === 'orders') loadOrderData(); // 🚨 新增：切換到訂單時載入數據
+            if (viewName === 'orders') loadOrderData();
         }
 
-        // 載入儀表板
-        async function loadDashboardData() {
-            const { count: customerCount } = await sb.from('customers').select('*', { count: 'exact', head: true });
-            document.getElementById('stat-customers').textContent = customerCount || 0;
-            const { data: orders, count: orderCount } = await sb.from('orders').select('total_amount', { count: 'exact' });
-            document.getElementById('stat-orders').textContent = orderCount || 0;
-            const totalRevenue = orders ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
-            document.getElementById('stat-revenue').textContent = '$' + totalRevenue.toLocaleString();
-            const { data: allProducts } = await sb.from('products').select('current_stock, safety_stock');
-            const lowStockCount = allProducts ? allProducts.filter(p => p.current_stock < p.safety_stock && p.safety_stock > 0).length : 0;
-            document.getElementById('stat-alerts').textContent = lowStockCount;
+        // 🔍 智能搜尋（防抖動）
+        document.getElementById('customer-search').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const keyword = e.target.value.trim();
+            
+            if (keyword.length === 0) {
+                document.getElementById('search-dropdown').classList.add('hidden');
+                loadCustomerData();
+                return;
+            }
+
+            // 防抖動：停止輸入 300ms 後才搜尋
+            searchTimeout = setTimeout(() => {
+                performSmartSearch(keyword);
+            }, 300);
+        });
+
+        // 🔍 執行智能搜尋
+        async function performSmartSearch(keyword) {
+            const dropdown = document.getElementById('search-dropdown');
+            dropdown.innerHTML = '<div class="p-4 text-center text-gray-500">搜尋中...</div>';
+            dropdown.classList.remove('hidden');
+
+            // 搜尋：姓名、公司、電話、Email
+            const { data: customers, error } = await sb
+                .from('customers')
+                .select(`
+                    *,
+                    contact_windows(name),
+                    customer_addresses(address_type, address_name, city, district, street, cvs_store_name, is_default)
+                `)
+                .or(`contact_person.ilike.%${keyword}%,company_name.ilike.%${keyword}%,phone.ilike.%${keyword}%,email.ilike.%${keyword}%`)
+                .limit(10);
+
+            if (error || !customers || customers.length === 0) {
+                dropdown.innerHTML = '<div class="p-4 text-center text-gray-500">找不到符合的客戶</div>';
+                return;
+            }
+
+            // 顯示搜尋結果
+            dropdown.innerHTML = customers.map(c => `
+                <div class="search-item p-3 border-b" onclick="selectCustomerFromSearch('${c.id}')">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-gray-800">
+                                ${c.company_name || c.contact_person}
+                                <span class="px-2 py-0.5 text-xs rounded ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${c.type}</span>
+                            </div>
+                            <div class="text-sm text-gray-600">${c.contact_person} · ${c.phone}</div>
+                            ${c.contact_windows ? `<div class="text-xs text-blue-600 mt-1">👤 負責：${c.contact_windows.name}</div>` : ''}
+                        </div>
+                        <div class="text-gray-400 text-sm">→</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 從搜尋結果選擇客戶
+        function selectCustomerFromSearch(customerId) {
+            document.getElementById('search-dropdown').classList.add('hidden');
+            document.getElementById('customer-search').value = '';
+            showCustomerDetail(customerId);
         }
 
         // 載入客戶列表
         async function loadCustomerData() {
             const tbody = document.getElementById('customer-table-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">載入中...</td></tr>';
-            const { data: customers } = await sb.from('customers').select('*').order('created_at', { ascending: false });
-            if (!customers) return;
-            tbody.innerHTML = customers.map(c => `
-                <tr>
-                    <td class="px-6 py-4"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${c.type}</span></td>
-                    <td class="px-6 py-4 text-sm font-medium">${c.company_name || c.contact_person}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${c.contact_person}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${c.phone}</td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${c.tags ? c.tags.map(tag => `<span class="mr-1 px-2 py-1 rounded bg-gray-200 text-xs">${tag}</span>`).join('') : ''}</td>
-                </tr>
-            `).join('');
-        }
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center">載入中...</td></tr>';
 
-        // 🚨 新功能：載入訂單列表
-        async function loadOrderData() {
-            const tbody = document.getElementById('order-table-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">載入中...</td></tr>';
-
-            // 關聯查詢：訂單 + 客戶名稱
-            const { data: orders, error } = await sb
-                .from('orders')
-                .select('*, customers(company_name, contact_person, type)')
+            const { data: customers, error } = await sb
+                .from('customers')
+                .select(`
+                    *,
+                    contact_windows(name),
+                    customer_addresses(address_type, address_name, city, district, street, cvs_store_name, is_default)
+                `)
                 .order('created_at', { ascending: false });
 
             if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">載入失敗</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">載入失敗</td></tr>';
                 return;
             }
 
-            // 狀態顏色對應
-            const statusColors = {
-                'pending': 'bg-yellow-100 text-yellow-800',
-                'confirmed': 'bg-blue-100 text-blue-800',
-                'shipped': 'bg-purple-100 text-purple-800',
-                'completed': 'bg-green-100 text-green-800',
-                'cancelled': 'bg-gray-100 text-gray-800'
-            };
-            const statusText = {
-                'pending': '待處理', 'confirmed': '已確認', 'shipped': '已出貨', 'completed': '已完成', 'cancelled': '已取消'
+            allCustomers = customers;
+
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">尚無客戶資料</td></tr>';
+                return;
+            }
+
+            // 地址類型對應
+            const addressTypeMap = {
+                'home': '🏠 住家',
+                'office': '🏢 公司',
+                'cvs_711': '🏪 7-11',
+                'cvs_family': '🏪 全家',
+                'cvs_ok': '🏪 OK',
+                'cvs_hilife': '🏪 萊爾富'
             };
 
-            tbody.innerHTML = orders.map(o => {
-                const customerName = o.customers?.company_name || o.customers?.contact_person || '未知客戶';
+            tbody.innerHTML = customers.map(c => {
+                const defaultAddress = c.customer_addresses?.find(a => a.is_default);
+                const addressText = defaultAddress 
+                    ? `${addressTypeMap[defaultAddress.address_type]} ${defaultAddress.cvs_store_name || defaultAddress.street || ''}`
+                    : '無地址';
+
                 return `
-                <tr>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${o.order_no}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${o.customers?.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'} mr-2">${o.customers?.type || ''}</span>
-                        ${customerName}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${c.type}</span>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$${o.total_amount.toLocaleString()}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[o.status] || 'bg-gray-100'}">
-                            ${statusText[o.status] || o.status}
-                        </span>
+                    <td class="px-6 py-4 font-medium">${c.company_name || c.contact_person}</td>
+                    <td class="px-6 py-4 text-sm">${c.contact_person}<br><span class="text-gray-500 text-xs">${c.phone}</span></td>
+                    <td class="px-6 py-4 text-sm">
+                        ${c.contact_windows ? `<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">👤 ${c.contact_windows.name}</span>` : '<span class="text-gray-400 text-xs">未分配</span>'}
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">${o.notes || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${addressText}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="showCustomerDetail('${c.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">查看詳情</button>
+                    </td>
                 </tr>
             `}).join('');
         }
 
-        // 檢查登入狀態
-        async function checkAuth() {
+        // 顯示客戶詳情 Modal
+        async function showCustomerDetail(customerId) {
+            const modal = document.getElementById('customer-modal');
+            const content = document.getElementById('customer-modal-content');
+            
+            const { data: customer } = await sb
+                .from('customers')
+                .select(`
+                    *,
+                    contact_windows(name, email, phone),
+                    customer_addresses(*)
+                `)
+                .eq('id', customerId)
+                .single();
+
+            if (!customer) return;
+
+            const addressTypeMap = {
+                'home': '🏠 住家',
+                'office': '🏢 公司',
+                'cvs_711': '🏪 7-11',
+                'cvs_family': '🏪 全家',
+                'cvs_ok': '🏪 OK',
+                'cvs_hilife': '🏪 萊爾富'
+            };
+
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <!-- 基本資訊 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-500">客戶類型</div>
+                            <div class="font-bold text-lg">${customer.type}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">負責窗口</div>
+                            <div class="font-bold">${customer.contact_windows?.name || '未分配'}</div>
+                        </div>
+                        ${customer.company_name ? `
+                        <div>
+                            <div class="text-sm text-gray-500">公司名稱</div>
+                            <div class="font-bold">${customer.company_name}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">統一編號</div>
+                            <div>${customer.tax_id || '-'}</div>
+                        </div>
+                        ` : ''}
+                        <div>
+                            <div class="text-sm text-gray-500">聯絡人</div>
+                            <div class="font-bold">${customer.contact_person}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">電話</div>
+                            <div>${customer.phone}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">Email</div>
+                            <div>${customer.email || '-'}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">標籤</div>
+                            <div>${customer.tags ? customer.tags.map(t => `<span class="px-2 py-1 bg-gray-200 rounded text-xs mr-1">${t}</span>`).join('') : '-'}</div>
+                        </div>
+                    </div>
+
+                    <!-- 所有地址 -->
+                    <div>
+                        <h3 class="font-bold text-lg mb-3">📍 寄送地址 (${customer.customer_addresses?.length || 0})</h3>
+                        ${customer.customer_addresses && customer.customer_addresses.length > 0 ? `
+                        <div class="space-y-3">
+                            ${customer.customer_addresses.map(addr => `
+                                <div class="border rounded-lg p-4 ${addr.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="font-bold">
+                                            ${addressTypeMap[addr.address_type]} 
+                                            ${addr.is_default ? '<span class="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded">預設</span>' : ''}
+                                            ${addr.address_name ? `<span class="text-gray-600 text-sm">(${addr.address_name})</span>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="text-sm text-gray-700">
+                                        ${addr.recipient_name} · ${addr.recipient_phone}<br>
+                                        ${addr.city || ''}${addr.district || ''}${addr.street || ''}<br>
+                                        ${addr.cvs_store_name ? `📦 ${addr.cvs_store_name} (${addr.cvs_store_code || '無代碼'})` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : '<p class="text-gray-500">尚無地址資料</p>'}
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
+        }
+
+        // 關閉 Modal
+        function closeCustomerModal() {
+            document.getElementById('customer-modal').classList.add('hidden');
+        }
+
+        // 載入儀表板數據
+        async function loadDashboardData() {
+            const { count: customerCount } = await sb.from('customers').select('*', { count: 'exact', head: true });
+            document.getElementById('stat-customers').textContent = customerCount || 0;
+            
+            const { data: orders, count: orderCount } = await sb.from('orders').select('total_amount', { count: 'exact' });
+            document.getElementById('stat-orders').textContent = orderCount || 0;
+            const totalRevenue = orders ? orders.reduce((sum, o) => sum + (o.total_amount || 0), 0) : 0;
+            document.getElementById('stat-revenue').textContent = '$' + totalRevenue.toLocaleString();
+            
+            const { data: products } = await sb.from('products').select('current_stock, safety_stock');
+            const alertCount = products ? products.filter(p => p.current_stock < p.safety_stock).length : 0;
+            document.getElementById('stat-alerts').textContent = alertCount;
+        }
+
+        // 載入訂單列表
+        async function loadOrderData() {
+            const tbody = document.getElementById('order-table-body');
+            const { data: orders } = await sb
+                .from('orders')
+                .select('*, customers(company_name, contact_person, type), contact_windows(name)')
+                .order('created_at', { ascending: false });
+
+            const statusMap = {
+                'pending': { text: '待處理', class: 'bg-yellow-100 text-yellow-800' },
+                'confirmed': { text: '已確認', class: 'bg-blue-100 text-blue-800' },
+                'shipped': { text: '已出貨', class: 'bg-purple-100 text-purple-800' },
+                'completed': { text: '已完成', class: 'bg-green-100 text-green-800' }
+            };
+
+            tbody.innerHTML = orders.map(o => `
+                <tr>
+                    <td class="px-6 py-4 font-bold">${o.order_no}</td>
+                    <td class="px-6 py-4">${o.customers?.company_name || o.customers?.contact_person}</td>
+                    <td class="px-6 py-4">$${o.total_amount.toLocaleString()}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs ${statusMap[o.status]?.class || ''}">${statusMap[o.status]?.text || o.status}</span></td>
+                    <td class="px-6 py-4">${o.contact_windows?.name || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // 初始化
+        (async () => {
             const { data: { session } } = await sb.auth.getSession();
             if (session) {
-                loginView.classList.add('hidden');
-                mainSystem.classList.remove('hidden');
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('main-system').classList.remove('hidden');
                 loadDashboardData();
             }
-        }
-        checkAuth();
+        })();
     </script>
 </body>
 </html>
