@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老闆退休管理系統</title>
+    <title>老闆退休管理系統 v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -13,6 +13,11 @@
         .search-dropdown { position: absolute; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto; width: 100%; }
         .search-item:hover { background-color: #f3f4f6; cursor: pointer; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); }
+        .tag-VIP { background-color: #a855f7; color: white; }
+        .tag-價格敏感 { background-color: #eab308; color: black; }
+        .tag-月結 { background-color: #3b82f6; color: white; }
+        .tag-大客戶 { background-color: #ef4444; color: white; }
+        .tag-新客戶 { background-color: #22c55e; color: white; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -32,11 +37,12 @@
     <!-- 主系統 -->
     <div id="main-system" class="hidden min-h-screen flex">
         <aside class="w-64 bg-gray-800 text-white flex flex-col">
-            <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統</div>
+            <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統 v2.0</div>
             <nav class="flex-1 p-4 space-y-2">
                 <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">🏠 儀表板</a>
                 <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">👥 客戶管理</a>
-                <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單與庫存</a>
+                <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單管理</a>
+                <a href="#" onclick="switchView('inventory')" id="nav-inventory" class="block py-2 px-4 rounded hover:bg-gray-700">🏭 倉庫庫存</a>
                 <a href="#" onclick="switchView('finance')" id="nav-finance" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務發票</a>
             </nav>
             <div class="p-4 border-t border-gray-700">
@@ -50,8 +56,8 @@
                 <h1 class="text-3xl font-bold mb-6">老闆，早安！戰情總覽：</h1>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總客戶數</p><p id="stat-customers" class="text-3xl font-bold text-blue-600 mt-2">0</p></div>
-                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總訂單數</p><p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p></div>
-                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總營收</p><p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">本月訂單</p><p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">本月營收</p><p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p></div>
                     <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">庫存警報</p><p id="stat-alerts" class="text-3xl font-bold text-red-600 mt-2">0</p></div>
                 </div>
             </div>
@@ -60,32 +66,50 @@
             <div id="view-crm" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-3xl font-bold">👥 客戶關係管理</h1>
-                    <button onclick="openNewCustomerModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md font-bold">+ 新增客戶</button>
+                    <button onclick="openCustomerModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md font-bold">+ 新增客戶</button>
                 </div>
+                
+                <!-- 標籤篩選 -->
+                <div class="mb-6 bg-white p-4 rounded-lg shadow">
+                    <h3 class="font-bold text-gray-700 mb-3">🏷️ 標籤篩選：</h3>
+                    <div id="tag-filters" class="flex flex-wrap gap-2">
+                        <button onclick="filterByTag(null)" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300">全部</button>
+                    </div>
+                </div>
+
+                <!-- 搜尋 -->
                 <div class="mb-6 relative">
-                    <input type="text" id="customer-search" placeholder="🔍 搜尋客戶姓名、公司、電話..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+                    <input type="text" id="customer-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
                     <div id="search-dropdown" class="search-dropdown mt-2 hidden"></div>
                 </div>
+
+                <!-- 客戶列表 -->
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">負責窗口</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+                        <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">地址</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
                         <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 訂單與庫存 -->
+            <!-- 訂單管理 -->
             <div id="view-orders" class="hidden">
                 <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-3xl font-bold">📦 訂單管理與出貨追蹤</h1>
-                    <button onclick="openNewOrderModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
+                    <h1 class="text-3xl font-bold">📦 訂單管理</h1>
+                    <button onclick="openOrderModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
                 </div>
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">負責窗口</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+                        <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
                         <tbody id="order-table-body" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <!-- 倉庫庫存 -->
+            <div id="view-inventory" class="hidden">
+                <h1 class="text-3xl font-bold mb-6">🏭 倉庫庫存管理</h1>
+                <div id="warehouse-inventory-container" class="space-y-6"></div>
             </div>
 
             <!-- 財務 -->
@@ -96,80 +120,97 @@
         </main>
     </div>
 
-    <!-- 新增/編輯客戶 Modal -->
+    <!-- 客戶 Modal（包含地址管理） -->
     <div id="customer-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 id="customer-modal-title" class="text-2xl font-bold text-gray-800">📝 新增客戶</h2>
-                <button onclick="closeCustomerModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                <h2 id="customer-modal-title" class="text-2xl font-bold">📝 新增客戶</h2>
+                <button onclick="closeCustomerModal()" class="text-2xl">&times;</button>
             </div>
+            
             <form id="customer-form" onsubmit="return false;" class="space-y-4">
                 <input type="hidden" id="cust-id">
+                
+                <!-- 基本資訊 -->
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">客戶類型 <span class="text-red-500">*</span></label>
-                        <select id="cust-type" class="w-full px-3 py-2 border rounded-md" onchange="toggleCompanyField()">
-                            <option value="B2C">B2C (個人消費者)</option>
-                            <option value="B2B">B2B (企業客戶)</option>
+                        <label class="block text-sm font-bold mb-1">類型</label>
+                        <select id="cust-type" class="w-full px-3 py-2 border rounded" onchange="toggleCompanyField()">
+                            <option value="B2C">B2C</option>
+                            <option value="B2B">B2B</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">負責窗口</label>
-                        <select id="cust-window" class="w-full px-3 py-2 border rounded-md">
-                            <option value="">請選擇...</option>
-                        </select>
+                        <label class="block text-sm font-bold mb-1">負責窗口</label>
+                        <select id="cust-window" class="w-full px-3 py-2 border rounded"></select>
                     </div>
                 </div>
+
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">公司名稱 <span id="company-required" class="text-red-500 hidden">*</span></label>
-                    <input type="text" id="cust-company" class="w-full px-3 py-2 border rounded-md" placeholder="個人客戶可留空">
+                    <label class="block text-sm font-bold mb-1">公司名稱 <span id="company-required" class="text-red-500 hidden">*</span></label>
+                    <input type="text" id="cust-company" class="w-full px-3 py-2 border rounded">
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">統一編號</label>
-                        <input type="text" id="cust-tax-id" class="w-full px-3 py-2 border rounded-md" placeholder="B2B 必填">
+                        <label class="block text-sm font-bold mb-1">統一編號</label>
+                        <input type="text" id="cust-tax-id" class="w-full px-3 py-2 border rounded">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">发票抬头</label>
-                        <input type="text" id="cust-invoice-title" class="w-full px-3 py-2 border rounded-md" placeholder="預設同公司名稱">
+                        <label class="block text-sm font-bold mb-1">发票抬头</label>
+                        <input type="text" id="cust-invoice-title" class="w-full px-3 py-2 border rounded" placeholder="預設同公司">
                     </div>
                 </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">聯絡人姓名 <span class="text-red-500">*</span></label>
-                        <input type="text" id="cust-contact" class="w-full px-3 py-2 border rounded-md" required>
+                        <label class="block text-sm font-bold mb-1">聯絡人 *</label>
+                        <input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">電話 <span class="text-red-500">*</span></label>
-                        <input type="text" id="cust-phone" class="w-full px-3 py-2 border rounded-md" required>
+                        <label class="block text-sm font-bold mb-1">電話 *</label>
+                        <input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded">
                     </div>
                 </div>
+
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Email</label>
-                    <input type="email" id="cust-email" class="w-full px-3 py-2 border rounded-md">
+                    <label class="block text-sm font-bold mb-1">Email</label>
+                    <input type="email" id="cust-email" class="w-full px-3 py-2 border rounded">
                 </div>
+
+                <!-- 標籤選擇 -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">地址</label>
-                    <input type="text" id="cust-address" class="w-full px-3 py-2 border rounded-md" placeholder="主要地址">
+                    <label class="block text-sm font-bold mb-1">標籤（可多选）</label>
+                    <div id="customer-tags-container" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">
+                        <!-- 標籤會動態生成 -->
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">標籤（用逗號分隔）</label>
-                    <input type="text" id="cust-tags" class="w-full px-3 py-2 border rounded-md" placeholder="例如：VIP, 價格敏感, 月結">
+
+                <!-- 地址管理 -->
+                <div class="border-t pt-4">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-lg">📍 寄送地址管理</h3>
+                        <button type="button" onclick="addCustomerAddress()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ 新增地址</button>
+                    </div>
+                    <div id="customer-addresses-container" class="space-y-3">
+                        <!-- 地址會動態生成 -->
+                    </div>
                 </div>
+
                 <div class="flex justify-end space-x-3 pt-4 border-t">
-                    <button type="button" onclick="closeCustomerModal()" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">取消</button>
-                    <button type="button" onclick="saveCustomer()" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold">💾 儲存客戶</button>
+                    <button type="button" onclick="closeCustomerModal()" class="px-6 py-2 bg-gray-300 rounded">取消</button>
+                    <button type="button" onclick="saveCustomer()" class="px-6 py-2 bg-blue-600 text-white rounded font-bold">💾 儲存</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 新增/編輯訂單 Modal -->
+    <!-- 訂單 Modal -->
     <div id="order-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 id="order-modal-title" class="text-2xl font-bold text-gray-800">📝 新增訂單</h2>
-                <button onclick="closeOrderModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                <h2 id="order-modal-title" class="text-2xl font-bold">📝 新增訂單</h2>
+                <button onclick="closeOrderModal()" class="text-2xl">&times;</button>
             </div>
             
             <form id="order-form" onsubmit="return false;" class="space-y-6">
@@ -177,168 +218,237 @@
                 
                 <!-- 客戶選擇 -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">1. 選擇客戶 <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-bold mb-2">1. 選擇客戶 *</label>
                     <div class="relative">
-                        <input type="text" id="order-customer-search" placeholder="輸入姓名、公司或電話搜尋..." class="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                        <input type="text" id="order-customer-search" placeholder="搜尋客戶..." class="w-full px-4 py-2 border rounded" autocomplete="off">
                         <div id="order-customer-dropdown" class="search-dropdown mt-1 hidden"></div>
                         <input type="hidden" id="selected-customer-id">
-                        <input type="hidden" id="selected-customer-name">
                     </div>
-                    <p id="selected-customer-display" class="mt-2 text-sm text-blue-600 font-medium hidden"></p>
+                    <p id="selected-customer-display" class="mt-2 text-sm text-blue-600 hidden"></p>
                 </div>
 
                 <!-- 發票資訊 -->
                 <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <h3 class="font-bold text-gray-800 mb-3">📄 發票資訊</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                    <h3 class="font-bold mb-3">📄 發票資訊</h3>
+                    <div class="grid grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">是否需要發票</label>
-                            <select id="order-need-invoice" class="w-full px-3 py-2 border rounded-md" onchange="toggleInvoiceFields()">
-                                <option value="no">不需要發票</option>
-                                <option value="yes">需要發票</option>
+                            <label class="block text-sm font-bold mb-1">需要發票</label>
+                            <select id="order-need-invoice" class="w-full px-3 py-2 border rounded" onchange="toggleInvoiceFields()">
+                                <option value="no">不需要</option>
+                                <option value="yes">需要</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">價格類型</label>
-                            <select id="order-price-type" class="w-full px-3 py-2 border rounded-md">
-                                <option value="untax">未稅價</option>
-                                <option value="tax">含稅價 (+5%)</option>
+                            <label class="block text-sm font-bold mb-1">稅金處理</label>
+                            <select id="order-tax-handling" class="w-full px-3 py-2 border rounded">
+                                <option value="tax_included">含稅價</option>
+                                <option value="tax_excluded">稅外加</option>
+                                <option value="no_invoice">不開發票</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">发票抬头</label>
-                            <input type="text" id="order-invoice-title" class="w-full px-3 py-2 border rounded-md" placeholder="預設同客戶">
+                            <label class="block text-sm font-bold mb-1">發票類型</label>
+                            <select id="order-invoice-type" class="w-full px-3 py-2 border rounded">
+                                <option value="3">三聯式</option>
+                                <option value="2">二聯式</option>
+                            </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">統一編號</label>
-                            <input type="text" id="order-tax-id" class="w-full px-3 py-2 border rounded-md" placeholder="預設同客戶">
+                            <label class="block text-sm font-bold mb-1">发票抬头</label>
+                            <input type="text" id="order-invoice-title" class="w-full px-3 py-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1">統一編號</label>
+                            <input type="text" id="order-tax-id" class="w-full px-3 py-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1">發票號碼</label>
+                            <input type="text" id="order-invoice-no" class="w-full px-3 py-2 border rounded" placeholder="例：ABC1234567">
                         </div>
                     </div>
                 </div>
 
                 <!-- 寄送地址 -->
-                <div id="address-section" class="hidden">
-                    <label class="block text-sm font-bold text-gray-700 mb-2">2. 選擇寄送地址 <span class="text-red-500">*</span></label>
-                    <select id="shipping-address-select" class="w-full px-4 py-2 border rounded-md bg-white">
-                        <option value="">請先選擇客戶...</option>
-                    </select>
-                </div>
-
-                <!-- 負責窗口 -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">3. 負責業務/窗口 <span class="text-red-500">*</span></label>
-                    <select id="contact-window-select" class="w-full px-4 py-2 border rounded-md bg-white">
-                        <option value="">載入中...</option>
-                    </select>
+                    <label class="block text-sm font-bold mb-2">2. 寄送地址 *</label>
+                    <div class="flex gap-2 mb-2">
+                        <select id="shipping-address-select" class="flex-1 px-4 py-2 border rounded" onchange="selectSavedAddress()">
+                            <option value="">選擇已存地址...</option>
+                        </select>
+                        <button type="button" onclick="enableTempAddress()" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">手動輸入</button>
+                    </div>
+                    <div id="temp-address-section" class="hidden grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded border">
+                        <div>
+                            <label class="block text-xs font-bold mb-1">收件人</label>
+                            <input type="text" id="temp-recipient" class="w-full px-3 py-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1">電話</label>
+                            <input type="text" id="temp-phone" class="w-full px-3 py-2 border rounded">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold mb-1">地址</label>
+                            <input type="text" id="temp-address" class="w-full px-3 py-2 border rounded" placeholder="完整地址或門市名稱">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 產品明細 -->
                 <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-2">4. 訂單產品明細</label>
-                    <div id="order-items-container" class="space-y-3">
-                        <!-- 動態產品列 -->
-                    </div>
-                    <button type="button" onclick="addOrderItemRow()" class="mt-3 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium">+ 新增一筆產品</button>
+                    <label class="block text-sm font-bold mb-2">3. 產品明細</label>
+                    <div id="order-items-container" class="space-y-3"></div>
+                    <button type="button" onclick="addOrderItemRow()" class="mt-3 px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">+ 新增產品</button>
                 </div>
 
-                <!-- 總金額與備註 -->
-                <div class="grid grid-cols-2 gap-6 bg-gray-50 p-4 rounded-lg">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">訂單總金額</label>
-                        <div class="text-3xl font-bold text-purple-600" id="order-total-amount">$0</div>
-                        <p class="text-xs text-gray-500 mt-1" id="order-tax-info"></p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2">訂單備註</label>
-                        <textarea id="order-notes" class="w-full px-3 py-2 border rounded-md" rows="2" placeholder="例如：請小心輕放、假日不送貨..."></textarea>
+                <!-- 總金額 -->
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <div class="text-sm text-gray-600">訂單總金額</div>
+                            <div class="text-3xl font-bold text-purple-600" id="order-total-amount">$0</div>
+                            <div class="text-xs text-gray-500 mt-1" id="order-tax-info"></div>
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-sm font-bold mb-1">備註</label>
+                            <textarea id="order-notes" class="w-full px-3 py-2 border rounded" rows="2"></textarea>
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex justify-end space-x-3 pt-4 border-t">
-                    <button type="button" onclick="closeOrderModal()" class="px-6 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">取消</button>
-                    <button type="button" onclick="submitOrder()" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold shadow-md">💾 儲存訂單</button>
+                    <button type="button" onclick="closeOrderModal()" class="px-6 py-2 bg-gray-300 rounded">取消</button>
+                    <button type="button" onclick="submitOrder()" class="px-6 py-2 bg-blue-600 text-white rounded font-bold">💾 儲存訂單</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- 客戶詳情 Modal -->
-    <div id="customer-detail-modal" class="hidden fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">📋 客戶詳情</h2><button onclick="document.getElementById('customer-detail-modal').classList.add('hidden')" class="text-2xl">&times;</button></div>
-            <div id="customer-detail-content"></div>
-        </div>
-    </div>
-
     <script>
-        const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co'; 
+        const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let allProducts = [];
-        let allWindows = [];
-        let allCustomers = [];
-        let editingOrderId = null;
-        let originalOrderItems = []; // 用於編輯時回補庫存
+        let allProducts = [], allWindows = [], allCustomers = [], allTags = [], allWarehouses = [];
+        let editingOrderId = null, originalOrderItems = [];
 
-        // 登入與登出
+        // 登入
         document.getElementById('login-btn').addEventListener('click', async () => {
-            const { error } = await sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value });
+            const { error } = await sb.auth.signInWithPassword({ 
+                email: document.getElementById('email').value, 
+                password: document.getElementById('password').value 
+            });
             if (error) alert('登入失敗：' + error.message);
-            else { document.getElementById('login-view').classList.add('hidden'); document.getElementById('main-system').classList.remove('hidden'); loadDashboardData(); loadWindows(); }
+            else {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('main-system').classList.remove('hidden');
+                await loadInitialData();
+            }
         });
-        document.getElementById('logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); location.reload(); });
 
-        // 視圖切換
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await sb.auth.signOut();
+            location.reload();
+        });
+
+        async function loadInitialData() {
+            await loadWindows();
+            await loadTags();
+            await loadWarehouses();
+            await loadProducts();
+            loadDashboardData();
+        }
+
         function switchView(viewName) {
-            ['dashboard', 'crm', 'orders', 'finance'].forEach(v => {
+            ['dashboard', 'crm', 'orders', 'inventory', 'finance'].forEach(v => {
                 document.getElementById('view-' + v).classList.add('hidden');
                 document.getElementById('nav-' + v).classList.remove('nav-active');
             });
             document.getElementById('view-' + viewName).classList.remove('hidden');
             document.getElementById('nav-' + viewName).classList.add('nav-active');
+            
             if (viewName === 'crm') loadCustomers();
             if (viewName === 'orders') loadOrders();
+            if (viewName === 'inventory') loadWarehouseInventory();
         }
 
-        // 載入儀表板
-        async function loadDashboardData() {
-            const { count: c1 } = await sb.from('customers').select('*', { count: 'exact', head: true }); document.getElementById('stat-customers').textContent = c1 || 0;
-            const { data: orders, count: c2 } = await sb.from('orders').select('total_amount', { count: 'exact' }); document.getElementById('stat-orders').textContent = c2 || 0;
-            document.getElementById('stat-revenue').textContent = '$' + (orders ? orders.reduce((s, o) => s + (o.total_amount || 0), 0) : 0).toLocaleString();
-            const { data: prods } = await sb.from('products').select('current_stock, safety_stock'); document.getElementById('stat-alerts').textContent = prods ? prods.filter(p => p.current_stock < p.safety_stock).length : 0;
-        }
-
-        // 載入聯絡窗口
+        // 載入基礎資料
         async function loadWindows() {
             const { data } = await sb.from('contact_windows').select('*').eq('is_active', true);
             allWindows = data || [];
         }
 
+        async function loadTags() {
+            const { data } = await sb.from('tags').select('*').eq('category', 'customer').order('name');
+            allTags = data || [];
+            renderTagFilters();
+        }
+
+        async function loadWarehouses() {
+            const { data } = await sb.from('warehouses').select('*').eq('is_active', true);
+            allWarehouses = data || [];
+        }
+
+        async function loadProducts() {
+            const { data } = await sb.from('products').select('*').eq('type', 'finished');
+            allProducts = data || [];
+        }
+
+        async function loadDashboardData() {
+            const { count } = await sb.from('customers').select('*', { count: 'exact', head: true });
+            document.getElementById('stat-customers').textContent = count || 0;
+            
+            const { data: orders } = await sb.from('orders').select('total_amount');
+            document.getElementById('stat-orders').textContent = orders?.length || 0;
+            const total = orders ? orders.reduce((s, o) => s + (o.total_amount || 0), 0) : 0;
+            document.getElementById('stat-revenue').textContent = '$' + total.toLocaleString();
+            
+            const { data: prods } = await sb.from('product_inventory').select('quantity, safety_stock');
+            const alerts = prods ? prods.filter(p => p.quantity < p.safety_stock).length : 0;
+            document.getElementById('stat-alerts').textContent = alerts;
+        }
+
+        // 標籤篩選
+        function renderTagFilters() {
+            const container = document.getElementById('tag-filters');
+            container.innerHTML = '<button onclick="filterByTag(null)" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300">全部</button>' +
+                allTags.map(t => `<button onclick="filterByTag('${t.id}')" class="px-3 py-1 tag-${t.name} rounded-full text-sm hover:opacity-80">${t.name}</button>`).join('');
+        }
+
+        let currentTagFilter = null;
+        function filterByTag(tagId) {
+            currentTagFilter = tagId;
+            loadCustomers();
+        }
+
         // ==========================================
-        // 👥 客戶管理功能
+        // 👥 客戶管理
         // ==========================================
 
         function toggleCompanyField() {
             const type = document.getElementById('cust-type').value;
-            const required = document.getElementById('company-required');
-            if (type === 'B2B') {
-                required.classList.remove('hidden');
-            } else {
-                required.classList.add('hidden');
-            }
+            document.getElementById('company-required').classList.toggle('hidden', type === 'B2C');
         }
 
-        function openNewCustomerModal() {
-            document.getElementById('customer-modal-title').textContent = '📝 新增客戶';
+        function openCustomerModal(customerId = null) {
+            document.getElementById('customer-modal-title').textContent = customerId ? '✏️ 編輯客戶' : '📝 新增客戶';
             document.getElementById('customer-form').reset();
-            document.getElementById('cust-id').value = '';
+            document.getElementById('cust-id').value = customerId || '';
             document.getElementById('cust-type').value = 'B2C';
             toggleCompanyField();
             
-            // 填充窗口下拉
-            const winSelect = document.getElementById('cust-window');
-            winSelect.innerHTML = '<option value="">請選擇...</option>' + allWindows.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+            // 填充窗口
+            document.getElementById('cust-window').innerHTML = '<option value="">請選擇...</option>' + 
+                allWindows.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+            
+            // 填充標籤
+            renderCustomerTags();
+            
+            // 清空地址
+            document.getElementById('customer-addresses-container').innerHTML = '';
+            
+            if (customerId) {
+                loadCustomerForEdit(customerId);
+            }
             
             document.getElementById('customer-modal').classList.remove('hidden');
         }
@@ -347,43 +457,156 @@
             document.getElementById('customer-modal').classList.add('hidden');
         }
 
+        function renderCustomerTags(selectedTags = []) {
+            const container = document.getElementById('customer-tags-container');
+            container.innerHTML = allTags.map(t => `
+                <label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer hover:bg-gray-50">
+                    <input type="checkbox" value="${t.id}" ${selectedTags.includes(t.id) ? 'checked' : ''} class="cust-tag-checkbox">
+                    <span class="tag-${t.name} px-2 py-1 rounded text-xs">${t.name}</span>
+                </label>
+            `).join('');
+        }
+
+        function addCustomerAddress(addressData = null) {
+            const container = document.getElementById('customer-addresses-container');
+            const id = addressData?.id || 'new-' + Date.now();
+            const type = addressData?.address_type || 'home';
+            
+            const div = document.createElement('div');
+            div.className = 'border rounded-lg p-4 bg-gray-50';
+            div.dataset.addressId = id;
+            div.innerHTML = `
+                <div class="flex justify-between items-center mb-3">
+                    <h4 class="font-bold">地址 ${container.children.length + 1}</h4>
+                    <button type="button" onclick="this.closest('.border').remove()" class="text-red-600 hover:text-red-800">刪除</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold mb-1">地址類型</label>
+                        <select class="addr-type w-full px-3 py-2 border rounded" value="${type}">
+                            <option value="home" ${type==='home'?'selected':''}>🏠 住家</option>
+                            <option value="office" ${type==='office'?'selected':''}>🏢 公司</option>
+                            <option value="cvs_711" ${type==='cvs_711'?'selected':''}>🏪 7-11</option>
+                            <option value="cvs_family" ${type==='cvs_family'?'selected':''}>🏪 全家</option>
+                            <option value="cvs_ok" ${type==='cvs_ok'?'selected':''}>🏪 OK</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">地址別名</label>
+                        <input type="text" class="addr-name w-full px-3 py-2 border rounded" placeholder="例：住家、常去的7-11" value="${addressData?.address_name || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">收件人 *</label>
+                        <input type="text" class="addr-recipient w-full px-3 py-2 border rounded" required value="${addressData?.recipient_name || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">電話 *</label>
+                        <input type="text" class="addr-phone w-full px-3 py-2 border rounded" required value="${addressData?.recipient_phone || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">縣市</label>
+                        <input type="text" class="addr-city w-full px-3 py-2 border rounded" value="${addressData?.city || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">區/鄉鎮</label>
+                        <input type="text" class="addr-district w-full px-3 py-2 border rounded" value="${addressData?.district || ''}">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-bold mb-1">街道地址</label>
+                        <input type="text" class="addr-street w-full px-3 py-2 border rounded" value="${addressData?.street || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">門市名稱</label>
+                        <input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" placeholder="例：7-11 台北車站店" value="${addressData?.cvs_store_name || ''}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold mb-1">門市代碼</label>
+                        <input type="text" class="addr-cvs-code w-full px-3 py-2 border rounded" placeholder="例：987X" value="${addressData?.cvs_store_code || ''}">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" class="addr-default" ${addressData?.is_default ? 'checked' : ''}>
+                            <span class="text-sm font-bold">設為預設地址</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        async function loadCustomerForEdit(id) {
+            const { data: c } = await sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single();
+            if (!c) return;
+
+            document.getElementById('cust-id').value = c.id;
+            document.getElementById('cust-type').value = c.type;
+            toggleCompanyField();
+            document.getElementById('cust-company').value = c.company_name || '';
+            document.getElementById('cust-tax-id').value = c.tax_id || '';
+            document.getElementById('cust-invoice-title').value = c.invoice_title || c.company_name || '';
+            document.getElementById('cust-contact').value = c.contact_person;
+            document.getElementById('cust-phone').value = c.phone;
+            document.getElementById('cust-email').value = c.email || '';
+            document.getElementById('cust-window').value = c.primary_contact_window_id || '';
+
+            // 標籤
+            const selectedTags = c.customer_tags?.map(ct => ct.tag_id) || [];
+            renderCustomerTags(selectedTags);
+
+            // 地址
+            const { data: addresses } = await sb.from('customer_addresses').select('*').eq('customer_id', id);
+            document.getElementById('customer-addresses-container').innerHTML = '';
+            if (addresses && addresses.length) {
+                addresses.forEach(addr => addCustomerAddress(addr));
+            } else {
+                addCustomerAddress();
+            }
+        }
+
         async function saveCustomer() {
             const id = document.getElementById('cust-id').value;
             const type = document.getElementById('cust-type').value;
             const company = document.getElementById('cust-company').value;
-            const taxId = document.getElementById('cust-tax-id').value;
-            const contact = document.getElementById('cust-contact').value;
-            const phone = document.getElementById('cust-phone').value;
-            const windowId = document.getElementById('cust-window').value || null;
             
-            if (!contact || !phone) return alert('聯絡人和電話為必填！');
-            if (type === 'B2B' && !company) return alert('B2B 客戶請填寫公司名稱！');
+            if (type === 'B2B' && !company) return alert('B2B 請填寫公司名稱！');
+            if (!document.getElementById('cust-contact').value || !document.getElementById('cust-phone').value) {
+                return alert('聯絡人和電話必填！');
+            }
 
-            const tagsStr = document.getElementById('cust-tags').value;
-            const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+            // 收集標籤
+            const tagCheckboxes = document.querySelectorAll('.cust-tag-checkbox:checked');
+            const tagIds = Array.from(tagCheckboxes).map(cb => cb.value);
 
             const customerData = {
                 type,
                 company_name: company || null,
-                tax_id: taxId || null,
-                contact_person: contact,
-                phone,
+                tax_id: document.getElementById('cust-tax-id').value || null,
+                invoice_title: document.getElementById('cust-invoice-title').value || null,
+                contact_person: document.getElementById('cust-contact').value,
+                phone: document.getElementById('cust-phone').value,
                 email: document.getElementById('cust-email').value || null,
-                address: document.getElementById('cust-address').value || null,
-                primary_contact_window_id: windowId,
-                tags: tags.length > 0 ? tags : []
+                primary_contact_window_id: document.getElementById('cust-window').value || null
             };
 
             try {
+                let customerId = id;
                 if (id) {
-                    // 編輯
                     await sb.from('customers').update(customerData).eq('id', id);
-                    alert('✅ 客戶資料已更新！');
                 } else {
-                    // 新增
-                    await sb.from('customers').insert([customerData]);
-                    alert('✅ 客戶新增成功！');
+                    const { data } = await sb.from('customers').insert([customerData]).select().single();
+                    customerId = data.id;
                 }
+
+                // 更新標籤關聯
+                await sb.from('customer_tags').delete().eq('customer_id', customerId);
+                if (tagIds.length) {
+                    await sb.from('customer_tags').insert(tagIds.map(tid => ({ customer_id: customerId, tag_id: tid })));
+                }
+
+                // 更新地址
+                await updateCustomerAddresses(customerId);
+
+                alert('✅ 客戶已儲存！');
                 closeCustomerModal();
                 loadCustomers();
             } catch (err) {
@@ -391,135 +614,92 @@
             }
         }
 
-        async function loadCustomers() {
-            const { data } = await sb.from('customers').select('*, contact_windows(name)').order('created_at', { ascending: false });
-            allCustomers = data || [];
+        async function updateCustomerAddresses(customerId) {
+            const addressDivs = document.querySelectorAll('#customer-addresses-container > div');
+            const addresses = [];
             
+            addressDivs.forEach((div, index) => {
+                const addressId = div.dataset.addressId;
+                if (addressId.startsWith('new-')) {
+                    addresses.push({
+                        customer_id: customerId,
+                        address_type: div.querySelector('.addr-type').value,
+                        address_name: div.querySelector('.addr-name').value,
+                        recipient_name: div.querySelector('.addr-recipient').value,
+                        recipient_phone: div.querySelector('.addr-phone').value,
+                        city: div.querySelector('.addr-city').value,
+                        district: div.querySelector('.addr-district').value,
+                        street: div.querySelector('.addr-street').value,
+                        cvs_store_name: div.querySelector('.addr-cvs-name').value,
+                        cvs_store_code: div.querySelector('.addr-cvs-code').value,
+                        is_default: div.querySelector('.addr-default').checked
+                    });
+                }
+            });
+
+            if (addresses.length) {
+                await sb.from('customer_addresses').insert(addresses);
+            }
+        }
+
+        async function loadCustomers() {
+            let query = sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id)');
+            
+            if (currentTagFilter) {
+                query = query.eq('customer_tags.tag_id', currentTagFilter);
+            }
+            
+            const { data } = await query.order('created_at', { ascending: false });
+            allCustomers = data || [];
+
             if (!allCustomers.length) {
-                document.getElementById('customer-table-body').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">尚無客戶資料</td></tr>';
+                document.getElementById('customer-table-body').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>';
                 return;
             }
 
-            document.getElementById('customer-table-body').innerHTML = allCustomers.map(c => `
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800'}">${c.type}</span></td>
-                    <td class="px-6 py-4 font-medium">${c.company_name || c.contact_person}</td>
-                    <td class="px-6 py-4 text-sm text-gray-600">${c.tax_id || '-'}</td>
-                    <td class="px-6 py-4 text-sm">${c.contact_person}<br><span class="text-gray-500 text-xs">${c.phone}</span></td>
-                    <td class="px-6 py-4 text-sm">${c.contact_windows?.name || '<span class="text-gray-400">未分配</span>'}</td>
-                    <td class="px-6 py-4">
-                        <button onclick="editCustomer('${c.id}')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button>
-                        <button onclick="viewCustomerDetail('${c.id}')" class="text-gray-600 hover:underline text-sm">詳情</button>
-                    </td>
-                </tr>
-            `).join('');
+            const addrMap = { home:'🏠', office:'🏢', cvs_711:'🏪', cvs_family:'全家' };
+            
+            document.getElementById('customer-table-body').innerHTML = allCustomers.map(c => {
+                const tags = c.customer_tags?.map(ct => {
+                    const tag = allTags.find(t => t.id === ct.tag_id);
+                    return tag ? `<span class="tag-${tag.name} px-2 py-1 rounded text-xs mr-1">${tag.name}</span>` : '';
+                }).join('') || '<span class="text-gray-400 text-xs">無標籤</span>';
+
+                return `
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800'}">${c.type}</span></td>
+                        <td class="px-6 py-4 font-medium">${c.company_name || c.contact_person}</td>
+                        <td class="px-6 py-4 text-sm">${c.tax_id || '-'}</td>
+                        <td class="px-6 py-4">${tags}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">查看詳情</td>
+                        <td class="px-6 py-4">
+                            <button onclick="openCustomerModal('${c.id}')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
-
-        async function editCustomer(id) {
-            const c = allCustomers.find(x => x.id === id);
-            if (!c) return;
-
-            document.getElementById('customer-modal-title').textContent = '✏️ 編輯客戶';
-            document.getElementById('cust-id').value = c.id;
-            document.getElementById('cust-type').value = c.type;
-            toggleCompanyField();
-            document.getElementById('cust-company').value = c.company_name || '';
-            document.getElementById('cust-tax-id').value = c.tax_id || '';
-            document.getElementById('cust-contact').value = c.contact_person;
-            document.getElementById('cust-phone').value = c.phone;
-            document.getElementById('cust-email').value = c.email || '';
-            document.getElementById('cust-address').value = c.address || '';
-            document.getElementById('cust-tags').value = c.tags ? c.tags.join(', ') : '';
-            document.getElementById('cust-window').value = c.primary_contact_window_id || '';
-
-            document.getElementById('customer-modal').classList.remove('hidden');
-        }
-
-        async function viewCustomerDetail(id) {
-            const { data: c } = await sb.from('customers').select('*, contact_windows(*), customer_addresses(*)').eq('id', id).single();
-            if (!c) return;
-
-            const addrMap = { home:'🏠住家', office:'🏢公司', cvs_711:'🏪7-11', cvs_family:'全家', cvs_ok:'OK', cvs_hilife:'萊爾富' };
-            document.getElementById('customer-detail-content').innerHTML = `
-                <div class="space-y-4 text-sm">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><b>類型:</b> ${c.type}</div>
-                        <div><b>負責窗口:</b> ${c.contact_windows?.name || '未分配'}</div>
-                        ${c.company_name ? `<div><b>公司名稱:</b> ${c.company_name}</div><div><b>統一編號:</b> ${c.tax_id || '-'}</div>` : ''}
-                        <div><b>聯絡人:</b> ${c.contact_person}</div>
-                        <div><b>電話:</b> ${c.phone}</div>
-                        <div><b>Email:</b> ${c.email || '-'}</div>
-                        <div><b>標籤:</b> ${c.tags ? c.tags.join(', ') : '-'}</div>
-                    </div>
-                    <div class="border-t pt-3">
-                        <h3 class="font-bold mb-2">📍 地址列表 (${c.customer_addresses?.length || 0})</h3>
-                        ${c.customer_addresses?.map(a => `
-                            <div class="border p-3 rounded mb-2 ${a.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
-                                <div class="font-bold">${addrMap[a.address_type] || a.address_type} ${a.is_default ? '<span class="text-blue-600 text-xs">(預設)</span>' : ''}</div>
-                                <div>${a.recipient_name} · ${a.recipient_phone}</div>
-                                <div>${a.city || ''}${a.district || ''}${a.street || ''}</div>
-                                ${a.cvs_store_name ? `<div>📦 ${a.cvs_store_name} (${a.cvs_store_code || '無代碼'})</div>` : ''}
-                            </div>
-                        `).join('') || '<p class="text-gray-500">尚無地址資料</p>'}
-                    </div>
-                </div>
-            `;
-            document.getElementById('customer-detail-modal').classList.remove('hidden');
-        }
-
-        // 客戶搜尋
-        let searchTimer;
-        document.getElementById('customer-search')?.addEventListener('input', (e) => {
-            clearTimeout(searchTimer);
-            const kw = e.target.value.trim();
-            if (!kw) { document.getElementById('search-dropdown').classList.add('hidden'); loadCustomers(); return; }
-            searchTimer = setTimeout(() => {
-                const filtered = allCustomers.filter(c => 
-                    (c.contact_person && c.contact_person.includes(kw)) ||
-                    (c.company_name && c.company_name.includes(kw)) ||
-                    (c.phone && c.phone.includes(kw))
-                );
-                const dd = document.getElementById('search-dropdown');
-                if (!filtered.length) { dd.innerHTML = '<div class="p-3 text-gray-500">無結果</div>'; dd.classList.remove('hidden'); return; }
-                dd.innerHTML = filtered.map(c => `<div class="search-item p-3 border-b" onclick="viewCustomerDetail('${c.id}')">${c.company_name || c.contact_person} (${c.type})</div>`).join('');
-                dd.classList.remove('hidden');
-            }, 300);
-        });
 
         // ==========================================
-        // 📦 訂單管理功能（可編輯、可刪除、單價可調）
+        // 📦 訂單管理
         // ==========================================
 
-        function toggleInvoiceFields() {
-            const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
-            document.getElementById('order-invoice-title').disabled = !needInvoice;
-            document.getElementById('order-tax-id').disabled = !needInvoice;
-            calculateOrderTotal();
-        }
-
-        async function openNewOrderModal() {
-            editingOrderId = null;
-            document.getElementById('order-modal-title').textContent = '📝 新增訂單';
+        function openOrderModal(orderId = null) {
+            editingOrderId = orderId;
+            document.getElementById('order-modal-title').textContent = orderId ? '✏️ 編輯訂單' : '📝 新增訂單';
             document.getElementById('order-form').reset();
-            document.getElementById('order-id').value = '';
+            document.getElementById('order-id').value = orderId || '';
             document.getElementById('selected-customer-id').value = '';
             document.getElementById('selected-customer-display').classList.add('hidden');
-            document.getElementById('address-section').classList.add('hidden');
             document.getElementById('order-items-container').innerHTML = '';
-            document.getElementById('order-total-amount').textContent = '$0';
-            document.getElementById('order-tax-info').textContent = '';
+            document.getElementById('temp-address-section').classList.add('hidden');
             
-            // 載入產品
-            if (!allProducts.length) {
-                const { data: p } = await sb.from('products').select('*').eq('type', 'finished');
-                allProducts = p || [];
+            if (orderId) {
+                loadOrderForEdit(orderId);
+            } else {
+                addOrderItemRow();
             }
-
-            // 填充窗口下拉
-            const winSelect = document.getElementById('contact-window-select');
-            winSelect.innerHTML = '<option value="">請選擇負責窗口...</option>' + allWindows.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
-
-            addOrderItemRow();
+            
             document.getElementById('order-modal').classList.remove('hidden');
         }
 
@@ -529,12 +709,22 @@
             originalOrderItems = [];
         }
 
-        // 訂單表單內的客戶搜尋
+        function toggleInvoiceFields() {
+            const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
+            const fields = ['order-invoice-title', 'order-tax-id', 'order-invoice-type', 'order-invoice-no', 'order-tax-handling'];
+            fields.forEach(id => {
+                document.getElementById(id).disabled = !needInvoice;
+            });
+            calculateOrderTotal();
+        }
+
+        // 客戶搜尋
         let orderSearchTimer;
         document.getElementById('order-customer-search')?.addEventListener('input', (e) => {
             clearTimeout(orderSearchTimer);
             const kw = e.target.value.trim();
             const dd = document.getElementById('order-customer-dropdown');
+            
             if (!kw) { dd.classList.add('hidden'); return; }
             
             orderSearchTimer = setTimeout(() => {
@@ -543,416 +733,339 @@
                     (c.company_name && c.company_name.includes(kw)) ||
                     (c.phone && c.phone.includes(kw))
                 );
-                if (!filtered.length) { dd.innerHTML = '<div class="p-3 text-gray-500">無結果</div>'; dd.classList.remove('hidden'); return; }
-                dd.innerHTML = filtered.map(c => `<div class="search-item p-3 border-b" onclick="selectOrderCustomer('${c.id}', '${c.company_name || c.contact_person}', '${c.tax_id || ''}')">${c.company_name || c.contact_person} - ${c.contact_person} (${c.phone})</div>`).join('');
+                
+                dd.innerHTML = filtered.map(c => `
+                    <div class="search-item p-3 border-b" onclick="selectOrderCustomer('${c.id}', '${c.company_name || c.contact_person}', '${c.tax_id || ''}', '${c.invoice_title || ''}')">
+                        ${c.company_name || c.contact_person} - ${c.contact_person} (${c.phone})
+                    </div>
+                `).join('') || '<div class="p-3 text-gray-500">無結果</div>';
                 dd.classList.remove('hidden');
             }, 300);
         });
 
-        async function selectOrderCustomer(id, name, taxId) {
+        async function selectOrderCustomer(id, name, taxId, invoiceTitle) {
             document.getElementById('order-customer-dropdown').classList.add('hidden');
             document.getElementById('order-customer-search').value = name;
             document.getElementById('selected-customer-id').value = id;
-            document.getElementById('selected-customer-name').value = name;
-            document.getElementById('selected-customer-display').textContent = `✅ 已選擇客戶：${name}`;
+            document.getElementById('selected-customer-display').textContent = `✅ ${name}`;
             document.getElementById('selected-customer-display').classList.remove('hidden');
 
-            // 預設帶入發票資訊
+            // 自動帶入發票資訊
             const customer = allCustomers.find(c => c.id === id);
             if (customer) {
                 if (customer.type === 'B2B') {
                     document.getElementById('order-need-invoice').value = 'yes';
-                    document.getElementById('order-invoice-title').value = customer.company_name || '';
-                    document.getElementById('order-tax-id').value = customer.tax_id || '';
+                    document.getElementById('order-invoice-title').value = invoiceTitle || customer.company_name || '';
+                    document.getElementById('order-tax-id').value = taxId || customer.tax_id || '';
                 } else {
                     document.getElementById('order-need-invoice').value = 'no';
                     document.getElementById('order-invoice-title').value = '';
                     document.getElementById('order-tax-id').value = '';
                 }
                 toggleInvoiceFields();
-            }
 
-            // 載入地址
-            const { data: addresses } = await sb.from('customer_addresses').select('*').eq('customer_id', id);
-            const addrSelect = document.getElementById('shipping-address-select');
-            document.getElementById('address-section').classList.remove('hidden');
-            
-            if (!addresses || !addresses.length) {
-                addrSelect.innerHTML = '<option value="">⚠️ 此客戶尚無地址，請先去新增</option>';
-            } else {
-                const addrMap = { home:'🏠住家', office:'🏢公司', cvs_711:'🏪7-11', cvs_family:'全家' };
-                addrSelect.innerHTML = '<option value="">請選擇寄送地址...</option>' + addresses.map(a => 
-                    `<option value="${a.id}" ${a.is_default ? 'selected' : ''}>${addrMap[a.address_type]||a.address_type} - ${a.address_name || a.street || a.cvs_store_name} (${a.recipient_name})</option>`
-                ).join('');
+                // 載入地址
+                const { data: addresses } = await sb.from('customer_addresses').select('*').eq('customer_id', id);
+                const addrSelect = document.getElementById('shipping-address-select');
+                addrSelect.innerHTML = '<option value="">選擇已存地址...</option>';
+                
+                if (addresses && addresses.length) {
+                    const addrMap = { home:'🏠', office:'🏢', cvs_711:'🏪', cvs_family:'全家' };
+                    addresses.forEach(a => {
+                        const text = `${addrMap[a.address_type]||a.address_type} - ${a.address_name || a.street || a.cvs_store_name} (${a.recipient_name})`;
+                        addrSelect.innerHTML += `<option value="${a.id}" ${a.is_default ? 'selected' : ''}>${text}</option>`;
+                    });
+                }
             }
+        }
+
+        function enableTempAddress() {
+            document.getElementById('temp-address-section').classList.remove('hidden');
+            document.getElementById('shipping-address-select').value = '';
+        }
+
+        function selectSavedAddress() {
+            document.getElementById('temp-address-section').classList.add('hidden');
         }
 
         function addOrderItemRow(productData = null) {
             const container = document.getElementById('order-items-container');
-            const rowId = 'row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+            const id = 'row-' + Date.now();
             
-            const productOptions = allProducts.map(p => `<option value="${p.id}" data-price="${p.sell_price}" ${productData && productData.product_id === p.id ? 'selected' : ''}>${p.name} (SKU: ${p.sku}) - 庫存: ${p.current_stock}</option>`).join('');
-            const initialPrice = productData ? productData.unit_price : '';
-            const initialQty = productData ? productData.quantity : 1;
-            
-            const row = document.createElement('div');
-            row.className = 'flex space-x-2 items-end bg-gray-50 p-3 rounded-md';
-            row.id = rowId;
-            row.innerHTML = `
+            const options = allProducts.map(p => `
+                <option value="${p.id}" data-price="${p.sell_price}" ${productData?.product_id === p.id ? 'selected' : ''}>
+                    ${p.name} - $${p.sell_price} (庫存: ${p.current_stock})
+                </option>
+            `).join('');
+
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded';
+            div.innerHTML = `
                 <div class="flex-1">
-                    <label class="block text-xs text-gray-500 mb-1">產品</label>
-                    <select class="order-product w-full px-3 py-2 border rounded-md bg-white" onchange="calculateOrderTotal()">
-                        <option value="">選擇產品...</option>${productOptions}
+                    <label class="block text-xs font-bold mb-1">產品</label>
+                    <select class="order-product w-full px-3 py-2 border rounded" onchange="updateItemPrice('${id}')">
+                        <option value="">選擇產品...</option>${options}
                     </select>
                 </div>
                 <div class="w-24">
-                    <label class="block text-xs text-gray-500 mb-1">數量</label>
-                    <input type="number" class="order-qty w-full px-3 py-2 border rounded-md" value="${initialQty}" min="1" onchange="calculateOrderTotal()" oninput="calculateOrderTotal()">
+                    <label class="block text-xs font-bold mb-1">數量</label>
+                    <input type="number" class="order-qty w-full px-3 py-2 border rounded" value="${productData?.quantity || 1}" min="1" onchange="calculateOrderTotal()">
                 </div>
                 <div class="w-32">
-                    <label class="block text-xs text-gray-500 mb-1">單價 (可調整)</label>
-                    <input type="number" class="order-price w-full px-3 py-2 border rounded-md" value="${initialPrice}" step="0.01" onchange="calculateOrderTotal()" oninput="calculateOrderTotal()">
+                    <label class="block text-xs font-bold mb-1">單價 (可調)</label>
+                    <input type="number" class="order-price w-full px-3 py-2 border rounded" value="${productData?.unit_price || ''}" step="0.01" onchange="calculateOrderTotal()">
                 </div>
                 <div class="w-32">
-                    <label class="block text-xs text-gray-500 mb-1">小計</label>
-                    <div class="order-subtotal px-3 py-2 font-bold text-gray-800">$${initialPrice && initialQty ? (initialPrice * initialQty).toLocaleString() : '0'}</div>
+                    <label class="block text-xs font-bold mb-1">小計</label>
+                    <div class="order-subtotal px-3 py-2 font-bold">$0</div>
                 </div>
-                <button type="button" onclick="document.getElementById('${rowId}').remove(); calculateOrderTotal();" class="px-3 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 mb-0.5">刪除</button>
+                <button type="button" onclick="document.getElementById('${id}').remove(); calculateOrderTotal()" class="px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">✕</button>
             `;
-            container.appendChild(row);
+            container.appendChild(div);
+            
+            if (productData?.unit_price) {
+                updateItemPrice(id, productData.unit_price);
+            }
+            calculateOrderTotal();
+        }
+
+        function updateItemPrice(rowId, forcedPrice = null) {
+            const row = document.getElementById(rowId);
+            const select = row.querySelector('.order-product');
+            const priceInput = row.querySelector('.order-price');
+            
+            if (forcedPrice !== null) {
+                priceInput.value = forcedPrice;
+            } else if (select.value) {
+                const price = select.options[select.selectedIndex].dataset.price;
+                priceInput.value = price;
+            }
             calculateOrderTotal();
         }
 
         function calculateOrderTotal() {
             let total = 0;
-            let itemCount = 0;
-            
             document.querySelectorAll('#order-items-container > div').forEach(row => {
-                const prodSelect = row.querySelector('.order-product');
-                const qtyInput = row.querySelector('.order-qty');
-                const priceInput = row.querySelector('.order-price');
-                const subtotalDiv = row.querySelector('.order-subtotal');
-
-                if (prodSelect.value && qtyInput.value > 0 && priceInput.value) {
-                    const price = parseFloat(priceInput.value || 0);
-                    const qty = parseInt(qtyInput.value || 0);
-                    const sub = price * qty;
-                    subtotalDiv.textContent = '$' + sub.toLocaleString();
-                    total += sub;
-                    itemCount++;
-                } else {
-                    subtotalDiv.textContent = '$0';
-                }
+                const price = parseFloat(row.querySelector('.order-price').value) || 0;
+                const qty = parseInt(row.querySelector('.order-qty').value) || 0;
+                const subtotal = price * qty;
+                row.querySelector('.order-subtotal').textContent = '$' + subtotal.toLocaleString();
+                total += subtotal;
             });
 
             document.getElementById('order-total-amount').textContent = '$' + total.toLocaleString();
             
-            const priceType = document.getElementById('order-price-type')?.value || 'untax';
-            const needInvoice = document.getElementById('order-need-invoice')?.value === 'yes';
+            const taxHandling = document.getElementById('order-tax-handling').value;
+            const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
             
-            if (needInvoice && priceType === 'tax') {
-                const taxAmount = total * 0.05;
-                document.getElementById('order-tax-info').textContent = `含稅價 (5%): $${taxAmount.toFixed(0)} | 未稅價: $${(total - taxAmount).toFixed(0)}`;
-            } else if (needInvoice) {
-                document.getElementById('order-tax-info').textContent = '未稅價 (開發票時需加 5%)';
+            let taxInfo = '';
+            if (needInvoice) {
+                if (taxHandling === 'tax_included') {
+                    const tax = total * 0.05 / 1.05;
+                    taxInfo = `含稅價 | 稅額: $${Math.round(tax)} | 未稅: $${Math.round(total - tax)}`;
+                } else if (taxHandling === 'tax_excluded') {
+                    const tax = total * 0.05;
+                    taxInfo = `稅外加 | 稅額: $${Math.round(tax)} | 含稅總計: $${Math.round(total + tax)}`;
+                } else {
+                    taxInfo = '不開發票';
+                }
             } else {
-                document.getElementById('order-tax-info').textContent = '不開發票';
+                taxInfo = '不開發票';
             }
+            document.getElementById('order-tax-info').textContent = taxInfo;
         }
 
         async function submitOrder() {
             const customerId = document.getElementById('selected-customer-id').value;
-            const addressId = document.getElementById('shipping-address-select').value;
-            const windowId = document.getElementById('contact-window-select').value;
-            const notes = document.getElementById('order-notes').value;
+            const windowId = document.getElementById('contact-window-select')?.value;
             const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
-            const priceType = document.getElementById('order-price-type').value;
-            const invoiceTitle = document.getElementById('order-invoice-title').value;
-            const taxId = document.getElementById('order-tax-id').value;
-
-            if (!customerId) return alert('請先選擇客戶！');
-            if (!addressId) return alert('請選擇寄送地址！');
-            if (!windowId) return alert('請選擇負責窗口！');
-
-            // 收集產品明細
+            const taxHandling = document.getElementById('order-tax-handling').value;
+            
+            if (!customerId) return alert('請選擇客戶！');
+            
+            // 收集產品
             const items = [];
             let totalAmount = 0;
-
             document.querySelectorAll('#order-items-container > div').forEach(row => {
-                const prodSelect = row.querySelector('.order-product');
-                const qtyInput = row.querySelector('.order-qty');
-                const priceInput = row.querySelector('.order-price');
-                
-                if (prodSelect.value && qtyInput.value > 0 && priceInput.value) {
-                    const price = parseFloat(priceInput.value);
-                    const qty = parseInt(qtyInput.value);
-                    items.push({ product_id: prodSelect.value, quantity: qty, unit_price: price });
+                const prodId = row.querySelector('.order-product').value;
+                const qty = parseInt(row.querySelector('.order-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.order-price').value) || 0;
+                if (prodId && qty > 0) {
+                    items.push({ product_id: prodId, quantity: qty, unit_price: price });
                     totalAmount += price * qty;
                 }
             });
 
-            if (items.length === 0) return alert('請至少加入一筆產品！');
+            if (!items.length) return alert('請至少加入一筆產品！');
 
             try {
+                const orderData = {
+                    customer_id: customerId,
+                    contact_window_id: windowId,
+                    total_amount: totalAmount,
+                    notes: document.getElementById('order-notes').value,
+                    status: 'confirmed',
+                    invoice_title: needInvoice ? document.getElementById('order-invoice-title').value : null,
+                    invoice_tax_id: needInvoice ? document.getElementById('order-tax-id').value : null,
+                    invoice_type: needInvoice ? document.getElementById('order-invoice-type').value : null,
+                    invoice_no: needInvoice ? document.getElementById('order-invoice-no').value : null,
+                    tax_handling: taxHandling,
+                    tax_amount: taxHandling === 'tax_included' ? totalAmount * 0.05 / 1.05 : (taxHandling === 'tax_excluded' ? totalAmount * 0.05 : 0)
+                };
+
                 if (editingOrderId) {
-                    // ========== 編輯訂單 ==========
-                    // 1. 先回補原庫存
+                    // 編輯：回補庫存
                     for (const item of originalOrderItems) {
                         const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
                         await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id);
-                        
-                        // 刪除原庫存流水
-                        await sb.from('inventory_logs').delete().eq('reference_id', editingOrderId).eq('product_id', item.product_id);
                     }
-
-                    // 2. 更新訂單主檔
-                    await sb.from('orders').update({
-                        customer_id: customerId,
-                        shipping_address_id: addressId,
-                        contact_window_id: windowId,
-                        total_amount: totalAmount,
-                        notes,
-                        status: 'confirmed'
-                    }).eq('id', editingOrderId);
-
-                    // 3. 刪除原明細
                     await sb.from('order_items').delete().eq('order_id', editingOrderId);
-
-                    // 4. 插入新明細
-                    const orderItemsToInsert = items.map(item => ({
-                        order_id: editingOrderId,
-                        product_id: item.product_id,
-                        quantity: item.quantity,
-                        unit_price: item.unit_price
-                    }));
-                    await sb.from('order_items').insert(orderItemsToInsert);
-
-                    // 5. 扣減新庫存
-                    for (const item of items) {
-                        const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
-                        await sb.from('products').update({ current_stock: prod.current_stock - item.quantity }).eq('id', item.product_id);
-                        
-                        await sb.from('inventory_logs').insert({
-                            product_id: item.product_id,
-                            type: 'out',
-                            quantity: -item.quantity,
-                            reference_id: editingOrderId,
-                            note: `訂單編輯後扣減`
-                        });
-                    }
-
-                    // 6. 處理發票
-                    if (needInvoice) {
-                        // 檢查是否已有發票
-                        const { data: existingInvoice } = await sb.from('invoices').select('id').eq('related_order_id', editingOrderId).eq('type', 'sales').single();
-                        
-                        const invoiceData = {
-                            type: 'sales',
-                            related_order_id: editingOrderId,
-                            amount: totalAmount,
-                            tax_amount: priceType === 'tax' ? totalAmount * 0.05 / 1.05 : totalAmount * 0.05,
-                            status: 'unpaid',
-                            invoice_no: existingInvoice?.invoice_no || null,
-                            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                        };
-
-                        if (existingInvoice) {
-                            await sb.from('invoices').update(invoiceData).eq('id', existingInvoice.id);
-                        } else {
-                            await sb.from('invoices').insert([invoiceData]);
-                        }
-                    }
-
-                    alert('✅ 訂單已更新！庫存已自動調整。');
-
+                    await sb.from('orders').update(orderData).eq('id', editingOrderId);
                 } else {
-                    // ========== 新增訂單 ==========
-                    const orderNo = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-
-                    const { data: newOrder, error: orderError } = await sb
-                        .from('orders')
-                        .insert({
-                            order_no: orderNo,
-                            customer_id: customerId,
-                            shipping_address_id: addressId,
-                            contact_window_id: windowId,
-                            total_amount: totalAmount,
-                            notes,
-                            status: 'confirmed'
-                        })
-                        .select()
-                        .single();
-
-                    if (orderError) throw orderError;
-
-                    const orderItemsToInsert = items.map(item => ({
-                        order_id: newOrder.id,
-                        product_id: item.product_id,
-                        quantity: item.quantity,
-                        unit_price: item.unit_price
-                    }));
-                    await sb.from('order_items').insert(orderItemsToInsert);
-
-                    // 扣減庫存
-                    for (const item of items) {
-                        const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
-                        await sb.from('products').update({ current_stock: prod.current_stock - item.quantity }).eq('id', item.product_id);
-                        
-                        await sb.from('inventory_logs').insert({
-                            product_id: item.product_id,
-                            type: 'out',
-                            quantity: -item.quantity,
-                            reference_id: newOrder.id,
-                            note: `訂單 ${orderNo} 出貨扣減`
-                        });
-                    }
-
-                    // 建立發票
-                    if (needInvoice) {
-                        await sb.from('invoices').insert([{
-                            type: 'sales',
-                            related_order_id: newOrder.id,
-                            amount: totalAmount,
-                            tax_amount: priceType === 'tax' ? totalAmount * 0.05 / 1.05 : totalAmount * 0.05,
-                            status: 'unpaid',
-                            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                        }]);
-                    }
-
-                    alert(`🎉 開單成功！訂單編號：${orderNo}\n系統已自動扣減庫存並記錄流水。`);
+                    // 新增
+                    orderData.order_no = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random()*10000).toString().padStart(4,'0');
+                    const { data } = await sb.from('orders').insert([orderData]).select().single();
+                    editingOrderId = data.id;
                 }
 
+                // 插入明細
+                await sb.from('order_items').insert(items.map(item => ({
+                    order_id: editingOrderId,
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price
+                })));
+
+                // 扣庫存
+                for (const item of items) {
+                    const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
+                    await sb.from('products').update({ current_stock: prod.current_stock - item.quantity }).eq('id', item.product_id);
+                }
+
+                alert('✅ 訂單已儲存！');
                 closeOrderModal();
                 loadOrders();
                 loadDashboardData();
-
             } catch (err) {
-                console.error(err);
-                alert('操作失敗：' + err.message);
+                alert('儲存失敗：' + err.message);
             }
         }
 
         async function loadOrders() {
-            const { data } = await sb.from('orders').select('*, customers(company_name, contact_person, type), contact_windows(name)').order('created_at', { ascending: false });
+            const { data } = await sb.from('orders').select('*, customers(company_name, contact_person), contact_windows(name)').order('created_at', { ascending: false });
             
-            if (!data || !data.length) {
-                document.getElementById('order-table-body').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">尚無訂單資料</td></tr>';
+            if (!data?.length) {
+                document.getElementById('order-table-body').innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>';
                 return;
             }
 
-            const statusMap = { 
-                pending: {t:'待處理', c:'bg-yellow-100 text-yellow-800'}, 
-                confirmed: {t:'已確認', c:'bg-blue-100 text-blue-800'}, 
-                shipped: {t:'已出貨', c:'bg-purple-100 text-purple-800'}, 
-                completed: {t:'已完成', c:'bg-green-100 text-green-800'},
-                cancelled: {t:'已取消', c:'bg-gray-100 text-gray-800'}
-            };
-
+            const statusMap = { pending:'🟡待處理', confirmed:'🔵已確認', shipped:'🟣已出貨', completed:'🟢已完成' };
+            
             document.getElementById('order-table-body').innerHTML = data.map(o => `
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 font-bold">${o.order_no}</td>
-                    <td class="px-6 py-4">
-                        <div class="font-medium">${o.customers?.company_name || o.customers?.contact_person}</div>
-                        <div class="text-xs text-gray-500">${o.customers?.type || ''}</div>
-                    </td>
+                    <td class="px-6 py-4">${o.customers?.company_name || o.customers?.contact_person}</td>
                     <td class="px-6 py-4">$${o.total_amount.toLocaleString()}</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs ${statusMap[o.status]?.c||''}">${statusMap[o.status]?.t||o.status}</span></td>
-                    <td class="px-6 py-4 text-sm">${o.contact_windows?.name || '-'}</td>
+                    <td class="px-6 py-4 text-sm">${o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無'}</td>
+                    <td class="px-6 py-4">${statusMap[o.status] || o.status}</td>
                     <td class="px-6 py-4">
-                        <button onclick="editOrder('${o.id}')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button>
-                        <button onclick="deleteOrder('${o.id}', '${o.order_no}')" class="text-red-600 hover:underline text-sm">刪除</button>
+                        <button onclick="openOrderModal('${o.id}')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button>
+                        <button onclick="deleteOrder('${o.id}')" class="text-red-600 hover:underline text-sm">刪除</button>
                     </td>
                 </tr>
             `).join('');
         }
 
-        async function editOrder(id) {
-            editingOrderId = id;
-            document.getElementById('order-modal-title').textContent = '✏️ 編輯訂單';
-            
-            // 載入訂單詳情
-            const { data: order } = await sb.from('orders').select('*, customers(*), order_items(*)').eq('id', id).single();
-            if (!order) return alert('找不到訂單！');
+        async function loadOrderForEdit(id) {
+            const { data: order } = await sb.from('orders').select('*, order_items(*)').eq('id', id).single();
+            if (!order) return;
 
             originalOrderItems = order.order_items || [];
-
-            // 填充表單
-            document.getElementById('order-id').value = order.id;
-            document.getElementById('selected-customer-id').value = order.customer_id;
-            document.getElementById('selected-customer-name').value = order.customers?.company_name || order.customers?.contact_person;
-            document.getElementById('order-customer-search').value = order.customers?.company_name || order.customers?.contact_person;
-            document.getElementById('selected-customer-display').textContent = `✅ 已選擇客戶：${order.customers?.company_name || order.customers?.contact_person}`;
-            document.getElementById('selected-customer-display').classList.remove('hidden');
-            document.getElementById('contact-window-select').value = order.contact_window_id || '';
-            document.getElementById('order-notes').value = order.notes || '';
-            document.getElementById('shipping-address-select').value = order.shipping_address_id || '';
-            document.getElementById('address-section').classList.remove('hidden');
-
-            // 填充產品明細
-            document.getElementById('order-items-container').innerHTML = '';
-            if (order.order_items && order.order_items.length) {
-                for (const item of order.order_items) {
-                    addOrderItemRow(item);
-                }
-            } else {
-                addOrderItemRow();
+            
+            // 填充客戶
+            const { data: customer } = await sb.from('customers').select('*').eq('id', order.customer_id).single();
+            if (customer) {
+                selectOrderCustomer(customer.id, customer.company_name || customer.contact_person, customer.tax_id, customer.invoice_title);
             }
 
-            calculateOrderTotal();
-            document.getElementById('order-modal').classList.remove('hidden');
+            document.getElementById('contact-window-select').value = order.contact_window_id || '';
+            document.getElementById('order-notes').value = order.notes || '';
+            document.getElementById('order-need-invoice').value = order.invoice_no ? 'yes' : 'no';
+            document.getElementById('order-invoice-title').value = order.invoice_title || '';
+            document.getElementById('order-tax-id').value = order.invoice_tax_id || '';
+            document.getElementById('order-invoice-type').value = order.invoice_type || '3';
+            document.getElementById('order-invoice-no').value = order.invoice_no || '';
+            document.getElementById('order-tax-handling').value = order.tax_handling || 'tax_included';
+            
+            toggleInvoiceFields();
+            
+            // 填充產品
+            document.getElementById('order-items-container').innerHTML = '';
+            order.order_items?.forEach(item => addOrderItemRow(item));
         }
 
-        async function deleteOrder(id, orderNo) {
-            if (!confirm(`確定要刪除訂單 ${orderNo} 嗎？\n刪除後庫存會自動回補。`)) return;
+        async function deleteOrder(id) {
+            if (!confirm('確定刪除？庫存會回補。')) return;
+            
+            const { data: items } = await sb.from('order_items').select('*').eq('order_id', id);
+            for (const item of items || []) {
+                const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
+                await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id);
+            }
+            
+            await sb.from('order_items').delete().eq('order_id', id);
+            await sb.from('orders').delete().eq('id', id);
+            
+            alert('✅ 訂單已刪除');
+            loadOrders();
+            loadDashboardData();
+        }
 
-            try {
-                // 1. 載入訂單明細
-                const { data: items } = await sb.from('order_items').select('*').eq('order_id', id);
-                
-                // 2. 回補庫存
-                if (items) {
-                    for (const item of items) {
-                        const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
-                        await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id);
-                        
-                        // 記錄庫存流水
-                        await sb.from('inventory_logs').insert({
-                            product_id: item.product_id,
-                            type: 'adjust',
-                            quantity: item.quantity,
-                            reference_id: id,
-                            note: `訂單 ${orderNo} 刪除，庫存回補`
-                        });
-                    }
-                }
+        // 倉庫庫存
+        async function loadWarehouseInventory() {
+            const container = document.getElementById('warehouse-inventory-container');
+            container.innerHTML = '';
 
-                // 3. 刪除明細
-                await sb.from('order_items').delete().eq('order_id', id);
-                
-                // 4. 刪除相關發票
-                await sb.from('invoices').delete().eq('related_order_id', id).eq('type', 'sales');
-                
-                // 5. 刪除訂單
-                await sb.from('orders').delete().eq('id', id);
+            for (const warehouse of allWarehouses) {
+                const { data: inventory } = await sb
+                    .from('product_inventory')
+                    .select('*, products(name, sku, safety_stock)')
+                    .eq('warehouse_id', warehouse.id);
 
-                alert('✅ 訂單已刪除，庫存已回補。');
-                loadOrders();
-                loadDashboardData();
-
-            } catch (err) {
-                alert('刪除失敗：' + err.message);
+                const div = document.createElement('div');
+                div.className = 'bg-white rounded-lg shadow p-6';
+                div.innerHTML = `
+                    <h3 class="text-xl font-bold mb-4">🏭 ${warehouse.name}</h3>
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr><th class="px-4 py-2 text-left">產品</th><th class="px-4 py-2 text-left">SKU</th><th class="px-4 py-2 text-left">庫存</th><th class="px-4 py-2 text-left">安全庫存</th><th class="px-4 py-2 text-left">狀態</th></tr>
+                        </thead>
+                        <tbody>
+                            ${inventory?.map(inv => `
+                                <tr class="border-t">
+                                    <td class="px-4 py-2">${inv.products?.name}</td>
+                                    <td class="px-4 py-2 text-sm text-gray-600">${inv.products?.sku}</td>
+                                    <td class="px-4 py-2 font-bold">${inv.quantity}</td>
+                                    <td class="px-4 py-2">${inv.products?.safety_stock || inv.safety_stock}</td>
+                                    <td class="px-4 py-2">${inv.quantity < (inv.products?.safety_stock || inv.safety_stock) ? '<span class="text-red-600 font-bold">⚠️ 低於安全庫存</span>' : '<span class="text-green-600">✓ 正常</span>'}</td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">無庫存資料</td></tr>'}
+                        </tbody>
+                    </table>
+                `;
+                container.appendChild(div);
             }
         }
 
         // 初始化
-        (async () => { 
-            const { data: { session } } = await sb.auth.getSession(); 
-            if (session) { 
-                document.getElementById('login-view').classList.add('hidden'); 
-                document.getElementById('main-system').classList.remove('hidden'); 
-                loadDashboardData(); 
-                loadWindows();
-            } 
+        (async () => {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                document.getElementById('login-view').classList.add('hidden');
+                document.getElementById('main-system').classList.remove('hidden');
+                await loadInitialData();
+            }
         })();
     </script>
 </body>
