@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老闆退休管理系統 - 戰情室</title>
+    <title>老闆退休管理系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .hidden { display: none !important; }
+        .nav-active { background-color: #1f2937; font-weight: bold; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -29,113 +30,156 @@
                 <button type="button" id="login-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
                     登入系統
                 </button>
-                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
             </form>
         </div>
     </div>
 
-    <!-- 畫面 B：老闆儀表板 -->
-    <div id="dashboard-view" class="hidden min-h-screen flex">
+    <!-- 畫面 B：主系統 (包含側邊欄與多個視圖) -->
+    <div id="main-system" class="hidden min-h-screen flex">
+        <!-- 左側導航欄 -->
         <aside class="w-64 bg-gray-800 text-white flex flex-col">
             <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統</div>
             <nav class="flex-1 p-4 space-y-2">
-                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700 bg-gray-900"> 儀表板總覽</a>
-                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700"> 客戶管理 (CRM)</a>
-                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700"> 訂單與庫存</a>
-                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票</a>
+                <!-- 🚨 這裡加入了 onclick 事件來切換畫面 -->
+                <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">🏠 儀表板總覽</a>
+                <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">👥 客戶管理 (CRM)</a>
+                <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單與庫存 (開發中)</a>
+                <a href="#" onclick="switchView('finance')" id="nav-finance" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票 (開發中)</a>
             </nav>
             <div class="p-4 border-t border-gray-700">
                 <button id="logout-btn" class="w-full py-2 px-4 bg-red-600 hover:bg-red-700 rounded text-sm">登出系統</button>
             </div>
         </aside>
 
+        <!-- 右側內容區 -->
         <main class="flex-1 p-8 overflow-y-auto">
-            <header class="mb-8">
-                <h1 class="text-3xl font-bold text-gray-800">老闆，早安！這是今天的戰情總覽：</h1>
-                <p class="text-gray-500 mt-2">系統即時運算中... 享受你的咖啡吧 ☕</p>
-            </header>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <p class="text-gray-500 text-sm">總客戶數</p>
-                    <p id="stat-customers" class="text-3xl font-bold text-blue-600 mt-2">0</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <p class="text-gray-500 text-sm">總訂單數</p>
-                    <p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <p class="text-gray-500 text-sm">總營收 (預估)</p>
-                    <p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <p class="text-gray-500 text-sm">庫存警報 (低於安全水位)</p>
-                    <p id="stat-alerts" class="text-3xl font-bold text-red-600 mt-2">0</p>
+            
+            <!-- 視圖 1：儀表板 -->
+            <div id="view-dashboard">
+                <header class="mb-8">
+                    <h1 class="text-3xl font-bold text-gray-800">老闆，早安！這是今天的戰情總覽：</h1>
+                    <p class="text-gray-500 mt-2">系統即時運算中... 享受你的咖啡吧 ☕</p>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-gray-500 text-sm">總客戶數</p>
+                        <p id="stat-customers" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-gray-500 text-sm">總訂單數</p>
+                        <p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-gray-500 text-sm">總營收 (預估)</p>
+                        <p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <p class="text-gray-500 text-sm">庫存警報</p>
+                        <p id="stat-alerts" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-bold mb-4 text-gray-700">🚨 最新異常警報 (待處理)</h2>
-                <p class="text-gray-500" id="alert-list">目前系統剛上線，尚無異常數據。請開始匯入客戶與產品資料！</p>
+            <!-- 視圖 2：客戶管理 (CRM) -->
+            <div id="view-crm" class="hidden">
+                <header class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">👥 客戶關係管理 (CRM)</h1>
+                        <p class="text-gray-500 mt-2">掌握所有客戶資訊與消費習性</p>
+                    </div>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ 新增客戶 (待開發)</button>
+                </header>
+                
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類型</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">公司/姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">聯絡人</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電話</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">標籤 (習性)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- 這裡會由 JavaScript 自動填入資料 -->
+                            <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">載入中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- 視圖 3 & 4：待開發提示 -->
+            <div id="view-orders" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800">📦 訂單與庫存</h1>
+                <p class="text-gray-500 mt-4 text-xl">此模組正在裝修中，請稍候...</p>
+            </div>
+            <div id="view-finance" class="hidden">
+                <h1 class="text-3xl font-bold text-gray-800">💰 財務與發票</h1>
+                <p class="text-gray-500 mt-4 text-xl">此模組正在裝修中，請稍候...</p>
+            </div>
+
         </main>
     </div>
 
     <script>
-        // 🚀 老闆的專屬金庫匙
         const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
-
-        // 🚨 變數名改成 sb，絕對不會跟其他東西衝突
         const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const loginView = document.getElementById('login-view');
-        const dashboardView = document.getElementById('dashboard-view');
+        const mainSystem = document.getElementById('main-system');
         const loginBtn = document.getElementById('login-btn');
-        const loginError = document.getElementById('login-error');
         const logoutBtn = document.getElementById('logout-btn');
 
+        // 登入邏輯
         loginBtn.addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            loginError.classList.add('hidden');
+            loginBtn.textContent = '登入中...';
             
-            loginBtn.textContent = '登入中，請稍候...';
-            loginBtn.disabled = true;
-
-            // 🚨 這裡改成 sb.auth
             const { data, error } = await sb.auth.signInWithPassword({ email, password });
-            
             loginBtn.textContent = '登入系統';
-            loginBtn.disabled = false;
 
             if (error) {
-                alert('登入失敗！Supabase 說：\n' + error.message);
-                loginError.textContent = '登入失敗：' + error.message;
-                loginError.classList.remove('hidden');
+                alert('登入失敗：' + error.message);
             } else {
-                showDashboard();
+                loginView.classList.add('hidden');
+                mainSystem.classList.remove('hidden');
+                loadDashboardData(); // 登入後載入儀表板
             }
         });
 
+        // 登出邏輯
         logoutBtn.addEventListener('click', async () => {
             await sb.auth.signOut();
-            showLogin();
+            mainSystem.classList.add('hidden');
+            loginView.classList.remove('hidden');
         });
 
-        function showLogin() {
-            loginView.classList.remove('hidden');
-            dashboardView.classList.add('hidden');
+        // 🚨 核心：切換視圖功能
+        function switchView(viewName) {
+            // 1. 隱藏所有視圖
+            document.getElementById('view-dashboard').classList.add('hidden');
+            document.getElementById('view-crm').classList.add('hidden');
+            document.getElementById('view-orders').classList.add('hidden');
+            document.getElementById('view-finance').classList.add('hidden');
+
+            // 2. 移除所有導航的 active 樣式
+            document.querySelectorAll('nav a').forEach(el => el.classList.remove('nav-active'));
+
+            // 3. 顯示目標視圖並加上 active 樣式
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+            document.getElementById('nav-' + viewName).classList.add('nav-active');
+
+            // 4. 如果切換到 CRM，就載入客戶資料
+            if (viewName === 'crm') {
+                loadCustomerData();
+            }
         }
 
-        function showDashboard() {
-            loginView.classList.add('hidden');
-            dashboardView.classList.remove('hidden');
-            loadDashboardData();
-        }
-
+        // 載入儀表板數據
         async function loadDashboardData() {
-            // 🚨 這裡全部改成 sb.from
             const { count: customerCount } = await sb.from('customers').select('*', { count: 'exact', head: true });
             document.getElementById('stat-customers').textContent = customerCount || 0;
 
@@ -147,21 +191,52 @@
             const { data: allProducts } = await sb.from('products').select('current_stock, safety_stock');
             const lowStockCount = allProducts ? allProducts.filter(p => p.current_stock < p.safety_stock && p.safety_stock > 0).length : 0;
             document.getElementById('stat-alerts').textContent = lowStockCount;
-            
-            if(lowStockCount > 0) {
-                document.getElementById('alert-list').innerHTML = `<span class="text-red-500 font-bold">⚠️ 發現 ${lowStockCount} 項產品庫存低於安全水位，請立即通知採購！</span>`;
-            }
         }
 
+        // 🚨 新功能：載入客戶列表
+        async function loadCustomerData() {
+            const tbody = document.getElementById('customer-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">載入中...</td></tr>';
+
+            const { data: customers, error } = await sb.from('customers').select('*').order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">載入失敗：${error.message}</td></tr>`;
+                return;
+            }
+
+            if (customers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶資料</td></tr>';
+                return;
+            }
+
+            // 渲染表格
+            tbody.innerHTML = customers.map(c => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
+                            ${c.type}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.company_name || c.contact_person}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.contact_person}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${c.tags ? c.tags.map(tag => `<span class="mr-1 px-2 py-1 rounded bg-gray-200 text-xs">${tag}</span>`).join('') : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 檢查登入狀態
         async function checkAuth() {
             const { data: { session } } = await sb.auth.getSession();
             if (session) {
-                showDashboard();
-            } else {
-                showLogin();
+                loginView.classList.add('hidden');
+                mainSystem.classList.remove('hidden');
+                loadDashboardData();
             }
         }
-
         checkAuth();
     </script>
 </body>
