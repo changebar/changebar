@@ -519,11 +519,13 @@ function addCustomerAddress(addressData) {
     div.remove(); 
   });
   
-  // 如果是新增，立即執行一次 toggleAddressFields 確保門市欄位正確顯示
-  if (!addressData) {
-    var select = div.querySelector('.addr-type');
-    if (select) toggleAddressFields(select);
-  }
+// 先加入 DOM，再執行 toggleAddressFields
+container.appendChild(div);
+
+// 立即執行一次 toggleAddressFields 確保門市欄位正確顯示
+var select = div.querySelector('.addr-type');
+if (select) {
+  setTimeout(function() { toggleAddressFields(select); }, 100);
 }
 
 window.toggleAddressFields = function(select) {
@@ -548,6 +550,8 @@ window.toggleAddressFields = function(select) {
 };
 
 function loadCustomerForEdit(id) {
+  console.log('載入客戶 ID:', id); // 加入除錯
+  sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single().then(function(result) {
   sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single().then(function(result) {
     var c = result.data;
     if (!c) { showAlert('無法載入客戶資料'); return; }
@@ -576,6 +580,11 @@ function loadCustomerForEdit(id) {
 
 document.getElementById('btn-save-customer').addEventListener('click', function() {
   var id = document.getElementById('cust-id').value;
+  console.log('客戶 ID:', id); // 加入除錯
+  if (!id && document.getElementById('customer-modal-title').textContent === '編輯客戶') {
+    showAlert('錯誤：客戶 ID 遺失，請重新開啟表單');
+    return;
+  }
   var type = document.getElementById('cust-type').value;
   var company = document.getElementById('cust-company').value;
   if (type === 'B2B' && !company) { showAlert('B2B 請填寫公司名稱！'); return; }
