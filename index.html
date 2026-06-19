@@ -1,176 +1,1188 @@
--- =====================================================================
--- ERP 系統表格欄位修復腳本（不刪除現有數據）
--- =====================================================================
--- 此腳本只添加缺失的欄位，不會刪除現有數據
--- 執行時間：2026-06-18
--- =====================================================================
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老闆退休管理系統</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body { font-family: 'Segoe UI', sans-serif; }
+.hidden { display: none !important; }
+.nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
+.search-dropdown { position: absolute; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto; width: 100%; }
+.search-item:hover { background-color: #f3f4f6; cursor: pointer; }
+.tag-1 { background-color: #f43f5e; color: white; }
+.tag-2 { background-color: #ec4899; color: white; }
+.tag-3 { background-color: #8b5cf6; color: white; }
+.tag-4 { background-color: #6366f1; color: white; }
+.tag-5 { background-color: #3b82f6; color: white; }
+.tag-6 { background-color: #06b6d4; color: white; }
+.tag-7 { background-color: #10b981; color: white; }
+.tag-8 { background-color: #84cc16; color: white; }
+.tag-9 { background-color: #eab308; color: black; }
+.tag-10 { background-color: #f97316; color: white; }
+</style>
+</head>
+<body class="bg-gray-100 text-gray-800">
 
--- =====================================================================
--- 1. 修復 vendors 表格 - 確保使用 tax_id 而非 taxId
--- =====================================================================
--- 檢查並添加缺失的欄位
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS tax_id TEXT DEFAULT '';
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS contact TEXT DEFAULT '';
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS tel TEXT DEFAULT '';
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS address TEXT DEFAULT '';
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS remark TEXT DEFAULT '';
-ALTER TABLE vendors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+<div id="login-view" class="min-h-screen flex items-center justify-center">
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">企業戰情室登入</h1>
+    <form class="space-y-4" onsubmit="return false;">
+      <input type="email" id="email" placeholder="Email" required class="w-full px-3 py-2 border rounded-md">
+      <input type="password" id="password" placeholder="密碼" required class="w-full px-3 py-2 border rounded-md">
+      <button type="button" id="login-btn" class="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">登入系統</button>
+    </form>
+  </div>
+</div>
 
--- 如果存在舊的 taxId 欄位（駝峰式），將其數據複製到 tax_id
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vendors' AND column_name = 'taxid') THEN
-        UPDATE vendors SET tax_id = taxid WHERE tax_id IS NULL OR tax_id = '';
-        ALTER TABLE vendors DROP COLUMN taxid;
-    END IF;
-END $$;
+<div id="main-system" class="hidden min-h-screen flex">
+  <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
+    <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統</div>
+    <nav class="flex-1 p-4 space-y-2">
+      <a href="#" data-view="dashboard" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">儀表板</a>
+      <a href="#" data-view="crm" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">客戶管理</a>
+      <a href="#" data-view="orders" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">訂單管理</a>
+      <a href="#" data-view="inventory" id="nav-inventory" class="block py-2 px-4 rounded hover:bg-gray-700">倉庫庫存</a>
+    </nav>
+    <div class="p-4 border-t border-gray-700">
+      <button id="logout-btn" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded text-sm">登出</button>
+    </div>
+  </aside>
 
-COMMENT ON COLUMN vendors.tax_id IS '統一編號';
-COMMENT ON COLUMN vendors.contact IS '聯絡人';
-COMMENT ON COLUMN vendors.tel IS '電話';
-COMMENT ON COLUMN vendors.address IS '地址';
-COMMENT ON COLUMN vendors.remark IS '備註';
-COMMENT ON COLUMN vendors.is_active IS '是否啟用';
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div id="view-dashboard">
+      <h1 class="text-3xl font-bold mb-6">老闆，早安！戰情總覽：</h1>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總客戶數</p><p id="stat-customers" class="text-3xl font-bold text-blue-600 mt-2">0</p></div>
+        <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總訂單數</p><p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p></div>
+        <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">總營收</p><p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p></div>
+        <div class="bg-white p-6 rounded-lg shadow"><p class="text-gray-500 text-sm">公司吸收運費成本</p><p id="stat-shipping-cost" class="text-3xl font-bold text-orange-600 mt-2">$0</p></div>
+      </div>
+    </div>
 
--- =====================================================================
--- 2. 修復 bom_list 表格 - 添加 is_active 欄位
--- =====================================================================
-ALTER TABLE bom_list ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+    <div id="view-crm" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">客戶關係管理</h1>
+        <div class="space-x-2">
+          <button id="btn-open-window-modal" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">管理聯繫窗口</button>
+          <button id="btn-open-tag-modal" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">管理標籤</button>
+          <button id="btn-open-customer-modal" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md font-bold">+ 新增客戶</button>
+        </div>
+      </div>
+      <div class="mb-4 bg-white p-4 rounded-lg shadow">
+        <h3 class="font-bold text-gray-700 mb-2">標籤快速分類：</h3>
+        <div id="tag-filters" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div class="mb-4 relative">
+        <input type="text" id="customer-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡方式</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
 
-COMMENT ON COLUMN bom_list.is_active IS '是否啟用';
+    <div id="view-orders" class="hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">訂單管理</h1>
+        <button id="btn-open-order-modal" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
+      </div>
+      <div class="mb-4 bg-white p-4 rounded-lg shadow">
+        <div class="flex items-end gap-4">
+          <div><label class="block text-sm font-bold text-gray-700 mb-1">開始日期</label><input type="date" id="order-date-start" class="px-3 py-2 border rounded"></div>
+          <div><label class="block text-sm font-bold text-gray-700 mb-1">結束日期</label><input type="date" id="order-date-end" class="px-3 py-2 border rounded"></div>
+          <button id="btn-search-date" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">查詢</button>
+          <button id="btn-reset-date" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">重置</button>
+        </div>
+      </div>
+      <div class="mb-4 relative">
+        <input type="text" id="order-search" placeholder="🔍 搜尋訂單..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單日期</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="order-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+    </div>
 
--- =====================================================================
--- 3. 修復 payment_methods 表格 - 添加缺失欄位
--- =====================================================================
-ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4) DEFAULT 0;
-ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS bank_account_id INTEGER DEFAULT 0;
-ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS remark TEXT DEFAULT '';
-ALTER TABLE payment_methods ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
+    <div id="view-inventory" class="hidden">
+      <h1 class="text-3xl font-bold mb-6">倉庫庫存管理</h1>
+      <div id="warehouse-inventory-container" class="space-y-6"></div>
+    </div>
+  </main>
+</div>
 
-COMMENT ON COLUMN payment_methods.commission_rate IS '抽成率';
-COMMENT ON COLUMN payment_methods.bank_account_id IS '銀行帳戶ID';
-COMMENT ON COLUMN payment_methods.remark IS '備註';
-COMMENT ON COLUMN payment_methods.description IS '描述';
+<div id="order-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
+      <h2 class="text-2xl font-bold">訂單詳細資料</h2>
+      <button id="btn-close-order-detail" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+    </div>
+    <div class="p-6 overflow-y-auto flex-1" id="order-detail-content"></div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0">
+      <button id="btn-cancel-order-detail" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
+    </div>
+  </div>
+</div>
 
--- =====================================================================
--- 4. 修復 sales_channels 表格 - 確保有正確的欄位
--- =====================================================================
-ALTER TABLE sales_channels ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(5,4) DEFAULT 0;
-ALTER TABLE sales_channels ADD COLUMN IF NOT EXISTS remark TEXT DEFAULT '';
+<div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
+      <h2 id="customer-modal-title" class="text-2xl font-bold">新增客戶</h2>
+      <button id="btn-close-customer-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+    </div>
+    <div class="p-6 overflow-y-auto flex-1">
+      <form id="customer-form" onsubmit="return false;" class="space-y-4">
+        <input type="hidden" id="cust-id">
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-bold mb-1">類型</label><select id="cust-type" class="w-full px-3 py-2 border rounded"><option value="B2C">B2C</option><option value="B2B">B2B</option></select></div>
+          <div><label class="block text-sm font-bold mb-1">聯繫窗口</label><select id="cust-window" class="w-full px-3 py-2 border rounded"></select></div>
+        </div>
+        <div><label class="block text-sm font-bold mb-1">公司/客戶名稱 <span id="company-required" class="text-red-500 hidden">*</span></label><input type="text" id="cust-company" class="w-full px-3 py-2 border rounded"></div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-bold mb-1">發票抬頭</label><input type="text" id="cust-invoice-title" class="w-full px-3 py-2 border rounded"></div>
+          <div><label class="block text-sm font-bold mb-1">統一編號</label><input type="text" id="cust-tax-id" class="w-full px-3 py-2 border rounded"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded" onchange="syncContactToAddress()"></div>
+          <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded" onchange="syncContactToAddress()"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-bold mb-1">聯絡窗口名</label><div class="flex gap-2"><input type="text" id="cust-contact-window-name" class="w-full px-3 py-2 border rounded"><label class="flex items-center text-sm whitespace-nowrap"><input type="checkbox" id="cust-window-same-contact" class="mr-1">同聯絡人</label></div></div>
+          <div><label class="block text-sm font-bold mb-1">Email</label><input type="email" id="cust-email" class="w-full px-3 py-2 border rounded"></div>
+        </div>
+        <div><label class="block text-sm font-bold mb-1">標籤</label><div id="customer-tags-container" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50"></div></div>
+        <div class="border-t pt-4">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-lg">寄送地址管理</h3>
+            <button type="button" id="btn-add-address" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">+ 新增地址</button>
+          </div>
+          <div id="customer-addresses-container" class="space-y-3"></div>
+        </div>
+      </form>
+    </div>
+    <div class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-lg flex-shrink-0">
+      <button type="button" id="btn-cancel-customer" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
+      <button type="button" id="btn-save-customer" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存</button>
+    </div>
+  </div>
+</div>
 
-COMMENT ON COLUMN sales_channels.commission_rate IS '抽成率';
-COMMENT ON COLUMN sales_channels.remark IS '備註';
+<div id="order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
+      <h2 id="order-modal-title" class="text-2xl font-bold">新增訂單</h2>
+      <button id="btn-close-order-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+    </div>
+    <div class="p-6 overflow-y-auto flex-1">
+      <form id="order-form" onsubmit="return false;" class="space-y-6">
+        <input type="hidden" id="order-id">
+        <div>
+          <label class="block text-sm font-bold mb-2">1. 選擇客戶 *</label>
+          <div class="relative">
+            <input type="text" id="order-customer-search" placeholder="搜尋客戶..." class="w-full px-4 py-2 border rounded" autocomplete="off">
+            <div id="order-customer-dropdown" class="search-dropdown mt-1 hidden"></div>
+            <input type="hidden" id="selected-customer-id">
+          </div>
+          <p id="selected-customer-display" class="mt-2 text-sm text-blue-600 hidden"></p>
+        </div>
+        <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+          <h3 class="font-bold mb-3">發票與稅金資訊</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div><label class="block text-sm font-bold mb-1">發票 *</label><select id="order-invoice-type" class="w-full px-3 py-2 border rounded"><option value="no_invoice">沒發票</option><option value="has_invoice">有發票</option><option value="tax_excluded">稅外加</option></select></div>
+            <div id="invoice-format-group"><label class="block text-sm font-bold mb-1">發票類型</label><select id="order-invoice-format" class="w-full px-3 py-2 border rounded"><option value="3">三聯式</option><option value="2">二聯式</option></select></div>
+            <div><label class="block text-sm font-bold mb-1">發票號碼</label><input type="text" id="order-invoice-no" class="w-full px-3 py-2 border rounded"></div>
+            <div><label class="block text-sm font-bold mb-1">發票抬頭</label><input type="text" id="order-invoice-title" class="w-full px-3 py-2 border rounded"></div>
+            <div><label class="block text-sm font-bold mb-1">統一編號</label><input type="text" id="order-tax-id" class="w-full px-3 py-2 border rounded"></div>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-bold mb-2">2. 寄送地址 *</label>
+          <select id="shipping-address-select" class="w-full px-4 py-2 border rounded"><option value="">請先選擇客戶...</option></select>
+        </div>
+        <div>
+          <label class="block text-sm font-bold mb-2">3. 產品明細</label>
+          <div id="order-items-container" class="space-y-3"></div>
+          <button type="button" id="btn-add-order-item" class="mt-3 px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">+ 新增產品</button>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h3 class="font-bold mb-3">運費與成本</h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-bold mb-1">運費金額</label><input type="number" id="shipping-amount" class="w-full px-3 py-2 border rounded" value="0" min="0"></div>
+            <div><label class="block text-sm font-bold mb-1">運費支付方式</label><select id="shipping-type" class="w-full px-3 py-2 border rounded"><option value="free">免運 (公司吸收)</option><option value="customer_pay">客人自付</option></select></div>
+          </div>
+        </div>
+        <div class="bg-gray-50 p-4 rounded-lg border-2 border-purple-200">
+          <div class="flex justify-between items-start">
+            <div class="space-y-2">
+              <div class="text-sm text-gray-600">商品小計：<span id="display-subtotal" class="font-bold">$0</span></div>
+              <div class="text-sm text-gray-600" id="display-tax-row">稅金：<span id="display-tax" class="font-bold">$0</span></div>
+              <div class="text-sm text-gray-600 hidden" id="display-shipping-info"></div>
+              <div class="text-3xl font-bold text-purple-600 mt-4">訂單總金額：<span id="order-total-amount">$0</span></div>
+              <div class="text-xs text-gray-500" id="order-tax-info"></div>
+            </div>
+            <div class="w-1/2"><label class="block text-sm font-bold mb-1">備註</label><textarea id="order-notes" class="w-full px-3 py-2 border rounded" rows="3"></textarea></div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-lg flex-shrink-0">
+      <button type="button" id="btn-cancel-order" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
+      <button type="button" id="btn-save-order" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存訂單</button>
+    </div>
+  </div>
+</div>
 
--- =====================================================================
--- 5. 驗證修復結果
--- =====================================================================
--- 顯示各表格的欄位結構
-SELECT 
-    table_name,
-    column_name,
-    data_type,
-    is_nullable,
-    column_default
-FROM information_schema.columns
-WHERE table_name IN ('vendors', 'bom_list', 'payment_methods', 'sales_channels')
-ORDER BY table_name, ordinal_position;
+<div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button id="btn-close-tag-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 overflow-y-auto flex-1">
+      <div class="flex gap-2 mb-4"><input type="text" id="new-tag-name" placeholder="新標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="new-tag-color" class="px-3 py-2 border rounded"><option value="1">紅色</option><option value="2">粉色</option><option value="3">紫色</option><option value="4">靛藍</option><option value="5">藍色</option><option value="6">青色</option><option value="7">綠色</option><option value="8">黃綠</option><option value="9">黃色</option><option value="10">橘色</option></select><button id="btn-add-tag" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
+      <div id="tag-list-container" class="space-y-2"></div>
+    </div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-tag" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+  </div>
+</div>
 
--- =====================================================================
--- 6. 更新 updated_at 觸發器（確保所有表格都有自動更新時間戳）
--- =====================================================================
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+<div id="window-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button id="btn-close-window-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 overflow-y-auto flex-1">
+      <div class="flex gap-2 mb-4"><input type="text" id="new-window-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><select id="new-window-role" class="px-3 py-2 border rounded"><option value="sales">業務</option><option value="support">客服</option><option value="manager">經理</option></select><button id="btn-add-window" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
+      <div id="window-list-container" class="space-y-2"></div>
+    </div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-window" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+  </div>
+</div>
 
--- 為 vendors 添加觸發器
-DROP TRIGGER IF EXISTS update_vendors_updated_at ON vendors;
-CREATE TRIGGER update_vendors_updated_at
-    BEFORE UPDATE ON vendors
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+<div id="customer-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+    <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">客戶詳細資料</h2><button id="btn-close-detail-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
+    <div class="p-6 overflow-y-auto flex-1" id="customer-detail-content"></div>
+    <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button id="btn-cancel-detail" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
+  </div>
+</div>
 
--- 為 bom_list 添加觸發器
-DROP TRIGGER IF EXISTS update_bom_list_updated_at ON bom_list;
-CREATE TRIGGER update_bom_list_updated_at
-    BEFORE UPDATE ON bom_list
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+<div id="custom-alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
+  <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+    <p id="custom-alert-message" class="text-lg mb-6 text-gray-800">訊息內容</p>
+    <div class="flex justify-center space-x-4">
+      <button id="custom-alert-ok-btn" class="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">確定</button>
+      <button id="custom-alert-cancel-btn" class="hidden px-6 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">取消</button>
+    </div>
+  </div>
+</div>
 
--- 為 payment_methods 添加觸發器
-DROP TRIGGER IF EXISTS update_payment_methods_updated_at ON payment_methods;
-CREATE TRIGGER update_payment_methods_updated_at
-    BEFORE UPDATE ON payment_methods
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+<script>
+const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
--- 為 sales_channels 添加觸發器
-DROP TRIGGER IF EXISTS update_sales_channels_updated_at ON sales_channels;
-CREATE TRIGGER update_sales_channels_updated_at
-    BEFORE UPDATE ON sales_channels
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+let allProducts = [], allWindows = [], allCustomers = [], allTags = [], allWarehouses = [];
+let editingOrderId = null, originalOrderItems = [], currentCustomerTags = [], currentCustomerType = 'B2C', currentTagFilter = null, currentCustomerSearch = '';
 
--- =====================================================================
--- 7. 確保 RLS 政策正確（允許匿名用戶讀寫）
--- =====================================================================
--- vendors 表格政策
-DROP POLICY IF EXISTS "allow_anon_select_vendors" ON vendors;
-DROP POLICY IF EXISTS "allow_anon_insert_vendors" ON vendors;
-DROP POLICY IF EXISTS "allow_anon_update_vendors" ON vendors;
-DROP POLICY IF EXISTS "allow_anon_delete_vendors" ON vendors;
+function showAlert(message) {
+  return new Promise(function(resolve) {
+    document.getElementById('custom-alert-message').textContent = message;
+    document.getElementById('custom-alert-cancel-btn').classList.add('hidden');
+    document.getElementById('custom-alert-modal').classList.remove('hidden');
+    document.getElementById('custom-alert-ok-btn').onclick = function() {
+      document.getElementById('custom-alert-modal').classList.add('hidden');
+      resolve();
+    };
+  });
+}
 
-CREATE POLICY "allow_anon_select_vendors" ON vendors FOR SELECT USING (true);
-CREATE POLICY "allow_anon_insert_vendors" ON vendors FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_anon_update_vendors" ON vendors FOR UPDATE USING (true);
-CREATE POLICY "allow_anon_delete_vendors" ON vendors FOR DELETE USING (true);
+function showConfirm(message) {
+  return new Promise(function(resolve) {
+    document.getElementById('custom-alert-message').textContent = message;
+    document.getElementById('custom-alert-cancel-btn').classList.remove('hidden');
+    document.getElementById('custom-alert-modal').classList.remove('hidden');
+    document.getElementById('custom-alert-ok-btn').onclick = function() {
+      document.getElementById('custom-alert-modal').classList.add('hidden');
+      resolve(true);
+    };
+    document.getElementById('custom-alert-cancel-btn').onclick = function() {
+      document.getElementById('custom-alert-modal').classList.add('hidden');
+      resolve(false);
+    };
+  });
+}
 
--- bom_list 表格政策
-DROP POLICY IF EXISTS "allow_anon_select_bom_list" ON bom_list;
-DROP POLICY IF EXISTS "allow_anon_insert_bom_list" ON bom_list;
-DROP POLICY IF EXISTS "allow_anon_update_bom_list" ON bom_list;
-DROP POLICY IF EXISTS "allow_anon_delete_bom_list" ON bom_list;
+document.getElementById('login-btn').addEventListener('click', function() {
+  sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value }).then(function(result) {
+    if (result.error) { showAlert('登入失敗：' + result.error.message); }
+    else {
+      document.getElementById('login-view').classList.add('hidden');
+      document.getElementById('main-system').classList.remove('hidden');
+      loadInitialData();
+    }
+  });
+});
+document.getElementById('logout-btn').addEventListener('click', function() { sb.auth.signOut().then(function() { location.reload(); }); });
 
-CREATE POLICY "allow_anon_select_bom_list" ON bom_list FOR SELECT USING (true);
-CREATE POLICY "allow_anon_insert_bom_list" ON bom_list FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_anon_update_bom_list" ON bom_list FOR UPDATE USING (true);
-CREATE POLICY "allow_anon_delete_bom_list" ON bom_list FOR DELETE USING (true);
+document.querySelectorAll('nav a').forEach(function(link) {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    switchView(this.getAttribute('data-view'));
+  });
+});
 
--- payment_methods 表格政策
-DROP POLICY IF EXISTS "allow_anon_select_payment_methods" ON payment_methods;
-DROP POLICY IF EXISTS "allow_anon_insert_payment_methods" ON payment_methods;
-DROP POLICY IF EXISTS "allow_anon_update_payment_methods" ON payment_methods;
-DROP POLICY IF EXISTS "allow_anon_delete_payment_methods" ON payment_methods;
+function switchView(viewName) {
+  ['dashboard', 'crm', 'orders', 'inventory'].forEach(function(v) {
+    document.getElementById('view-' + v).classList.add('hidden');
+    document.getElementById('nav-' + v).classList.remove('nav-active');
+  });
+  document.getElementById('view-' + viewName).classList.remove('hidden');
+  document.getElementById('nav-' + viewName).classList.add('nav-active');
+  if (viewName === 'crm') { currentCustomerSearch = ''; document.getElementById('customer-search').value = ''; loadCustomers(); }
+  if (viewName === 'orders') {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    document.getElementById('order-date-start').value = year + '-' + month + '-01';
+    document.getElementById('order-date-end').value = year + '-' + month + '-' + new Date(year, now.getMonth() + 1, 0).getDate();
+    loadOrders();
+  }
+  if (viewName === 'inventory') loadWarehouseInventory();
+}
 
-CREATE POLICY "allow_anon_select_payment_methods" ON payment_methods FOR SELECT USING (true);
-CREATE POLICY "allow_anon_insert_payment_methods" ON payment_methods FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_anon_update_payment_methods" ON payment_methods FOR UPDATE USING (true);
-CREATE POLICY "allow_anon_delete_payment_methods" ON payment_methods FOR DELETE USING (true);
+function loadInitialData() {
+  Promise.all([loadWindows(), loadTags(), loadWarehouses(), loadProducts()]).then(loadDashboardData);
+}
+function loadWindows() { return sb.from('contact_windows').select('*').eq('is_active', true).then(function(r) { allWindows = r.data || []; }); }
+function loadTags() { return sb.from('tags').select('*').eq('category', 'customer').order('name').then(function(r) { allTags = r.data || []; renderTagFilters(); }); }
+function loadWarehouses() { return sb.from('warehouses').select('*').eq('is_active', true).then(function(r) { allWarehouses = r.data || []; }); }
+function loadProducts() { return sb.from('products').select('*').eq('type', 'finished').then(function(r) { allProducts = r.data || []; }); }
 
--- sales_channels 表格政策
-DROP POLICY IF EXISTS "allow_anon_select_sales_channels" ON sales_channels;
-DROP POLICY IF EXISTS "allow_anon_insert_sales_channels" ON sales_channels;
-DROP POLICY IF EXISTS "allow_anon_update_sales_channels" ON sales_channels;
-DROP POLICY IF EXISTS "allow_anon_delete_sales_channels" ON sales_channels;
+function loadDashboardData() {
+  sb.from('customers').select('*', { count: 'exact', head: true }).then(function(r) { document.getElementById('stat-customers').textContent = r.count || 0; });
+  sb.from('orders').select('total_amount, absorbed_shipping_fee').then(function(r) {
+    if (r.error) {
+      document.getElementById('stat-orders').textContent = '0';
+      document.getElementById('stat-revenue').textContent = '$0';
+      document.getElementById('stat-shipping-cost').textContent = '$0';
+    } else {
+      var orders = r.data || [];
+      document.getElementById('stat-orders').textContent = orders.length;
+      var total = 0, absorbed = 0;
+      for(var i=0; i<orders.length; i++) { total += orders[i].total_amount || 0; absorbed += orders[i].absorbed_shipping_fee || 0; }
+      document.getElementById('stat-revenue').textContent = '$' + total.toLocaleString();
+      document.getElementById('stat-shipping-cost').textContent = '$' + absorbed.toLocaleString();
+    }
+  });
+}
 
-CREATE POLICY "allow_anon_select_sales_channels" ON sales_channels FOR SELECT USING (true);
-CREATE POLICY "allow_anon_insert_sales_channels" ON sales_channels FOR INSERT WITH CHECK (true);
-CREATE POLICY "allow_anon_update_sales_channels" ON sales_channels FOR UPDATE USING (true);
-CREATE POLICY "allow_anon_delete_sales_channels" ON sales_channels FOR DELETE USING (true);
+function renderTagFilters() {
+  var container = document.getElementById('tag-filters');
+  var html = '<button data-tag-id="null" class="tag-filter-btn px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 ' + (currentTagFilter === null ? 'font-bold ring-2 ring-blue-500' : '') + '">全部</button>';
+  allTags.forEach(function(t) {
+    html += '<button data-tag-id="' + t.id + '" class="tag-filter-btn px-3 py-1 tag-' + t.color + ' rounded-full text-sm hover:opacity-80 ' + (currentTagFilter === t.id ? 'ring-2 ring-offset-1 ring-gray-800' : '') + '">' + t.name + '</button>';
+  });
+  container.innerHTML = html;
+  container.querySelectorAll('.tag-filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      currentTagFilter = this.getAttribute('data-tag-id') === 'null' ? null : this.getAttribute('data-tag-id');
+      renderTagFilters();
+      loadCustomers();
+    });
+  });
+}
 
--- =====================================================================
--- 8. 完成訊息
--- =====================================================================
-DO $$
-BEGIN
-    RAISE NOTICE '✅ ERP 系統表格欄位修復完成！';
-    RAISE NOTICE '已修復的表格：';
-    RAISE NOTICE '  - vendors (添加了 tax_id, contact, tel, address, remark, is_active)';
-    RAISE NOTICE '  - bom_list (添加了 is_active)';
-    RAISE NOTICE '  - payment_methods (添加了 commission_rate, bank_account_id, remark, description)';
-    RAISE NOTICE '  - sales_channels (添加了 commission_rate, remark)';
-    RAISE NOTICE '';
-    RAISE NOTICE '請執行以下步驟：';
-    RAISE NOTICE '  1. 刷新瀏覽器頁面 (Ctrl + F5)';
-    RAISE NOTICE '  2. 測試儲存功能';
-    RAISE NOTICE '  3. 檢查控制台是否還有錯誤';
-END $$;
+document.getElementById('customer-search').addEventListener('input', function(e) {
+  currentCustomerSearch = e.target.value.trim().toLowerCase();
+  loadCustomers();
+});
+
+document.getElementById('btn-open-customer-modal').addEventListener('click', function() { openCustomerModal(); });
+document.getElementById('btn-close-customer-modal').addEventListener('click', closeCustomerModal);
+document.getElementById('btn-cancel-customer').addEventListener('click', closeCustomerModal);
+document.getElementById('btn-add-address').addEventListener('click', function() { addCustomerAddress(); });
+document.getElementById('cust-type').addEventListener('change', function() { document.getElementById('company-required').classList.toggle('hidden', this.value === 'B2C'); });
+
+document.getElementById('cust-window-same-contact').addEventListener('change', function() {
+  if (this.checked) {
+    document.getElementById('cust-contact-window-name').value = document.getElementById('cust-contact').value;
+  } else {
+    document.getElementById('cust-contact-window-name').value = '';
+  }
+});
+
+function syncContactToAddress() {
+  var contact = document.getElementById('cust-contact').value;
+  var phone = document.getElementById('cust-phone').value;
+  var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
+  addressDivs.forEach(function(div) {
+    var recipientInput = div.querySelector('.addr-recipient');
+    var phoneInput = div.querySelector('.addr-phone');
+    if (recipientInput && !recipientInput.dataset.userEdited) {
+      recipientInput.value = contact;
+    }
+    if (phoneInput && !phoneInput.dataset.userEdited) {
+      phoneInput.value = phone;
+    }
+  });
+}
+
+function openCustomerModal(customerId) {
+  console.log('開啟客戶 Modal, ID:', customerId);
+  document.getElementById('customer-modal-title').textContent = customerId ? '編輯客戶' : '新增客戶';
+  document.getElementById('customer-form').reset();
+  document.getElementById('cust-id').value = customerId || '';
+  document.getElementById('cust-type').value = 'B2C';
+  document.getElementById('company-required').classList.add('hidden');
+  var html = '<option value="">請選擇...</option>';
+  allWindows.forEach(function(w) { html += '<option value="' + w.id + '">' + w.name + '</option>'; });
+  document.getElementById('cust-window').innerHTML = html;
+  renderCustomerTags();
+  document.getElementById('customer-addresses-container').innerHTML = '';
+  if (customerId) loadCustomerForEdit(customerId);
+  else addCustomerAddress();
+  document.getElementById('customer-modal').classList.remove('hidden');
+}
+function closeCustomerModal() { document.getElementById('customer-modal').classList.add('hidden'); }
+
+function renderCustomerTags(selectedTags) {
+  if (!selectedTags) selectedTags = [];
+  var html = '';
+  allTags.forEach(function(t) {
+    html += '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer hover:bg-gray-50"><input type="checkbox" value="' + t.id + '" ' + (selectedTags.indexOf(t.id) !== -1 ? 'checked' : '') + ' class="cust-tag-checkbox"><span class="tag-' + t.color + ' px-2 py-1 rounded text-xs">' + t.name + '</span></label>';
+  });
+  document.getElementById('customer-tags-container').innerHTML = html;
+}
+
+function addCustomerAddress(addressData) {
+  var container = document.getElementById('customer-addresses-container');
+  var id = addressData ? addressData.id : 'new-' + Date.now();
+  var type = addressData ? addressData.address_type : 'home';
+  
+  var contact = document.getElementById('cust-contact').value;
+  var phone = document.getElementById('cust-phone').value;
+  
+  var isDefault = addressData ? addressData.is_default : (container.children.length === 0);
+  
+  var div = document.createElement('div');
+  div.className = 'border rounded-lg p-4 bg-gray-50';
+  div.dataset.addressId = id;
+  
+  var html = '<div class="flex justify-between items-center mb-3">';
+  html += '<div class="flex items-center gap-3">';
+  html += '<h4 class="font-bold">地址 ' + (container.children.length + 1) + '</h4>';
+  html += '<label class="flex items-center gap-1 text-sm"><input type="checkbox" class="addr-default" ' + (isDefault ? 'checked' : '') + '><span>設為預設</span></label>';
+  html += '</div>';
+  html += '<button type="button" class="btn-remove-address text-red-600 hover:text-red-800">刪除</button>';
+  html += '</div>';
+  
+  html += '<div class="grid grid-cols-2 gap-3">';
+  html += '<div><label class="block text-xs font-bold mb-1">類型</label><select class="addr-type w-full px-3 py-2 border rounded" onchange="toggleAddressFields(this)">';
+  html += '<option value="home" ' + (type==='home'?'selected':'') + '>住家</option>';
+  html += '<option value="office" ' + (type==='office'?'selected':'') + '>公司</option>';
+  html += '<option value="cvs_711" ' + (type==='cvs_711'?'selected':'') + '>7-11</option>';
+  html += '<option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option>';
+  html += '</select></div>';
+  
+  var recipientValue = addressData ? addressData.recipient_name : contact;
+  html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + recipientValue + '" onchange="this.dataset.userEdited=true"></div>';
+  
+  var phoneValue = addressData ? addressData.recipient_phone : phone;
+  html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + phoneValue + '" onchange="this.dataset.userEdited=true"></div>';
+  
+  html += '<div class="addr-street-group col-span-2" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'none' : 'block') + '"><label class="block text-xs font-bold mb-1">地址</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.street || '') : '') + '" placeholder="完整地址"></div>';
+  
+  html += '<div class="cvs-fields col-span-2 grid grid-cols-2 gap-3" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'grid' : 'none') + '">';
+  html += '<div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_name || '') : '') + '" placeholder="例：7-11 台北車站店"></div>';
+  html += '<div><label class="block text-xs font-bold mb-1">門市地址</label><input type="text" class="addr-cvs-address w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_address || '') : '') + '" placeholder="門市完整地址"></div>';
+  html += '</div>';
+  
+  html += '</div>';
+  
+  div.innerHTML = html;
+  container.appendChild(div);
+  
+  div.querySelector('.btn-remove-address').addEventListener('click', function() { 
+    div.remove(); 
+  });
+  
+  setTimeout(function() {
+    var select = div.querySelector('.addr-type');
+    if (select) toggleAddressFields(select);
+  }, 100);
+}
+
+window.toggleAddressFields = function(select) {
+  var div = select.closest('.border');
+  if (!div) {
+    console.error('找不到 .border 元素');
+    return;
+  }
+  var addrField = div.querySelector('.addr-street-group');
+  var cvsFields = div.querySelector('.cvs-fields');
+  var type = select.value;
+  
+  console.log('地址類型變更:', type);
+  
+  if (type === 'cvs_711' || type === 'cvs_family') {
+    if (addrField) addrField.style.display = 'none';
+    if (cvsFields) cvsFields.style.display = 'grid';
+  } else {
+    if (addrField) addrField.style.display = 'block';
+    if (cvsFields) cvsFields.style.display = 'none';
+  }
+};
+
+function loadCustomerForEdit(id) {
+  console.log('載入客戶 ID:', id);
+  sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single().then(function(result) {
+    var c = result.data;
+    if (!c) { showAlert('無法載入客戶資料'); return; }
+    document.getElementById('cust-id').value = c.id;
+    console.log('設定客戶 ID:', c.id, '當前值:', document.getElementById('cust-id').value);
+    document.getElementById('cust-type').value = c.type;
+    document.getElementById('company-required').classList.toggle('hidden', c.type === 'B2C');
+    document.getElementById('cust-company').value = c.company_name || '';
+    document.getElementById('cust-tax-id').value = c.tax_id || '';
+    document.getElementById('cust-invoice-title').value = c.invoice_title || c.company_name || '';
+    document.getElementById('cust-contact').value = c.contact_person;
+    document.getElementById('cust-phone').value = c.phone;
+    document.getElementById('cust-contact-window-name').value = c.contact_window_name || '';
+    document.getElementById('cust-email').value = c.email || '';
+    document.getElementById('cust-window').value = c.primary_contact_window_id || '';
+    renderCustomerTags(c.customer_tags ? c.customer_tags.map(function(ct) { return ct.tag_id; }) : []);
+    sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(addrResult) {
+      document.getElementById('customer-addresses-container').innerHTML = '';
+      var addresses = addrResult.data || [];
+      if (addresses.length) addresses.forEach(function(addr) { addCustomerAddress(addr); });
+      else addCustomerAddress();
+    });
+  }).catch(function(err) {
+    console.error('載入失敗:', err);
+    showAlert('載入失敗：' + err.message);
+  });
+}
+
+document.getElementById('btn-save-customer').addEventListener('click', function() {
+  var id = document.getElementById('cust-id').value;
+  console.log('儲存客戶，ID:', id);
+  if (!id && document.getElementById('customer-modal-title').textContent === '編輯客戶') {
+    showAlert('錯誤：客戶 ID 遺失，請重新開啟表單');
+    return;
+  }
+  
+  var type = document.getElementById('cust-type').value;
+  var company = document.getElementById('cust-company').value;
+  if (type === 'B2B' && !company) { showAlert('B2B 請填寫公司名稱！'); return; }
+  if (!document.getElementById('cust-contact').value || !document.getElementById('cust-phone').value) { showAlert('聯絡人和電話必填！'); return; }
+
+  var tagIds = Array.from(document.querySelectorAll('.cust-tag-checkbox:checked')).map(function(cb) { return cb.value; });
+  var customerData = { 
+    type: type, 
+    company_name: company || null, 
+    tax_id: document.getElementById('cust-tax-id').value || null, 
+    invoice_title: document.getElementById('cust-invoice-title').value || null, 
+    contact_person: document.getElementById('cust-contact').value, 
+    phone: document.getElementById('cust-phone').value,
+    contact_window_name: document.getElementById('cust-contact-window-name').value || null,
+    email: document.getElementById('cust-email').value || null,
+    primary_contact_window_id: document.getElementById('cust-window').value || null 
+  };
+
+  var savePromise = id ? sb.from('customers').update(customerData).eq('id', id) : sb.from('customers').insert([customerData]).select().single();
+  
+  savePromise.then(function(result) {
+    if (!result || !result.data) throw new Error('無法取得客戶資料');
+    var customerId = id || result.data.id;
+    return sb.from('customer_tags').delete().eq('customer_id', customerId).then(function() {
+      if (tagIds.length) return sb.from('customer_tags').insert(tagIds.map(function(tid) { return { customer_id: customerId, tag_id: tid }; }));
+    });
+  }).then(function() {
+    var custId = document.getElementById('cust-id').value;
+    if (!custId) throw new Error('客戶 ID 遺失');
+    return sb.from('customer_addresses').delete().eq('customer_id', custId);
+  }).then(function() {
+    var custId = document.getElementById('cust-id').value;
+    var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
+    var promises = [];
+    for (var i = 0; i < addressDivs.length; i++) {
+      var div = addressDivs[i];
+      var addrType = div.querySelector('.addr-type').value;
+      var addrData = {
+        customer_id: custId,
+        address_type: addrType,
+        recipient_name: div.querySelector('.addr-recipient').value,
+        recipient_phone: div.querySelector('.addr-phone').value,
+        street: div.querySelector('.addr-street').value,
+        is_default: div.querySelector('.addr-default').checked
+      };
+      if (addrType === 'cvs_711' || addrType === 'cvs_family') {
+        addrData.cvs_store_name = div.querySelector('.addr-cvs-name').value;
+        addrData.cvs_store_address = div.querySelector('.addr-cvs-address').value;
+      }
+      promises.push(sb.from('customer_addresses').insert([addrData]));
+    }
+    return Promise.all(promises);
+  }).then(function() { showAlert('客戶已儲存！'); closeCustomerModal(); loadCustomers(); }).catch(function(err) { 
+    console.error('儲存失敗:', err);
+    showAlert('儲存失敗：' + err.message); 
+  });
+});
+
+function renderCustomerTable(customersToRender) {
+  var tbody = document.getElementById('customer-table-body');
+  tbody.innerHTML = '';
+  if (!customersToRender.length) { tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>'; return; }
+  customersToRender.forEach(function(c) {
+    var tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50';
+    var tags = '';
+    if (c.customer_tags) {
+      c.customer_tags.forEach(function(ct) {
+        var tag = allTags.find(function(t) { return t.id === ct.tag_id; });
+        if (tag) tags += '<span class="tag-' + tag.color + ' px-2 py-1 rounded text-xs mr-1">' + tag.name + '</span>';
+      });
+    }
+    tr.innerHTML = '<td class="px-4 py-4"><span class="px-2 py-1 text-xs rounded-full ' + (c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800') + '">' + c.type + '</span></td><td class="px-4 py-4"><div class="font-medium">' + (c.company_name || c.contact_person) + '</div></td><td class="px-4 py-4 text-sm">' + c.contact_person + '<div class="text-xs text-gray-500">' + c.phone + '</div></td><td class="px-4 py-4 text-sm">' + (c.contact_window_name || '-') + '<div class="text-xs text-gray-500">' + (c.contact_windows ? c.contact_windows.name : '-') + '</div></td><td class="px-4 py-4 text-sm">' + (c.invoice_title || '-') + '<div class="text-xs text-gray-500">' + (c.tax_id || '-') + '</div></td><td class="px-4 py-4">' + tags + '</td><td class="px-4 py-4"><button class="btn-view-detail text-blue-600 hover:underline text-sm mr-2" data-id="' + c.id + '">詳情</button><button class="btn-edit-customer text-green-600 hover:underline text-sm mr-2" data-id="' + c.id + '">編輯</button><button class="btn-delete-customer text-red-600 hover:underline text-sm" data-id="' + c.id + '">刪除</button></td>';
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('.btn-view-detail').forEach(function(btn) { btn.addEventListener('click', function() { viewCustomerDetail(this.getAttribute('data-id')); }); });
+  tbody.querySelectorAll('.btn-edit-customer').forEach(function(btn) { btn.addEventListener('click', function() { openCustomerModal(this.getAttribute('data-id')); }); });
+  tbody.querySelectorAll('.btn-delete-customer').forEach(function(btn) { btn.addEventListener('click', function() { deleteCustomer(this.getAttribute('data-id')); }); });
+}
+
+function loadCustomers() {
+  var query = sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id)');
+  if (currentTagFilter) query = query.eq('customer_tags.tag_id', currentTagFilter);
+  query.order('created_at', { ascending: false }).then(function(result) {
+    allCustomers = result.data || [];
+    var filtered = allCustomers;
+    if (currentCustomerSearch) {
+      filtered = allCustomers.filter(function(c) {
+        var searchStr = ((c.company_name || '') + ' ' + (c.contact_person || '') + ' ' + (c.contact_window_name || '')).toLowerCase();
+        return searchStr.indexOf(currentCustomerSearch) !== -1;
+      });
+    }
+    renderCustomerTable(filtered);
+  });
+}
+
+function viewCustomerDetail(id) {
+  sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id), customer_addresses(*)').eq('id', id).single().then(function(result) {
+    var c = result.data;
+    if (!c) return;
+    var addrMap = { home:'住家', office:'公司', cvs_711:'7-11', cvs_family:'全家' };
+    var html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-3"><div><b>類型:</b> ' + c.type + '</div><div><b>聯繫窗口:</b> ' + (c.contact_windows ? c.contact_windows.name : '未分配') + '</div>';
+    if (c.company_name) { html += '<div><b>公司名稱:</b> ' + c.company_name + '</div><div><b>統一編號:</b> ' + (c.tax_id || '-') + '</div>'; }
+    html += '<div><b>聯絡人:</b> ' + c.contact_person + '</div><div><b>電話:</b> ' + c.phone + '</div>';
+    if (c.contact_window_name) html += '<div><b>聯絡窗口名:</b> ' + c.contact_window_name + '</div>';
+    if (c.email) html += '<div><b>Email:</b> ' + c.email + '</div>';
+    html += '<div class="col-span-2"><b>標籤:</b> ';
+    if (c.customer_tags) { c.customer_tags.forEach(function(ct) { var t = allTags.find(function(x) { return x.id === ct.tag_id; }); if (t) html += '<span class="tag-' + t.color + ' px-2 py-1 rounded text-xs mr-1">' + t.name + '</span>'; }); }
+    html += '</div></div><div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址列表</h3>';
+    if (c.customer_addresses && c.customer_addresses.length) {
+      c.customer_addresses.forEach(function(a) {
+        html += '<div class="border p-3 rounded mb-2 ' + (a.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200') + '"><div class="font-bold">' + (addrMap[a.address_type] || a.address_type) + (a.is_default ? ' <span class="text-blue-600 text-xs">(預設)</span>' : '') + '</div><div>' + a.recipient_name + ' · ' + a.recipient_phone + '</div>';
+        if (a.street) html += '<div>地址：' + a.street + '</div>';
+        if (a.cvs_store_name) html += '<div>門市：' + a.cvs_store_name + (a.cvs_store_address ? ' - ' + a.cvs_store_address : '') + '</div>';
+        html += '</div>';
+      });
+    } else { html += '<p class="text-gray-500">尚無地址</p>'; }
+    html += '</div></div>';
+    document.getElementById('customer-detail-content').innerHTML = html;
+    document.getElementById('customer-detail-modal').classList.remove('hidden');
+  });
+}
+document.getElementById('btn-close-detail-modal').addEventListener('click', function() { document.getElementById('customer-detail-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-detail').addEventListener('click', function() { document.getElementById('customer-detail-modal').classList.add('hidden'); });
+
+function deleteCustomer(id) {
+  showConfirm('確定刪除此客戶？').then(function(ok) {
+    if (!ok) return;
+    sb.from('customer_tags').delete().eq('customer_id', id).then(function() { return sb.from('customer_addresses').delete().eq('customer_id', id); }).then(function() { return sb.from('orders').select('id').eq('customer_id', id); }).then(function(result) {
+      var orders = result.data || [];
+      var promises = [];
+      orders.forEach(function(o) { promises.push(sb.from('orders').update({ customer_id: null }).eq('id', o.id)); });
+      return Promise.all(promises);
+    }).then(function() { return sb.from('customers').delete().eq('id', id); }).then(function() { showAlert('客戶已刪除'); loadCustomers(); }).catch(function(err) { showAlert('刪除失敗：' + err.message); });
+  });
+}
+
+var orderSearchTimer;
+document.getElementById('order-search').addEventListener('input', function(e) {
+  clearTimeout(orderSearchTimer);
+  var kw = e.target.value.trim().toLowerCase();
+  orderSearchTimer = setTimeout(function() { loadOrders(kw); }, 300);
+});
+
+document.getElementById('btn-search-date').addEventListener('click', function() { loadOrders(); });
+document.getElementById('btn-reset-date').addEventListener('click', function() {
+  var now = new Date();
+  var year = now.getFullYear();
+  var month = String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('order-date-start').value = year + '-' + month + '-01';
+  document.getElementById('order-date-end').value = year + '-' + month + '-' + new Date(year, now.getMonth() + 1, 0).getDate();
+  loadOrders();
+});
+
+document.getElementById('btn-open-order-modal').addEventListener('click', function() { openOrderModal(); });
+document.getElementById('btn-close-order-modal').addEventListener('click', closeOrderModal);
+document.getElementById('btn-cancel-order').addEventListener('click', closeOrderModal);
+document.getElementById('btn-add-order-item').addEventListener('click', function() { addOrderItemRow(); });
+
+document.getElementById('order-invoice-type').addEventListener('change', toggleInvoiceFields);
+document.getElementById('shipping-amount').addEventListener('input', calculateOrderFinalTotal);
+document.getElementById('shipping-type').addEventListener('change', calculateOrderFinalTotal);
+
+function toggleInvoiceFields() {
+  var invoiceType = document.getElementById('order-invoice-type').value;
+  var invoiceFormatGroup = document.getElementById('invoice-format-group');
+  var fields = ['order-invoice-format', 'order-invoice-title', 'order-tax-id', 'order-invoice-no'];
+  
+  if (invoiceType === 'has_invoice' || invoiceType === 'tax_excluded') {
+    invoiceFormatGroup.classList.remove('hidden');
+    fields.forEach(function(id) { document.getElementById(id).disabled = false; });
+    var customerId = document.getElementById('selected-customer-id').value;
+    var customer = allCustomers.find(function(c) { return c.id === customerId; });
+    if (customer) {
+      document.getElementById('order-invoice-title').value = customer.invoice_title || customer.company_name || '';
+      document.getElementById('order-tax-id').value = customer.tax_id || '';
+    }
+  } else {
+    invoiceFormatGroup.classList.add('hidden');
+    fields.forEach(function(id) { document.getElementById(id).disabled = true; });
+    document.getElementById('order-invoice-title').value = '';
+    document.getElementById('order-tax-id').value = '';
+    document.getElementById('order-invoice-no').value = '';
+  }
+  calculateOrderFinalTotal();
+}
+
+function openOrderModal(orderId) {
+  editingOrderId = orderId || null;
+  document.getElementById('order-modal-title').textContent = orderId ? '編輯訂單' : '新增訂單';
+  document.getElementById('order-form').reset();
+  document.getElementById('order-id').value = orderId || '';
+  document.getElementById('selected-customer-id').value = '';
+  document.getElementById('selected-customer-display').classList.add('hidden');
+  document.getElementById('order-items-container').innerHTML = '';
+  document.getElementById('shipping-address-select').innerHTML = '<option value="">請先選擇客戶...</option>';
+  currentCustomerTags = [];
+  currentCustomerType = 'B2C';
+  if (orderId) loadOrderForEdit(orderId);
+  else addOrderItemRow();
+  document.getElementById('order-modal').classList.remove('hidden');
+  toggleInvoiceFields();
+}
+function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); editingOrderId = null; originalOrderItems = []; }
+
+var orderSearchTimer2;
+document.getElementById('order-customer-search').addEventListener('input', function(e) {
+  clearTimeout(orderSearchTimer2);
+  var kw = e.target.value.trim();
+  var dd = document.getElementById('order-customer-dropdown');
+  if (!kw) { dd.classList.add('hidden'); return; }
+  orderSearchTimer2 = setTimeout(function() {
+    var filtered = allCustomers.filter(function(c) {
+      return (c.contact_person && c.contact_person.indexOf(kw) !== -1) || (c.company_name && c.company_name.indexOf(kw) !== -1) || (c.phone && c.phone.indexOf(kw) !== -1);
+    });
+    var html = '';
+    if (filtered.length === 0) { html = '<div class="p-3 text-gray-500">無結果</div>'; }
+    else {
+      filtered.forEach(function(c) {
+        var tagsJson = '[]';
+        try {
+          if (c.customer_tags && c.customer_tags.length > 0) {
+            tagsJson = JSON.stringify(c.customer_tags.map(function(ct) { return ct.tag_id; }));
+          }
+        } catch(e) { tagsJson = '[]'; }
+        html += '<div class="search-item p-3 border-b" data-id="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-tax="' + (c.tax_id || '') + '" data-invoice="' + (c.invoice_title || '') + '" data-tags="' + tagsJson + '" data-type="' + c.type + '">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
+      });
+    }
+    dd.innerHTML = html;
+    dd.classList.remove('hidden');
+    dd.querySelectorAll('.search-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var id = this.getAttribute('data-id');
+        var name = this.getAttribute('data-name');
+        var taxId = this.getAttribute('data-tax');
+        var invoiceTitle = this.getAttribute('data-invoice');
+        var tagsJson = this.getAttribute('data-tags');
+        var type = this.getAttribute('data-type');
+        var tags = [];
+        try { tags = JSON.parse(tagsJson); } catch(e) { tags = []; }
+        selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type);
+        dd.classList.add('hidden');
+      });
+    });
+  }, 300);
+});
+
+function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
+  if (!id) return;
+  document.getElementById('order-customer-dropdown').classList.add('hidden');
+  document.getElementById('order-customer-search').value = name;
+  document.getElementById('selected-customer-id').value = id;
+  document.getElementById('selected-customer-display').textContent = '已選擇：' + name;
+  document.getElementById('selected-customer-display').classList.remove('hidden');
+  currentCustomerTags = tags || [];
+  currentCustomerType = type;
+  
+  sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(result) {
+    var addresses = result.data || [];
+    var addrSelect = document.getElementById('shipping-address-select');
+    addrSelect.innerHTML = '<option value="">-- 選擇地址 --</option>';
+    
+    if (addresses.length > 0) {
+      var defaultAddr = null;
+      for (var i = 0; i < addresses.length; i++) {
+        if (addresses[i].is_default) { defaultAddr = addresses[i]; break; }
+      }
+      
+      for (var i = 0; i < addresses.length; i++) {
+        var a = addresses[i];
+        var displayText = '';
+        if (a.address_type === 'cvs_711' || a.address_type === 'cvs_family') {
+          displayText = (a.address_type === 'cvs_711' ? '7-11' : '全家') + ' - ' + (a.cvs_store_name || '') + ' (' + a.recipient_name + ' ' + a.recipient_phone + ')';
+        } else {
+          displayText = (a.address_type === 'home' ? '住家' : '公司') + ' - ' + (a.street || '') + ' (' + a.recipient_name + ' ' + a.recipient_phone + ')';
+        }
+        
+        var selected = (defaultAddr && a.id === defaultAddr.id) ? 'selected' : '';
+        addrSelect.innerHTML += '<option value="' + a.id + '" ' + selected + '>' + displayText + (a.is_default ? ' [預設]' : '') + '</option>';
+      }
+      
+      if (defaultAddr) {
+        addrSelect.value = defaultAddr.id;
+      } else if (addresses.length > 0) {
+        addrSelect.value = addresses[0].id;
+      }
+    }
+  }).catch(function(err) { 
+    console.error('載入地址失敗:', err); 
+  });
+  
+  toggleInvoiceFields();
+  calculateOrderFinalTotal();
+}
+
+function addOrderItemRow(productData) {
+  var container = document.getElementById('order-items-container');
+  var id = 'row-' + Date.now();
+  var options = '<option value="">選擇產品...</option>';
+  allProducts.forEach(function(p) {
+    options += '<option value="' + p.id + '" data-price="' + p.sell_price + '" ' + (productData && productData.product_id === p.id ? 'selected' : '') + '>' + p.name + ' - $' + p.sell_price + ' (庫存: ' + p.current_stock + ')</option>';
+  });
+  var div = document.createElement('div');
+  div.id = id;
+  div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded';
+  div.innerHTML = '<div class="flex-1"><label class="block text-xs font-bold mb-1">產品</label><select class="order-product w-full px-3 py-2 border rounded">' + options + '</select></div><div class="w-24"><label class="block text-xs font-bold mb-1">數量</label><input type="number" class="order-qty w-full px-3 py-2 border rounded" value="' + (productData ? productData.quantity : 1) + '" min="1"></div><div class="w-32"><label class="block text-xs font-bold mb-1">單價</label><input type="number" class="order-price w-full px-3 py-2 border rounded" value="' + (productData ? productData.unit_price : '') + '" step="0.01"></div><div class="w-32"><label class="block text-xs font-bold mb-1">小計</label><div class="order-subtotal px-3 py-2 font-bold">$0</div></div><button type="button" class="btn-remove-item px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">X</button>';
+  container.appendChild(div);
+  div.querySelector('.order-product').addEventListener('change', function() {
+    var select = this;
+    var priceInput = div.querySelector('.order-price');
+    if (select.value) priceInput.value = select.options[select.selectedIndex].dataset.price;
+    calculateOrderFinalTotal();
+  });
+  div.querySelector('.order-qty').addEventListener('input', calculateOrderFinalTotal);
+  div.querySelector('.order-price').addEventListener('input', calculateOrderFinalTotal);
+  div.querySelector('.btn-remove-item').addEventListener('click', function() { div.remove(); calculateOrderFinalTotal(); });
+  if (productData && productData.unit_price) { div.querySelector('.order-price').value = productData.unit_price; }
+  calculateOrderFinalTotal();
+}
+
+function calculateOrderFinalTotal() {
+  var subtotal = 0;
+  var rows = document.querySelectorAll('#order-items-container > div');
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var price = parseFloat(row.querySelector('.order-price').value) || 0;
+    var qty = parseInt(row.querySelector('.order-qty').value) || 0;
+    row.querySelector('.order-subtotal').textContent = '$' + (price * qty).toLocaleString();
+    subtotal += price * qty;
+  }
+  document.getElementById('display-subtotal').textContent = '$' + Math.round(subtotal).toLocaleString();
+  var invoiceType = document.getElementById('order-invoice-type').value;
+  var tax = 0;
+  var taxInfo = '';
+  if (invoiceType === 'tax_excluded') {
+    tax = subtotal * 0.05;
+    taxInfo = '稅外加：商品 $' + Math.round(subtotal) + ' + 5% 稅金 $' + Math.round(tax) + ' = 客人需付 $' + Math.round(subtotal + tax);
+    document.getElementById('display-tax-row').classList.remove('hidden');
+  } else {
+    tax = 0;
+    taxInfo = invoiceType === 'has_invoice' ? '有發票 (含稅)' : '沒發票';
+    document.getElementById('display-tax-row').classList.add('hidden');
+  }
+  document.getElementById('display-tax').textContent = '$' + Math.round(tax).toLocaleString();
+  document.getElementById('order-tax-info').textContent = taxInfo;
+  var shippingAmount = parseFloat(document.getElementById('shipping-amount').value) || 0;
+  var shippingType = document.getElementById('shipping-type').value;
+  var finalTotal = subtotal + tax;
+  var absorbedShipping = 0;
+  var shippingDisplay = document.getElementById('display-shipping-info');
+  if (shippingAmount > 0) {
+    shippingDisplay.classList.remove('hidden');
+    if (shippingType === 'customer_pay') {
+      finalTotal += shippingAmount;
+      absorbedShipping = 0;
+      shippingDisplay.innerHTML = '<span class="text-gray-600">運費 (客人自付)：</span><span class="font-bold text-gray-800">$' + Math.round(shippingAmount).toLocaleString() + '</span>';
+    } else {
+      absorbedShipping = shippingAmount;
+      shippingDisplay.innerHTML = '<span class="text-orange-600">運費 (免運/公司吸收)：</span><span class="font-bold text-orange-600">$' + Math.round(shippingAmount).toLocaleString() + '</span>';
+    }
+  } else {
+    shippingDisplay.classList.add('hidden');
+  }
+  document.getElementById('order-total-amount').textContent = '$' + Math.round(finalTotal).toLocaleString();
+  window._calcTax = tax;
+  window._calcShipping = shippingAmount;
+  window._calcAbsorbed = absorbedShipping;
+  window._calcTotal = finalTotal;
+}
+
+document.getElementById('btn-save-order').addEventListener('click', function() {
+  var customerId = document.getElementById('selected-customer-id').value;
+  if (!customerId) { showAlert('請選擇客戶！'); return; }
+  var items = [];
+  var rows = document.querySelectorAll('#order-items-container > div');
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var prodId = row.querySelector('.order-product').value;
+    var qty = parseInt(row.querySelector('.order-qty').value) || 0;
+    var price = parseFloat(row.querySelector('.order-price').value) || 0;
+    if (prodId && qty > 0) { items.push({ product_id: prodId, quantity: qty, unit_price: price }); }
+  }
+  if (!items.length) { showAlert('請至少加入一筆產品！'); return; }
+  
+  var invoiceType = document.getElementById('order-invoice-type').value;
+  
+  var orderData = {
+    customer_id: customerId,
+    total_amount: window._calcTotal || 0,
+    notes: document.getElementById('order-notes').value,
+    status: 'confirmed',
+    invoice_title: (invoiceType === 'has_invoice' || invoiceType === 'tax_excluded') ? document.getElementById('order-invoice-title').value : null,
+    invoice_tax_id: (invoiceType === 'has_invoice' || invoiceType === 'tax_excluded') ? document.getElementById('order-tax-id').value : null,
+    invoice_type: (invoiceType === 'has_invoice' || invoiceType === 'tax_excluded') ? document.getElementById('order-invoice-format').value : null,
+    invoice_no: (invoiceType === 'has_invoice' || invoiceType === 'tax_excluded') ? document.getElementById('order-invoice-no').value : null,
+    tax_handling: invoiceType,
+    tax_amount: window._calcTax || 0,
+    shipping_fee: window._calcShipping || 0,
+    absorbed_shipping_fee: window._calcAbsorbed || 0
+  };
+
+  var savePromise;
+  if (editingOrderId) {
+    var restorePromises = [];
+    for (var i = 0; i < originalOrderItems.length; i++) {
+      var item = originalOrderItems[i];
+      (function(itm) {
+        restorePromises.push(sb.from('products').select('current_stock').eq('id', itm.product_id).single().then(function(result) {
+          if (result.data) return sb.from('products').update({ current_stock: result.data.current_stock + itm.quantity }).eq('id', itm.product_id);
+        }));
+      })(item);
+    }
+    savePromise = Promise.all(restorePromises).then(function() { return sb.from('order_items').delete().eq('order_id', editingOrderId); }).then(function() { return sb.from('orders').update(orderData).eq('id', editingOrderId); });
+  } else {
+    orderData.order_no = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random()*10000).toString().padStart(4,'0');
+    savePromise = sb.from('orders').insert([orderData]).select().single();
+  }
+
+  savePromise.then(function(result) {
+    if (!result || !result.data) throw new Error('無法取得訂單資料');
+    var orderId = editingOrderId || result.data.id;
+    return sb.from('order_items').insert(items.map(function(item) { return { order_id: orderId, product_id: item.product_id, quantity: item.quantity, unit_price: item.unit_price }; })).then(function() {
+      var stockPromises = [];
+      for (var i = 0; i < items.length; i++) {
+        (function(itm) {
+          stockPromises.push(sb.from('products').select('current_stock').eq('id', itm.product_id).single().then(function(result) {
+            if (result.data) return sb.from('products').update({ current_stock: result.data.current_stock - itm.quantity }).eq('id', itm.product_id);
+          }));
+        })(items[i]);
+      }
+      return Promise.all(stockPromises);
+    });
+  }).then(function() { showAlert('訂單已儲存！'); closeOrderModal(); loadOrders(); loadDashboardData(); }).catch(function(err) { showAlert('儲存失敗：' + err.message); });
+});
+
+function loadOrders(searchKw) {
+  if (!searchKw) searchKw = '';
+  var startDate = document.getElementById('order-date-start').value;
+  var endDate = document.getElementById('order-date-end').value;
+  var query = sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false });
+  if (startDate && endDate) {
+    query = query.gte('created_at', startDate + 'T00:00:00').lte('created_at', endDate + 'T23:59:59');
+  }
+  query.then(function(result) {
+    var data = result.data || [];
+    var tbody = document.getElementById('order-table-body');
+    tbody.innerHTML = '';
+    if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>'; return; }
+    var filteredData = data;
+    if (searchKw) {
+      filteredData = data.filter(function(o) {
+        var customerName = (o.customers && (o.customers.company_name || o.customers.contact_person) || '').toLowerCase();
+        var invoiceNo = (o.invoice_no || '').toLowerCase();
+        return customerName.indexOf(searchKw) !== -1 || invoiceNo.indexOf(searchKw) !== -1;
+      });
+    }
+    filteredData.forEach(function(o) {
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+      var dateObj = new Date(o.created_at);
+      var dateStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth()+1).padStart(2,'0') + '-' + String(dateObj.getDate()).padStart(2,'0');
+      var invoiceDisplay = '無';
+      if (o.tax_handling === 'has_invoice') invoiceDisplay = '有發票';
+      else if (o.tax_handling === 'tax_excluded') invoiceDisplay = '稅外加';
+      tr.innerHTML = '<td class="px-6 py-4 font-bold text-gray-700">' + dateStr + '</td><td class="px-6 py-4">' + (o.customers ? (o.customers.company_name || o.customers.contact_person) : '已刪除客戶') + '</td><td class="px-6 py-4">$' + Math.round(o.total_amount).toLocaleString() + '</td><td class="px-6 py-4 text-sm">' + invoiceDisplay + '</td><td class="px-6 py-4"><button class="btn-view-order-detail text-blue-600 hover:underline text-sm mr-2" data-id="' + o.id + '">詳細</button><button class="btn-edit-order text-green-600 hover:underline text-sm mr-2" data-id="' + o.id + '">編輯</button><button class="btn-delete-order text-red-600 hover:underline text-sm" data-id="' + o.id + '">刪除</button></td>';
+      tbody.appendChild(tr);
+    });
+    tbody.querySelectorAll('.btn-view-order-detail').forEach(function(btn) { btn.addEventListener('click', function() { viewOrderDetail(this.getAttribute('data-id')); }); });
+    tbody.querySelectorAll('.btn-edit-order').forEach(function(btn) { btn.addEventListener('click', function() { openOrderModal(this.getAttribute('data-id')); }); });
+    tbody.querySelectorAll('.btn-delete-order').forEach(function(btn) { btn.addEventListener('click', function() { deleteOrder(this.getAttribute('data-id')); }); });
+  });
+}
+
+function viewOrderDetail(id) {
+  sb.from('orders').select('*, customers(*), order_items(*), products(name, sku)').eq('id', id).then(function(result) {
+    var order = result.data && result.data[0];
+    if (!order) return;
+    var dateObj = new Date(order.created_at);
+    var dateStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth()+1).padStart(2,'0') + '-' + String(dateObj.getDate()).padStart(2,'0');
+    var invoiceDisplay = '無';
+    if (order.tax_handling === 'has_invoice') invoiceDisplay = '有發票 (' + (order.invoice_type === '3' ? '三聯' : '二聯') + ')';
+    else if (order.tax_handling === 'tax_excluded') invoiceDisplay = '稅外加';
+    var html = '<div class="space-y-4">';
+    html += '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded"><div><b>訂單編號:</b> ' + order.order_no + '</div><div><b>訂單日期:</b> ' + dateStr + '</div><div><b>客戶:</b> ' + (order.customers ? order.customers.company_name || order.customers.contact_person : '已刪除') + '</div><div><b>發票:</b> ' + invoiceDisplay + '</div></div>';
+    if (order.invoice_no) {
+      html += '<div class="bg-yellow-50 p-4 rounded"><h3 class="font-bold mb-2">發票資訊</h3><div class="grid grid-cols-2 gap-2 text-sm">';
+      if (order.invoice_title) html += '<div><b>发票抬头:</b> ' + order.invoice_title + '</div>';
+      if (order.invoice_tax_id) html += '<div><b>統一編號:</b> ' + order.invoice_tax_id + '</div>';
+      if (order.invoice_no) html += '<div><b>發票號碼:</b> ' + order.invoice_no + '</div>';
+      html += '</div></div>';
+    }
+    html += '<div><h3 class="font-bold mb-2">產品明細</h3><table class="min-w-full border"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">產品</th><th class="px-4 py-2 text-left">數量</th><th class="px-4 py-2 text-left">單價</th><th class="px-4 py-2 text-left">小計</th></tr></thead><tbody>';
+    if (order.order_items) {
+      order.order_items.forEach(function(item) {
+        html += '<tr class="border-t"><td class="px-4 py-2">' + (item.products ? item.products.name : '已刪除產品') + '</td><td class="px-4 py-2">' + item.quantity + '</td><td class="px-4 py-2">$' + item.unit_price + '</td><td class="px-4 py-2">$' + (item.quantity * item.unit_price).toLocaleString() + '</td></tr>';
+      });
+    }
+    html += '</tbody></table></div>';
+    html += '<div class="bg-gray-50 p-4 rounded"><div class="space-y-1">';
+    html += '<div>商品小計: $' + Math.round(order.total_amount - (order.tax_amount || 0) - (order.shipping_fee && order.tax_handling !== 'free' ? order.shipping_fee : 0)).toLocaleString() + '</div>';
+    if (order.tax_amount > 0) html += '<div>稅金: $' + Math.round(order.tax_amount).toLocaleString() + '</div>';
+    if (order.shipping_fee > 0) {
+      if (order.absorbed_shipping_fee > 0) html += '<div class="text-orange-600">運費 (免運/公司吸收): $' + Math.round(order.shipping_fee).toLocaleString() + '</div>';
+      else html += '<div>運費 (客人自付): $' + Math.round(order.shipping_fee).toLocaleString() + '</div>';
+    }
+    html += '<div class="text-xl font-bold text-purple-600 mt-2">總金額: $' + Math.round(order.total_amount).toLocaleString() + '</div>';
+    if (order.notes) html += '<div class="mt-2"><b>備註:</b> ' + order.notes + '</div>';
+    html += '</div></div></div>';
+    document.getElementById('order-detail-content').innerHTML = html;
+    document.getElementById('order-detail-modal').classList.remove('hidden');
+  });
+}
+
+document.getElementById('btn-close-order-detail').addEventListener('click', function() { document.getElementById('order-detail-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-order-detail').addEventListener('click', function() { document.getElementById('order-detail-modal').classList.add('hidden'); });
+
+function loadOrderForEdit(id) {
+  sb.from('orders').select('*, order_items(*), customers(*)').eq('id', id).single().then(function(result) {
+    var order = result.data;
+    if (!order) { showAlert('無法載入訂單資料'); return; }
+    originalOrderItems = order.order_items || [];
+    var c = order.customers;
+    if (c) {
+      var tags = [];
+      try { if (c.customer_tags) { tags = c.customer_tags.map(function(ct) { return ct.tag_id; }); } } catch(e) { tags = []; }
+      selectOrderCustomer(c.id, c.company_name || c.contact_person, c.tax_id, c.invoice_title, tags, c.type);
+    }
+    document.getElementById('order-notes').value = order.notes || '';
+    document.getElementById('order-invoice-type').value = order.tax_handling || 'no_invoice';
+    document.getElementById('order-invoice-title').value = order.invoice_title || '';
+    document.getElementById('order-tax-id').value = order.invoice_tax_id || '';
+    document.getElementById('order-invoice-format').value = order.invoice_type || '3';
+    document.getElementById('order-invoice-no').value = order.invoice_no || '';
+    document.getElementById('shipping-amount').value = order.shipping_fee || 0;
+    document.getElementById('shipping-type').value = order.absorbed_shipping_fee > 0 ? 'free' : (order.shipping_fee > 0 ? 'customer_pay' : 'free');
+    toggleInvoiceFields();
+    document.getElementById('order-items-container').innerHTML = '';
+    if (order.order_items) { order.order_items.forEach(function(item) { addOrderItemRow(item); }); }
+  }).catch(function(err) {
+    showAlert('載入失敗：' + err.message);
+  });
+}
+
+function deleteOrder(id) {
+  showConfirm('確定刪除此訂單？庫存會回補。').then(function(ok) {
+    if (!ok) return;
+    sb.from('invoices').delete().eq('related_order_id', id).then(function() { return sb.from('order_items').select('*').eq('order_id', id); }).then(function(result) {
+      var items = result.data || [];
+      var promises = [];
+      for (var i = 0; i < items.length; i++) {
+        (function(item) {
+          promises.push(sb.from('products').select('current_stock').eq('id', item.product_id).single().then(function(prodResult) {
+            if (prodResult.data) return sb.from('products').update({ current_stock: prodResult.data.current_stock + item.quantity }).eq('id', item.product_id);
+          }));
+        })(items[i]);
+      }
+      return Promise.all(promises);
+    }).then(function() { return sb.from('order_items').delete().eq('order_id', id); }).then(function() { return sb.from('orders').delete().eq('id', id); }).then(function() { showAlert('訂單已刪除！'); loadOrders(); loadDashboardData(); }).catch(function(err) { showAlert('刪除失敗：' + err.message); });
+  });
+}
+
+function loadWarehouseInventory() {
+  var container = document.getElementById('warehouse-inventory-container');
+  container.innerHTML = '';
+  var promises = [];
+  for (var i = 0; i < allWarehouses.length; i++) {
+    (function(warehouse) {
+      promises.push(sb.from('product_inventory').select('*, products(name, sku, safety_stock)').eq('warehouse_id', warehouse.id).then(function(result) {
+        var inventory = result.data || [];
+        var div = document.createElement('div');
+        div.className = 'bg-white rounded-lg shadow p-6';
+        var html = '<h3 class="text-xl font-bold mb-4">' + warehouse.name + '</h3><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">產品</th><th class="px-4 py-2 text-left">SKU</th><th class="px-4 py-2 text-left">庫存</th><th class="px-4 py-2 text-left">狀態</th></tr></thead><tbody>';
+        if (inventory.length) {
+          inventory.forEach(function(inv) {
+            var status = inv.quantity < (inv.products ? inv.products.safety_stock : inv.safety_stock) ? '<span class="text-red-600 font-bold">低庫存</span>' : '<span class="text-green-600">正常</span>';
+            html += '<tr class="border-t"><td class="px-4 py-2">' + (inv.products ? inv.products.name : '') + '</td><td class="px-4 py-2 text-sm text-gray-600">' + (inv.products ? inv.products.sku : '') + '</td><td class="px-4 py-2 font-bold">' + inv.quantity + '</td><td class="px-4 py-2">' + status + '</td></tr>';
+          });
+        } else { html += '<tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">無資料</td></tr>'; }
+        html += '</tbody></table>';
+        div.innerHTML = html;
+        container.appendChild(div);
+      }));
+    })(allWarehouses[i]);
+  }
+  Promise.all(promises);
+}
+
+document.getElementById('btn-open-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.remove('hidden'); renderTagList(); });
+document.getElementById('btn-close-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
+function renderTagList() {
+  var html = '';
+  allTags.forEach(function(t) { html += '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button class="btn-delete-tag text-red-600 hover:text-red-800 text-sm" data-id="' + t.id + '">刪除</button></div>'; });
+  document.getElementById('tag-list-container').innerHTML = html;
+  document.querySelectorAll('.btn-delete-tag').forEach(function(btn) { btn.addEventListener('click', function() { showConfirm('確定刪除？').then(function(ok) { if (ok) { sb.from('tags').delete().eq('id', this.getAttribute('data-id')).then(function() { loadTags().then(renderTagList); }); } }.bind(this)); }); });
+}
+document.getElementById('btn-add-tag').addEventListener('click', function() { var name = document.getElementById('new-tag-name').value.trim(); var color = document.getElementById('new-tag-color').value; if (!name) return; sb.from('tags').insert([{ name: name, color: color, category: 'customer' }]).then(function() { document.getElementById('new-tag-name').value = ''; loadTags().then(renderTagList); }); });
+
+document.getElementById('btn-open-window-modal').addEventListener('click', function() { document.getElementById('window-modal').classList.remove('hidden'); renderWindowList(); });
+document.getElementById('btn-close-window-modal').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-window').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
+function renderWindowList() {
+  var html = '';
+  allWindows.forEach(function(w) { html += '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button class="btn-delete-window text-red-600 hover:text-red-800 text-sm" data-id="' + w.id + '">刪除</button></div>'; });
+  document.getElementById('window-list-container').innerHTML = html;
+  document.querySelectorAll('.btn-delete-window').forEach(function(btn) { btn.addEventListener('click', function() { showConfirm('確定刪除？').then(function(ok) { if (ok) { sb.from('contact_windows').update({ is_active: false }).eq('id', this.getAttribute('data-id')).then(function() { loadWindows().then(renderWindowList); }); } }.bind(this)); }); });
+}
+document.getElementById('btn-add-window').addEventListener('click', function() { var name = document.getElementById('new-window-name').value.trim(); var role = document.getElementById('new-window-role').value; if (!name) return; sb.from('contact_windows').insert([{ name: name, role: role }]).then(function() { document.getElementById('new-window-name').value = ''; loadWindows().then(renderWindowList); }); });
+
+sb.auth.getSession().then(function(result) { if (result.data && result.data.session) { document.getElementById('login-view').classList.add('hidden'); document.getElementById('main-system').classList.remove('hidden'); loadInitialData(); } });
+</script>
+</body>
+</html>
