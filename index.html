@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老闆退休管理系統 - 戰情室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- 畫面 A：登入頁面 -->
+    <div id="login-view" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+            <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">🏢 企業戰情室登入</h1>
+            <form id="login-form" class="space-y-4" onsubmit="return false;">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">密碼</label>
+                    <input type="password" id="password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <button type="button" id="login-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                    登入系統
+                </button>
+                <p id="login-error" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- 畫面 B：老闆儀表板 -->
+    <div id="dashboard-view" class="hidden min-h-screen flex">
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統</div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700 bg-gray-900"> 儀表板總覽</a>
+                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700"> 客戶管理 (CRM)</a>
+                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700"> 訂單與庫存</a>
+                <a href="#" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票</a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <button id="logout-btn" class="w-full py-2 px-4 bg-red-600 hover:bg-red-700 rounded text-sm">登出系統</button>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-8 overflow-y-auto">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">老闆，早安！這是今天的戰情總覽：</h1>
+                <p class="text-gray-500 mt-2">系統即時運算中... 享受你的咖啡吧 ☕</p>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <p class="text-gray-500 text-sm">總客戶數</p>
+                    <p id="stat-customers" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <p class="text-gray-500 text-sm">總訂單數</p>
+                    <p id="stat-orders" class="text-3xl font-bold text-green-600 mt-2">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <p class="text-gray-500 text-sm">總營收 (預估)</p>
+                    <p id="stat-revenue" class="text-3xl font-bold text-purple-600 mt-2">$0</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <p class="text-gray-500 text-sm">庫存警報 (低於安全水位)</p>
+                    <p id="stat-alerts" class="text-3xl font-bold text-red-600 mt-2">0</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-bold mb-4 text-gray-700">🚨 最新異常警報 (待處理)</h2>
+                <p class="text-gray-500" id="alert-list">目前系統剛上線，尚無異常數據。請開始匯入客戶與產品資料！</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // 🚀 老闆的專屬金庫匙
+        const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
+
+        // 🚨 變數名改成 sb，絕對不會跟其他東西衝突
+        const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const loginView = document.getElementById('login-view');
+        const dashboardView = document.getElementById('dashboard-view');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        loginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            loginError.classList.add('hidden');
+            
+            loginBtn.textContent = '登入中，請稍候...';
+            loginBtn.disabled = true;
+
+            // 🚨 這裡改成 sb.auth
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            
+            loginBtn.textContent = '登入系統';
+            loginBtn.disabled = false;
+
+            if (error) {
+                alert('登入失敗！Supabase 說：\n' + error.message);
+                loginError.textContent = '登入失敗：' + error.message;
+                loginError.classList.remove('hidden');
+            } else {
+                showDashboard();
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await sb.auth.signOut();
+            showLogin();
+        });
+
+        function showLogin() {
+            loginView.classList.remove('hidden');
+            dashboardView.classList.add('hidden');
+        }
+
+        function showDashboard() {
+            loginView.classList.add('hidden');
+            dashboardView.classList.remove('hidden');
+            loadDashboardData();
+        }
+
+        async function loadDashboardData() {
+            // 🚨 這裡全部改成 sb.from
+            const { count: customerCount } = await sb.from('customers').select('*', { count: 'exact', head: true });
+            document.getElementById('stat-customers').textContent = customerCount || 0;
+
+            const { data: orders, count: orderCount } = await sb.from('orders').select('total_amount', { count: 'exact' });
+            document.getElementById('stat-orders').textContent = orderCount || 0;
+            const totalRevenue = orders ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
+            document.getElementById('stat-revenue').textContent = '$' + totalRevenue.toLocaleString();
+
+            const { data: allProducts } = await sb.from('products').select('current_stock, safety_stock');
+            const lowStockCount = allProducts ? allProducts.filter(p => p.current_stock < p.safety_stock && p.safety_stock > 0).length : 0;
+            document.getElementById('stat-alerts').textContent = lowStockCount;
+            
+            if(lowStockCount > 0) {
+                document.getElementById('alert-list').innerHTML = `<span class="text-red-500 font-bold">⚠️ 發現 ${lowStockCount} 項產品庫存低於安全水位，請立即通知採購！</span>`;
+            }
+        }
+
+        async function checkAuth() {
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) {
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        }
+
+        checkAuth();
+    </script>
+</body>
+</html>
