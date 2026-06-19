@@ -9,7 +9,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .hidden { display: none !important; }
-        .nav-active { background-color: #1f2937; font-weight: bold; }
+        .nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -34,16 +34,15 @@
         </div>
     </div>
 
-    <!-- 畫面 B：主系統 (包含側邊欄與多個視圖) -->
+    <!-- 畫面 B：主系統 -->
     <div id="main-system" class="hidden min-h-screen flex">
         <!-- 左側導航欄 -->
         <aside class="w-64 bg-gray-800 text-white flex flex-col">
             <div class="p-4 text-xl font-bold border-b border-gray-700">📊 退休管理系統</div>
             <nav class="flex-1 p-4 space-y-2">
-                <!-- 🚨 這裡加入了 onclick 事件來切換畫面 -->
                 <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">🏠 儀表板總覽</a>
                 <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">👥 客戶管理 (CRM)</a>
-                <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單與庫存 (開發中)</a>
+                <a href="#" onclick="switchView('orders')" id="nav-orders" class="block py-2 px-4 rounded hover:bg-gray-700">📦 訂單與庫存</a>
                 <a href="#" onclick="switchView('finance')" id="nav-finance" class="block py-2 px-4 rounded hover:bg-gray-700">💰 財務與發票 (開發中)</a>
             </nav>
             <div class="p-4 border-t border-gray-700">
@@ -80,7 +79,7 @@
                 </div>
             </div>
 
-            <!-- 視圖 2：客戶管理 (CRM) -->
+            <!-- 視圖 2：客戶管理 -->
             <div id="view-crm" class="hidden">
                 <header class="mb-8 flex justify-between items-center">
                     <div>
@@ -89,31 +88,51 @@
                     </div>
                     <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ 新增客戶 (待開發)</button>
                 </header>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤 (習性)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 視圖 3：訂單與庫存 (新功能！) -->
+            <div id="view-orders" class="hidden">
+                <header class="mb-8 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800"> 訂單管理與出貨追蹤</h1>
+                        <p class="text-gray-500 mt-2">掌握每一筆訂單狀態與金額</p>
+                    </div>
+                    <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ 新增訂單 (待開發)</button>
+                </header>
                 
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">類型</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">公司/姓名</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">聯絡人</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">電話</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">標籤 (習性)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單編號</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶名稱</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">訂單金額</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">備註</th>
                             </tr>
                         </thead>
-                        <tbody id="customer-table-body" class="bg-white divide-y divide-gray-200">
-                            <!-- 這裡會由 JavaScript 自動填入資料 -->
-                            <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">載入中...</td></tr>
+                        <tbody id="order-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- JavaScript 會填入這裡 -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- 視圖 3 & 4：待開發提示 -->
-            <div id="view-orders" class="hidden">
-                <h1 class="text-3xl font-bold text-gray-800">📦 訂單與庫存</h1>
-                <p class="text-gray-500 mt-4 text-xl">此模組正在裝修中，請稍候...</p>
-            </div>
+            <!-- 視圖 4：財務 -->
             <div id="view-finance" class="hidden">
                 <h1 class="text-3xl font-bold text-gray-800">💰 財務與發票</h1>
                 <p class="text-gray-500 mt-4 text-xl">此模組正在裝修中，請稍候...</p>
@@ -137,95 +156,111 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             loginBtn.textContent = '登入中...';
-            
             const { data, error } = await sb.auth.signInWithPassword({ email, password });
             loginBtn.textContent = '登入系統';
-
-            if (error) {
-                alert('登入失敗：' + error.message);
-            } else {
+            if (error) { alert('登入失敗：' + error.message); } 
+            else {
                 loginView.classList.add('hidden');
                 mainSystem.classList.remove('hidden');
-                loadDashboardData(); // 登入後載入儀表板
+                loadDashboardData();
             }
         });
 
-        // 登出邏輯
         logoutBtn.addEventListener('click', async () => {
             await sb.auth.signOut();
             mainSystem.classList.add('hidden');
             loginView.classList.remove('hidden');
         });
 
-        // 🚨 核心：切換視圖功能
+        // 切換視圖
         function switchView(viewName) {
-            // 1. 隱藏所有視圖
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-crm').classList.add('hidden');
-            document.getElementById('view-orders').classList.add('hidden');
-            document.getElementById('view-finance').classList.add('hidden');
-
-            // 2. 移除所有導航的 active 樣式
-            document.querySelectorAll('nav a').forEach(el => el.classList.remove('nav-active'));
-
-            // 3. 顯示目標視圖並加上 active 樣式
+            ['dashboard', 'crm', 'orders', 'finance'].forEach(v => {
+                document.getElementById('view-' + v).classList.add('hidden');
+                document.getElementById('nav-' + v).classList.remove('nav-active');
+            });
             document.getElementById('view-' + viewName).classList.remove('hidden');
             document.getElementById('nav-' + viewName).classList.add('nav-active');
 
-            // 4. 如果切換到 CRM，就載入客戶資料
-            if (viewName === 'crm') {
-                loadCustomerData();
-            }
+            if (viewName === 'crm') loadCustomerData();
+            if (viewName === 'orders') loadOrderData(); // 🚨 新增：切換到訂單時載入數據
         }
 
-        // 載入儀表板數據
+        // 載入儀表板
         async function loadDashboardData() {
             const { count: customerCount } = await sb.from('customers').select('*', { count: 'exact', head: true });
             document.getElementById('stat-customers').textContent = customerCount || 0;
-
             const { data: orders, count: orderCount } = await sb.from('orders').select('total_amount', { count: 'exact' });
             document.getElementById('stat-orders').textContent = orderCount || 0;
             const totalRevenue = orders ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
             document.getElementById('stat-revenue').textContent = '$' + totalRevenue.toLocaleString();
-
             const { data: allProducts } = await sb.from('products').select('current_stock, safety_stock');
             const lowStockCount = allProducts ? allProducts.filter(p => p.current_stock < p.safety_stock && p.safety_stock > 0).length : 0;
             document.getElementById('stat-alerts').textContent = lowStockCount;
         }
 
-        // 🚨 新功能：載入客戶列表
+        // 載入客戶列表
         async function loadCustomerData() {
             const tbody = document.getElementById('customer-table-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">載入中...</td></tr>';
-
-            const { data: customers, error } = await sb.from('customers').select('*').order('created_at', { ascending: false });
-
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">載入失敗：${error.message}</td></tr>`;
-                return;
-            }
-
-            if (customers.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶資料</td></tr>';
-                return;
-            }
-
-            // 渲染表格
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">載入中...</td></tr>';
+            const { data: customers } = await sb.from('customers').select('*').order('created_at', { ascending: false });
+            if (!customers) return;
             tbody.innerHTML = customers.map(c => `
                 <tr>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">
-                            ${c.type}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${c.company_name || c.contact_person}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.contact_person}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.phone}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${c.tags ? c.tags.map(tag => `<span class="mr-1 px-2 py-1 rounded bg-gray-200 text-xs">${tag}</span>`).join('') : ''}
-                    </td>
+                    <td class="px-6 py-4"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${c.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}">${c.type}</span></td>
+                    <td class="px-6 py-4 text-sm font-medium">${c.company_name || c.contact_person}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${c.contact_person}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${c.phone}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${c.tags ? c.tags.map(tag => `<span class="mr-1 px-2 py-1 rounded bg-gray-200 text-xs">${tag}</span>`).join('') : ''}</td>
                 </tr>
             `).join('');
+        }
+
+        // 🚨 新功能：載入訂單列表
+        async function loadOrderData() {
+            const tbody = document.getElementById('order-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center">載入中...</td></tr>';
+
+            // 關聯查詢：訂單 + 客戶名稱
+            const { data: orders, error } = await sb
+                .from('orders')
+                .select('*, customers(company_name, contact_person, type)')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">載入失敗</td></tr>`;
+                return;
+            }
+
+            // 狀態顏色對應
+            const statusColors = {
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'confirmed': 'bg-blue-100 text-blue-800',
+                'shipped': 'bg-purple-100 text-purple-800',
+                'completed': 'bg-green-100 text-green-800',
+                'cancelled': 'bg-gray-100 text-gray-800'
+            };
+            const statusText = {
+                'pending': '待處理', 'confirmed': '已確認', 'shipped': '已出貨', 'completed': '已完成', 'cancelled': '已取消'
+            };
+
+            tbody.innerHTML = orders.map(o => {
+                const customerName = o.customers?.company_name || o.customers?.contact_person || '未知客戶';
+                return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${o.order_no}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${o.customers?.type === 'B2B' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'} mr-2">${o.customers?.type || ''}</span>
+                        ${customerName}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">$${o.total_amount.toLocaleString()}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[o.status] || 'bg-gray-100'}">
+                            ${statusText[o.status] || o.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${o.notes || '-'}</td>
+                </tr>
+            `}).join('');
         }
 
         // 檢查登入狀態
