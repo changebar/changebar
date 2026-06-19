@@ -26,7 +26,6 @@ body { font-family: 'Segoe UI', sans-serif; }
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-<!-- 登入頁面 -->
 <div id="login-view" class="min-h-screen flex items-center justify-center">
   <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
     <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">企業戰情室登入</h1>
@@ -38,7 +37,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 主系統 -->
 <div id="main-system" class="hidden min-h-screen flex">
   <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
     <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統</div>
@@ -94,6 +92,23 @@ body { font-family: 'Segoe UI', sans-serif; }
         <h1 class="text-3xl font-bold">訂單管理</h1>
         <button id="btn-open-order-modal" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 shadow-md font-bold">+ 新增訂單</button>
       </div>
+      
+      <!-- 日期範圍篩選 -->
+      <div class="mb-4 bg-white p-4 rounded-lg shadow">
+        <div class="flex items-end gap-4">
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">開始日期</label>
+            <input type="date" id="order-date-start" class="px-3 py-2 border rounded">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">結束日期</label>
+            <input type="date" id="order-date-end" class="px-3 py-2 border rounded">
+          </div>
+          <button id="btn-search-date" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">查詢</button>
+          <button id="btn-reset-date" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">重置</button>
+        </div>
+      </div>
+
       <div class="mb-4 relative">
         <input type="text" id="order-search" placeholder="搜尋訂單 (客戶名稱、發票號碼)..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
       </div>
@@ -112,7 +127,8 @@ body { font-family: 'Segoe UI', sans-serif; }
   </main>
 </div>
 
-<!-- 客戶 Modal (保持不變) -->
+<!-- Modal 們保持不變，為節省空間省略，請使用上一版的完整 Modal HTML -->
+<!-- 客戶 Modal -->
 <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
@@ -152,7 +168,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 訂單 Modal (核心升級) -->
+<!-- 訂單 Modal -->
 <div id="order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
@@ -162,8 +178,6 @@ body { font-family: 'Segoe UI', sans-serif; }
     <div class="p-6 overflow-y-auto flex-1">
       <form id="order-form" onsubmit="return false;" class="space-y-6">
         <input type="hidden" id="order-id">
-        
-        <!-- 1. 客戶 -->
         <div>
           <label class="block text-sm font-bold mb-2">1. 選擇客戶 *</label>
           <div class="relative">
@@ -173,29 +187,26 @@ body { font-family: 'Segoe UI', sans-serif; }
           </div>
           <p id="selected-customer-display" class="mt-2 text-sm text-blue-600 hidden"></p>
         </div>
-
-        <!-- 2. 發票與稅金 -->
         <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
           <h3 class="font-bold mb-3">發票與稅金資訊</h3>
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-bold mb-1">需要發票 *</label>
-              <select id="order-need-invoice" class="w-full px-3 py-2 border rounded">
-                <option value="no">不需要</option>
-                <option value="yes">需要</option>
+              <label class="block text-sm font-bold mb-1">發票類型</label>
+              <select id="order-invoice-type" class="w-full px-3 py-2 border rounded">
+                <option value="no_invoice">無發票</option>
+                <option value="has_invoice">有發票</option>
               </select>
             </div>
-            <div>
+            <div id="tax-handling-group">
               <label class="block text-sm font-bold mb-1">稅金處理</label>
               <select id="order-tax-handling" class="w-full px-3 py-2 border rounded">
-                <option value="tax_included">含稅價 (反推未稅)</option>
                 <option value="tax_excluded">稅外加 (+5%)</option>
-                <option value="no_invoice">不開發票 (無稅)</option>
+                <option value="tax_included">含稅價 (反推未稅)</option>
               </select>
             </div>
             <div id="invoice-type-group">
               <label class="block text-sm font-bold mb-1">發票類型</label>
-              <select id="order-invoice-type" class="w-full px-3 py-2 border rounded">
+              <select id="order-invoice-format" class="w-full px-3 py-2 border rounded">
                 <option value="3">三聯式</option>
                 <option value="2">二聯式</option>
               </select>
@@ -205,8 +216,6 @@ body { font-family: 'Segoe UI', sans-serif; }
             <div><label class="block text-sm font-bold mb-1">發票號碼</label><input type="text" id="order-invoice-no" class="w-full px-3 py-2 border rounded"></div>
           </div>
         </div>
-
-        <!-- 3. 地址 -->
         <div>
           <label class="block text-sm font-bold mb-2">2. 寄送地址 *</label>
           <div class="flex gap-2 mb-2">
@@ -221,15 +230,11 @@ body { font-family: 'Segoe UI', sans-serif; }
             <div class="col-span-2"><label class="block text-xs font-bold mb-1">地址</label><input type="text" id="temp-address" class="w-full px-3 py-2 border rounded"></div>
           </div>
         </div>
-
-        <!-- 4. 產品 -->
         <div>
           <label class="block text-sm font-bold mb-2">3. 產品明細</label>
           <div id="order-items-container" class="space-y-3"></div>
           <button type="button" id="btn-add-order-item" class="mt-3 px-4 py-2 bg-gray-200 rounded text-sm hover:bg-gray-300">+ 新增產品</button>
         </div>
-
-        <!-- 5. 運費 (新邏輯) -->
         <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <h3 class="font-bold mb-3">運費與成本</h3>
           <div class="grid grid-cols-2 gap-4">
@@ -240,14 +245,12 @@ body { font-family: 'Segoe UI', sans-serif; }
             <div>
               <label class="block text-sm font-bold mb-1">運費支付方式</label>
               <select id="shipping-type" class="w-full px-3 py-2 border rounded">
-                <option value="customer_pay">客人自付 (加在總價，公司成本 0)</option>
-                <option value="company_absorb">公司吸收/免運 (不加總價，記為公司成本)</option>
+                <option value="customer_pay">客人自付 (加在總價)</option>
+                <option value="company_absorb">公司吸收/免運 (記為成本)</option>
               </select>
             </div>
           </div>
         </div>
-
-        <!-- 6. 總計 -->
         <div class="bg-gray-50 p-4 rounded-lg border-2 border-purple-200">
           <div class="flex justify-between items-start">
             <div class="space-y-2">
@@ -269,7 +272,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 其他 Modal (標籤、窗口、詳情、Alert) 保持不變，為節省空間省略，請確保你有這些 HTML 結構 -->
+<!-- 其他 Modal (標籤、窗口、詳情、Alert) 保持不變 -->
 <div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button id="btn-close-tag-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -347,7 +350,7 @@ function showConfirm(message) {
   });
 }
 
-// 初始化與登入
+// 初始化
 document.getElementById('login-btn').addEventListener('click', function() {
   sb.auth.signInWithPassword({ email: document.getElementById('email').value, password: document.getElementById('password').value }).then(function(result) {
     if (result.error) { showAlert('登入失敗：' + result.error.message); }
@@ -375,7 +378,15 @@ function switchView(viewName) {
   document.getElementById('view-' + viewName).classList.remove('hidden');
   document.getElementById('nav-' + viewName).classList.add('nav-active');
   if (viewName === 'crm') loadCustomers();
-  if (viewName === 'orders') loadOrders();
+  if (viewName === 'orders') {
+    // 設定預設日期為當月
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = String(now.getMonth() + 1).padStart(2, '0');
+    document.getElementById('order-date-start').value = year + '-' + month + '-01';
+    document.getElementById('order-date-end').value = year + '-' + month + '-' + new Date(year, now.getMonth() + 1, 0).getDate();
+    loadOrders();
+  }
   if (viewName === 'inventory') loadWarehouseInventory();
 }
 
@@ -616,6 +627,19 @@ document.getElementById('order-search').addEventListener('input', function(e) {
   orderSearchTimer = setTimeout(function() { loadOrders(kw); }, 300);
 });
 
+// 日期範圍篩選
+document.getElementById('btn-search-date').addEventListener('click', function() {
+  loadOrders();
+});
+document.getElementById('btn-reset-date').addEventListener('click', function() {
+  var now = new Date();
+  var year = now.getFullYear();
+  var month = String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('order-date-start').value = year + '-' + month + '-01';
+  document.getElementById('order-date-end').value = year + '-' + month + '-' + new Date(year, now.getMonth() + 1, 0).getDate();
+  loadOrders();
+});
+
 document.getElementById('btn-open-order-modal').addEventListener('click', function() { openOrderModal(); });
 document.getElementById('btn-close-order-modal').addEventListener('click', closeOrderModal);
 document.getElementById('btn-cancel-order').addEventListener('click', closeOrderModal);
@@ -626,21 +650,22 @@ document.getElementById('btn-enable-temp-address').addEventListener('click', fun
 });
 
 // 發票與稅金聯動
-document.getElementById('order-need-invoice').addEventListener('change', toggleInvoiceFields);
+document.getElementById('order-invoice-type').addEventListener('change', toggleInvoiceFields);
 document.getElementById('order-tax-handling').addEventListener('change', calculateOrderFinalTotal);
 document.getElementById('shipping-amount').addEventListener('input', calculateOrderFinalTotal);
 document.getElementById('shipping-type').addEventListener('change', calculateOrderFinalTotal);
 
 function toggleInvoiceFields() {
-  var needInvoice = document.getElementById('order-need-invoice').value === 'yes';
-  var fields = ['order-invoice-title', 'order-tax-id', 'order-invoice-no'];
-  fields.forEach(function(id) { document.getElementById(id).disabled = !needInvoice; });
+  var hasInvoice = document.getElementById('order-invoice-type').value === 'has_invoice';
+  var taxGroup = document.getElementById('tax-handling-group');
+  var invoiceFormatGroup = document.getElementById('invoice-type-group');
+  var fields = ['order-invoice-title', 'order-tax-id', 'order-invoice-no', 'order-invoice-format'];
   
-  // 控制發票類型顯示
-  var invoiceTypeGroup = document.getElementById('invoice-type-group');
-  if (needInvoice) {
-    invoiceTypeGroup.classList.remove('hidden');
-    document.getElementById('order-invoice-type').disabled = false;
+  if (hasInvoice) {
+    taxGroup.classList.remove('hidden');
+    invoiceFormatGroup.classList.remove('hidden');
+    fields.forEach(function(id) { document.getElementById(id).disabled = false; });
+    
     // 自動帶入
     var customerId = document.getElementById('selected-customer-id').value;
     var customer = allCustomers.find(function(c) { return c.id === customerId; });
@@ -649,9 +674,9 @@ function toggleInvoiceFields() {
       document.getElementById('order-tax-id').value = customer.tax_id || '';
     }
   } else {
-    invoiceTypeGroup.classList.add('hidden');
-    document.getElementById('order-invoice-type').disabled = true;
-    document.getElementById('order-tax-handling').value = 'no_invoice';
+    taxGroup.classList.add('hidden');
+    invoiceFormatGroup.classList.add('hidden');
+    fields.forEach(function(id) { document.getElementById(id).disabled = true; });
     document.getElementById('order-invoice-title').value = '';
     document.getElementById('order-tax-id').value = '';
     document.getElementById('order-invoice-no').value = '';
@@ -674,11 +699,11 @@ function openOrderModal(orderId) {
   if (orderId) loadOrderForEdit(orderId);
   else addOrderItemRow();
   document.getElementById('order-modal').classList.remove('hidden');
-  toggleInvoiceFields(); // 初始化發票狀態
+  toggleInvoiceFields();
 }
 function closeOrderModal() { document.getElementById('order-modal').classList.add('hidden'); editingOrderId = null; originalOrderItems = []; }
 
-// 訂單客戶搜尋
+// 訂單客戶搜尋 - 修復 JSON 解析錯誤
 var orderSearchTimer2;
 document.getElementById('order-customer-search').addEventListener('input', function(e) {
   clearTimeout(orderSearchTimer2);
@@ -693,7 +718,15 @@ document.getElementById('order-customer-search').addEventListener('input', funct
     if (filtered.length === 0) { html = '<div class="p-3 text-gray-500">無結果</div>'; }
     else {
       filtered.forEach(function(c) {
-        var tagsJson = c.customer_tags ? JSON.stringify(c.customer_tags.map(function(ct) { return ct.tag_id; })) : '[]';
+        // 安全地序列化 tags
+        var tagsJson = '[]';
+        try {
+          if (c.customer_tags && c.customer_tags.length > 0) {
+            tagsJson = JSON.stringify(c.customer_tags.map(function(ct) { return ct.tag_id; }));
+          }
+        } catch(e) {
+          tagsJson = '[]';
+        }
         html += '<div class="search-item p-3 border-b" data-id="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-tax="' + (c.tax_id || '') + '" data-invoice="' + (c.invoice_title || '') + '" data-tags="' + tagsJson + '" data-type="' + c.type + '">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
       });
     }
@@ -701,36 +734,57 @@ document.getElementById('order-customer-search').addEventListener('input', funct
     dd.classList.remove('hidden');
     dd.querySelectorAll('.search-item').forEach(function(item) {
       item.addEventListener('click', function() {
-        selectOrderCustomer(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-tax'), this.getAttribute('data-invoice'), this.getAttribute('data-tags'), this.getAttribute('data-type'));
+        var id = this.getAttribute('data-id');
+        var name = this.getAttribute('data-name');
+        var taxId = this.getAttribute('data-tax');
+        var invoiceTitle = this.getAttribute('data-invoice');
+        var tagsJson = this.getAttribute('data-tags');
+        var type = this.getAttribute('data-type');
+        
+        // 安全地解析 tags
+        var tags = [];
+        try {
+          tags = JSON.parse(tagsJson);
+        } catch(e) {
+          tags = [];
+        }
+        
+        selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type);
         dd.classList.add('hidden');
       });
     });
   }, 300);
 });
 
-function selectOrderCustomer(id, name, taxId, invoiceTitle, tagsJson, type) {
+function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
   document.getElementById('order-customer-dropdown').classList.add('hidden');
   document.getElementById('order-customer-search').value = name;
   document.getElementById('selected-customer-id').value = id;
   document.getElementById('selected-customer-display').textContent = '已選擇：' + name;
   document.getElementById('selected-customer-display').classList.remove('hidden');
-  currentCustomerTags = JSON.parse(tagsJson);
+  currentCustomerTags = tags || [];
   currentCustomerType = type;
   
-  // 載入地址
+  // 載入地址 - 修復自動帶入
   sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(result) {
     var addresses = result.data || [];
     var addrSelect = document.getElementById('shipping-address-select');
     addrSelect.innerHTML = '<option value="">-- 選擇地址 --</option>';
-    var hasDefault = false;
-    addresses.forEach(function(a) {
-      var text = (a.address_type || '') + ' - ' + (a.address_name || a.street || a.cvs_store_name || '') + ' (' + a.recipient_name + ')';
-      var selected = a.is_default ? 'selected' : '';
-      if(a.is_default) hasDefault = true;
-      addrSelect.innerHTML += '<option value="' + a.id + '" ' + selected + '>' + text + (a.is_default ? ' [預設]' : '') + '</option>';
-    });
-    if(!hasDefault && addresses.length > 0) {
-        addrSelect.value = addresses[0].id; // 如果沒有預設，選第一個
+    
+    if (addresses.length > 0) {
+      // 找出預設地址
+      var defaultAddr = addresses.find(function(a) { return a.is_default; });
+      
+      addresses.forEach(function(a) {
+        var text = (a.address_type || '') + ' - ' + (a.address_name || a.street || a.cvs_store_name || '') + ' (' + a.recipient_name + ')';
+        var selected = (defaultAddr && a.id === defaultAddr.id) ? 'selected' : '';
+        addrSelect.innerHTML += '<option value="' + a.id + '" ' + selected + '>' + text + (a.is_default ? ' [預設]' : '') + '</option>';
+      });
+      
+      // 如果沒有預設，選第一個
+      if (!defaultAddr) {
+        addrSelect.value = addresses[0].id;
+      }
     }
   });
   
@@ -765,7 +819,7 @@ function addOrderItemRow(productData) {
   calculateOrderFinalTotal();
 }
 
-// 核心計算邏輯 (含稅反推、運費成本)
+// 核心計算邏輯 - 修正含稅價反推
 function calculateOrderFinalTotal() {
   var subtotal = 0;
   var rows = document.querySelectorAll('#order-items-container > div');
@@ -778,22 +832,23 @@ function calculateOrderFinalTotal() {
   }
   document.getElementById('display-subtotal').textContent = '$' + Math.round(subtotal).toLocaleString();
   
-  var needInvoice = document.getElementById('order-need-invoice').value === 'yes';
+  var hasInvoice = document.getElementById('order-invoice-type').value === 'has_invoice';
   var taxType = document.getElementById('order-tax-handling').value;
   var tax = 0;
   var taxInfo = '';
 
-  if (!needInvoice) {
-    taxType = 'no_invoice';
+  if (!hasInvoice) {
     tax = 0;
-    taxInfo = '不開發票，無稅金';
+    taxInfo = '無發票，無稅金';
     document.getElementById('display-tax-row').classList.add('hidden');
   } else {
     document.getElementById('display-tax-row').classList.remove('hidden');
     if (taxType === 'tax_excluded') {
+      // 稅外加：subtotal 是未稅，要加 5%
       tax = subtotal * 0.05;
-      taxInfo = '稅外加：商品 $' + Math.round(subtotal) + ' + 5% 稅金 $' + Math.round(tax) + ' = 總計 $' + Math.round(subtotal + tax);
+      taxInfo = '稅外加：商品 $' + Math.round(subtotal) + ' + 5% 稅金 $' + Math.round(tax) + ' = 客人需付 $' + Math.round(subtotal + tax);
     } else if (taxType === 'tax_included') {
+      // 含稅價：subtotal 是含稅的，要反推未稅和稅金
       var preTax = subtotal / 1.05;
       tax = subtotal - preTax;
       taxInfo = '含稅價：總計 $' + Math.round(subtotal) + ' (其中未稅 $' + Math.round(preTax) + ', 稅金 $' + Math.round(tax) + ')';
@@ -825,7 +880,6 @@ function calculateOrderFinalTotal() {
 
   document.getElementById('order-total-amount').textContent = '$' + Math.round(finalTotal).toLocaleString();
   
-  // 儲存供 submit 使用
   window._calcTax = tax;
   window._calcShipping = shippingAmount;
   window._calcAbsorbed = absorbedShipping;
@@ -846,7 +900,7 @@ document.getElementById('btn-save-order').addEventListener('click', function() {
   }
   if (!items.length) { showAlert('請至少加入一筆產品！'); return; }
   
-  var needInvoice = document.getElementById('order-need-invoice').value === 'yes';
+  var hasInvoice = document.getElementById('order-invoice-type').value === 'has_invoice';
   var taxType = document.getElementById('order-tax-handling').value;
   
   var orderData = {
@@ -854,11 +908,11 @@ document.getElementById('btn-save-order').addEventListener('click', function() {
     total_amount: window._calcTotal || 0,
     notes: document.getElementById('order-notes').value,
     status: 'confirmed',
-    invoice_title: needInvoice ? document.getElementById('order-invoice-title').value : null,
-    invoice_tax_id: needInvoice ? document.getElementById('order-tax-id').value : null,
-    invoice_type: needInvoice ? document.getElementById('order-invoice-type').value : null,
-    invoice_no: needInvoice ? document.getElementById('order-invoice-no').value : null,
-    tax_handling: needInvoice ? taxType : 'no_invoice',
+    invoice_title: hasInvoice ? document.getElementById('order-invoice-title').value : null,
+    invoice_tax_id: hasInvoice ? document.getElementById('order-tax-id').value : null,
+    invoice_type: hasInvoice ? document.getElementById('order-invoice-format').value : null,
+    invoice_no: hasInvoice ? document.getElementById('order-invoice-no').value : null,
+    tax_handling: hasInvoice ? taxType : 'no_invoice',
     tax_amount: window._calcTax || 0,
     shipping_fee: window._calcShipping || 0,
     absorbed_shipping_fee: window._calcAbsorbed || 0
@@ -896,11 +950,24 @@ document.getElementById('btn-save-order').addEventListener('click', function() {
 
 function loadOrders(searchKw) {
   if (!searchKw) searchKw = '';
-  sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false }).then(function(result) {
+  
+  // 取得日期範圍
+  var startDate = document.getElementById('order-date-start').value;
+  var endDate = document.getElementById('order-date-end').value;
+  
+  var query = sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false });
+  
+  // 如果有設定日期範圍，加入篩選
+  if (startDate && endDate) {
+    query = query.gte('created_at', startDate + 'T00:00:00').lte('created_at', endDate + 'T23:59:59');
+  }
+  
+  query.then(function(result) {
     var data = result.data || [];
     var tbody = document.getElementById('order-table-body');
     tbody.innerHTML = '';
     if (!data.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>'; return; }
+    
     var filteredData = data;
     if (searchKw) {
       filteredData = data.filter(function(o) {
@@ -909,6 +976,7 @@ function loadOrders(searchKw) {
         return customerName.indexOf(searchKw) !== -1 || invoiceNo.indexOf(searchKw) !== -1;
       });
     }
+    
     filteredData.forEach(function(o) {
       var tr = document.createElement('tr');
       tr.className = 'hover:bg-gray-50';
@@ -917,6 +985,7 @@ function loadOrders(searchKw) {
       tr.innerHTML = '<td class="px-6 py-4 font-bold text-gray-700">' + dateStr + '</td><td class="px-6 py-4">' + (o.customers ? (o.customers.company_name || o.customers.contact_person) : '已刪除客戶') + '</td><td class="px-6 py-4">$' + Math.round(o.total_amount).toLocaleString() + '</td><td class="px-6 py-4 text-sm">' + (o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無') + '</td><td class="px-6 py-4"><button class="btn-edit-order text-blue-600 hover:underline text-sm mr-2" data-id="' + o.id + '">編輯</button><button class="btn-delete-order text-red-600 hover:underline text-sm" data-id="' + o.id + '">刪除</button></td>';
       tbody.appendChild(tr);
     });
+    
     tbody.querySelectorAll('.btn-edit-order').forEach(function(btn) { btn.addEventListener('click', function() { openOrderModal(this.getAttribute('data-id')); }); });
     tbody.querySelectorAll('.btn-delete-order').forEach(function(btn) { btn.addEventListener('click', function() { deleteOrder(this.getAttribute('data-id')); }); });
   });
@@ -929,16 +998,21 @@ function loadOrderForEdit(id) {
     originalOrderItems = order.order_items || [];
     var c = order.customers;
     if (c) {
-      var tagsJson = c.customer_tags ? JSON.stringify(c.customer_tags.map(function(ct) { return ct.tag_id; })) : '[]';
-      selectOrderCustomer(c.id, c.company_name || c.contact_person, c.tax_id, c.invoice_title, tagsJson, c.type);
+      var tags = [];
+      try {
+        if (c.customer_tags) {
+          tags = c.customer_tags.map(function(ct) { return ct.tag_id; });
+        }
+      } catch(e) { tags = []; }
+      selectOrderCustomer(c.id, c.company_name || c.contact_person, c.tax_id, c.invoice_title, tags, c.type);
     }
     document.getElementById('order-notes').value = order.notes || '';
-    document.getElementById('order-need-invoice').value = order.invoice_no ? 'yes' : 'no';
+    document.getElementById('order-invoice-type').value = order.invoice_no ? 'has_invoice' : 'no_invoice';
     document.getElementById('order-invoice-title').value = order.invoice_title || '';
     document.getElementById('order-tax-id').value = order.invoice_tax_id || '';
-    document.getElementById('order-invoice-type').value = order.invoice_type || '3';
+    document.getElementById('order-invoice-format').value = order.invoice_type || '3';
     document.getElementById('order-invoice-no').value = order.invoice_no || '';
-    document.getElementById('order-tax-handling').value = order.tax_handling || 'tax_included';
+    document.getElementById('order-tax-handling').value = order.tax_handling || 'tax_excluded';
     document.getElementById('shipping-amount').value = order.shipping_fee || 0;
     document.getElementById('shipping-type').value = order.absorbed_shipping_fee > 0 ? 'company_absorb' : (order.shipping_fee > 0 ? 'customer_pay' : 'customer_pay');
     toggleInvoiceFields();
@@ -989,7 +1063,7 @@ function loadWarehouseInventory() {
   Promise.all(promises);
 }
 
-// 標籤與窗口管理 (簡化版，確保功能存在)
+// 標籤與窗口管理
 document.getElementById('btn-open-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.remove('hidden'); renderTagList(); });
 document.getElementById('btn-close-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
 document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
