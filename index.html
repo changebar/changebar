@@ -746,15 +746,25 @@ function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
   currentCustomerTags = tags || [];
   currentCustomerType = type;
   
+  // 載入地址 - 修復版
   sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(result) {
     var addresses = result.data || [];
     var addrSelect = document.getElementById('shipping-address-select');
     addrSelect.innerHTML = '<option value="">-- 選擇地址 --</option>';
     
     if (addresses.length > 0) {
-      var defaultAddr = addresses.find(function(a) { return a.is_default; });
+      var defaultAddr = null;
+      // 找出預設地址
+      for (var i = 0; i < addresses.length; i++) {
+        if (addresses[i].is_default) {
+          defaultAddr = addresses[i];
+          break;
+        }
+      }
       
-      addresses.forEach(function(a) {
+      // 建立地址選項
+      for (var i = 0; i < addresses.length; i++) {
+        var a = addresses[i];
         var fullAddress = '';
         if (a.city) fullAddress += a.city;
         if (a.district) fullAddress += a.district;
@@ -764,12 +774,16 @@ function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
         var text = (a.address_type || '') + ' - ' + (a.address_name || fullAddress || a.cvs_store_name || '') + ' (' + a.recipient_name + ' ' + a.recipient_phone + ')';
         var selected = (defaultAddr && a.id === defaultAddr.id) ? 'selected' : '';
         addrSelect.innerHTML += '<option value="' + a.id + '" ' + selected + '>' + text + (a.is_default ? ' [預設]' : '') + '</option>';
-      });
+      }
       
-      if (!defaultAddr) {
+      // 如果沒有預設，選第一個
+      if (!defaultAddr && addresses.length > 0) {
         addrSelect.value = addresses[0].id;
       }
     }
+  }).catch(function(err) {
+    console.error('載入地址失敗:', err);
+    // 即使載入失敗也不影響其他功能
   });
   
   toggleInvoiceFields();
