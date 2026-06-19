@@ -76,7 +76,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div id="tag-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div class="mb-4 relative">
-        <input type="text" id="customer-search" placeholder=" 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+        <input type="text" id="customer-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -450,8 +450,13 @@ function addCustomerAddress(addressData) {
   var container = document.getElementById('customer-addresses-container');
   var id = addressData ? addressData.id : 'new-' + Date.now();
   var type = addressData ? addressData.address_type : 'home';
-  var contact = document.getElementById('cust-contact').value;
-  var phone = document.getElementById('cust-phone').value;
+  
+  // 確保正確取得聯絡人和電話
+  var contactInput = document.getElementById('cust-contact');
+  var phoneInput = document.getElementById('cust-phone');
+  var contact = contactInput ? contactInput.value : '';
+  var phone = phoneInput ? phoneInput.value : '';
+  
   var isDefault = addressData ? addressData.is_default : (container.children.length === 0);
   
   var div = document.createElement('div');
@@ -474,11 +479,15 @@ function addCustomerAddress(addressData) {
   html += '<option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option>';
   html += '</select></div>';
   
+  // 收件人自動帶入聯絡人
   html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_name : contact) + '"></div>';
+  // 電話自動帶入
   html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_phone : phone) + '"></div>';
   
+  // 一般地址欄位
   html += '<div class="addr-street-group col-span-2" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'none' : 'block') + '"><label class="block text-xs font-bold mb-1">地址</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.street || '') : '') + '" placeholder="完整地址"></div>';
   
+  // 門市欄位（7-11/全家）
   html += '<div class="cvs-fields col-span-2 grid grid-cols-2 gap-3" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'grid' : 'none') + '">';
   html += '<div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_name || '') : '') + '" placeholder="例：7-11 台北車站店"></div>';
   html += '<div><label class="block text-xs font-bold mb-1">門市地址</label><input type="text" class="addr-cvs-address w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_address || '') : '') + '" placeholder="門市完整地址"></div>';
@@ -489,15 +498,30 @@ function addCustomerAddress(addressData) {
   div.innerHTML = html;
   container.appendChild(div);
   
-  div.querySelector('.btn-remove-address').addEventListener('click', function() { div.remove(); });
+  // 綁定刪除事件
+  div.querySelector('.btn-remove-address').addEventListener('click', function() { 
+    div.remove(); 
+  });
+  
+  // 如果是新增，立即執行一次 toggleAddressFields 確保門市欄位正確顯示
+  if (!addressData) {
+    var select = div.querySelector('.addr-type');
+    if (select) toggleAddressFields(select);
+  }
 }
 
 window.toggleAddressFields = function(select) {
   var div = select.closest('.border');
-  if (!div) return;
+  if (!div) {
+    console.error('找不到 .border 元素');
+    return;
+  }
   var addrField = div.querySelector('.addr-street-group');
   var cvsFields = div.querySelector('.cvs-fields');
   var type = select.value;
+  
+  console.log('地址類型變更:', type);
+  
   if (type === 'cvs_711' || type === 'cvs_family') {
     if (addrField) addrField.style.display = 'none';
     if (cvsFields) cvsFields.style.display = 'grid';
