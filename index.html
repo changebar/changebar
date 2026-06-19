@@ -117,7 +117,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </main>
 </div>
 
-<!-- 訂單詳細 Modal -->
+<!-- Modal 們 -->
 <div id="order-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
@@ -131,7 +131,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 客戶 Modal -->
 <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
@@ -175,7 +174,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 訂單 Modal -->
 <div id="order-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
@@ -241,7 +239,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 標籤 Modal -->
 <div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button id="btn-close-tag-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -253,7 +250,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 窗口 Modal -->
 <div id="window-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button id="btn-close-window-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -265,7 +261,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 客戶詳情 Modal -->
 <div id="customer-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">客戶詳細資料</h2><button id="btn-close-detail-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -274,7 +269,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- Alert Modal -->
 <div id="custom-alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
     <p id="custom-alert-message" class="text-lg mb-6 text-gray-800">訊息內容</p>
@@ -420,7 +414,24 @@ document.getElementById('cust-window-same-contact').addEventListener('change', f
   }
 });
 
+function syncContactToAddress() {
+  var contact = document.getElementById('cust-contact').value;
+  var phone = document.getElementById('cust-phone').value;
+  var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
+  addressDivs.forEach(function(div) {
+    var recipientInput = div.querySelector('.addr-recipient');
+    var phoneInput = div.querySelector('.addr-phone');
+    if (recipientInput && !recipientInput.dataset.userEdited) {
+      recipientInput.value = contact;
+    }
+    if (phoneInput && !phoneInput.dataset.userEdited) {
+      phoneInput.value = phone;
+    }
+  });
+}
+
 function openCustomerModal(customerId) {
+  console.log('開啟客戶 Modal, ID:', customerId);
   document.getElementById('customer-modal-title').textContent = customerId ? '編輯客戶' : '新增客戶';
   document.getElementById('customer-form').reset();
   document.getElementById('cust-id').value = customerId || '';
@@ -444,23 +455,6 @@ function renderCustomerTags(selectedTags) {
     html += '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer hover:bg-gray-50"><input type="checkbox" value="' + t.id + '" ' + (selectedTags.indexOf(t.id) !== -1 ? 'checked' : '') + ' class="cust-tag-checkbox"><span class="tag-' + t.color + ' px-2 py-1 rounded text-xs">' + t.name + '</span></label>';
   });
   document.getElementById('customer-tags-container').innerHTML = html;
-}
-
-// 同步聯絡人到地址
-function syncContactToAddress() {
-  var contact = document.getElementById('cust-contact').value;
-  var phone = document.getElementById('cust-phone').value;
-  var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
-  addressDivs.forEach(function(div) {
-    var recipientInput = div.querySelector('.addr-recipient');
-    var phoneInput = div.querySelector('.addr-phone');
-    if (recipientInput && !recipientInput.dataset.userEdited) {
-      recipientInput.value = contact;
-    }
-    if (phoneInput && !phoneInput.dataset.userEdited) {
-      phoneInput.value = phone;
-    }
-  });
 }
 
 function addCustomerAddress(addressData) {
@@ -493,18 +487,14 @@ function addCustomerAddress(addressData) {
   html += '<option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option>';
   html += '</select></div>';
   
-  // 收件人自動帶入聯絡人
   var recipientValue = addressData ? addressData.recipient_name : contact;
   html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + recipientValue + '" onchange="this.dataset.userEdited=true"></div>';
   
-  // 電話自動帶入
   var phoneValue = addressData ? addressData.recipient_phone : phone;
   html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + phoneValue + '" onchange="this.dataset.userEdited=true"></div>';
   
-  // 一般地址欄位
   html += '<div class="addr-street-group col-span-2" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'none' : 'block') + '"><label class="block text-xs font-bold mb-1">地址</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.street || '') : '') + '" placeholder="完整地址"></div>';
   
-  // 門市欄位（7-11/全家）
   html += '<div class="cvs-fields col-span-2 grid grid-cols-2 gap-3" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'grid' : 'none') + '">';
   html += '<div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_name || '') : '') + '" placeholder="例：7-11 台北車站店"></div>';
   html += '<div><label class="block text-xs font-bold mb-1">門市地址</label><input type="text" class="addr-cvs-address w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_address || '') : '') + '" placeholder="門市完整地址"></div>';
@@ -519,13 +509,11 @@ function addCustomerAddress(addressData) {
     div.remove(); 
   });
   
-// 先加入 DOM，再執行 toggleAddressFields
-container.appendChild(div);
-
-// 立即執行一次 toggleAddressFields 確保門市欄位正確顯示
-var select = div.querySelector('.addr-type');
-if (select) {
-  setTimeout(function() { toggleAddressFields(select); }, 100);
+  // 延遲執行確保 DOM 已渲染
+  setTimeout(function() {
+    var select = div.querySelector('.addr-type');
+    if (select) toggleAddressFields(select);
+  }, 100);
 }
 
 window.toggleAddressFields = function(select) {
@@ -550,12 +538,12 @@ window.toggleAddressFields = function(select) {
 };
 
 function loadCustomerForEdit(id) {
-  console.log('載入客戶 ID:', id); // 加入除錯
-  sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single().then(function(result) {
+  console.log('載入客戶 ID:', id);
   sb.from('customers').select('*, customer_tags(tag_id)').eq('id', id).single().then(function(result) {
     var c = result.data;
     if (!c) { showAlert('無法載入客戶資料'); return; }
     document.getElementById('cust-id').value = c.id;
+    console.log('設定客戶 ID:', c.id);
     document.getElementById('cust-type').value = c.type;
     document.getElementById('company-required').classList.toggle('hidden', c.type === 'B2C');
     document.getElementById('cust-company').value = c.company_name || '';
@@ -574,17 +562,15 @@ function loadCustomerForEdit(id) {
       else addCustomerAddress();
     });
   }).catch(function(err) {
+    console.error('載入失敗:', err);
     showAlert('載入失敗：' + err.message);
   });
 }
 
 document.getElementById('btn-save-customer').addEventListener('click', function() {
   var id = document.getElementById('cust-id').value;
-  console.log('客戶 ID:', id); // 加入除錯
-  if (!id && document.getElementById('customer-modal-title').textContent === '編輯客戶') {
-    showAlert('錯誤：客戶 ID 遺失，請重新開啟表單');
-    return;
-  }
+  console.log('儲存客戶，ID:', id);
+  
   var type = document.getElementById('cust-type').value;
   var company = document.getElementById('cust-company').value;
   if (type === 'B2B' && !company) { showAlert('B2B 請填寫公司名稱！'); return; }
@@ -637,7 +623,10 @@ document.getElementById('btn-save-customer').addEventListener('click', function(
       promises.push(sb.from('customer_addresses').insert([addrData]));
     }
     return Promise.all(promises);
-  }).then(function() { showAlert('客戶已儲存！'); closeCustomerModal(); loadCustomers(); }).catch(function(err) { showAlert('儲存失敗：' + err.message); });
+  }).then(function() { showAlert('客戶已儲存！'); closeCustomerModal(); loadCustomers(); }).catch(function(err) { 
+    console.error('儲存失敗:', err);
+    showAlert('儲存失敗：' + err.message); 
+  });
 });
 
 function renderCustomerTable(customersToRender) {
