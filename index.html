@@ -26,7 +26,6 @@ body { font-family: 'Segoe UI', sans-serif; }
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-<!-- 登入頁面 -->
 <div id="login-view" class="min-h-screen flex items-center justify-center">
   <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
     <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">企業戰情室登入</h1>
@@ -38,7 +37,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 主系統 -->
 <div id="main-system" class="hidden min-h-screen flex">
   <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
     <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統</div>
@@ -54,7 +52,6 @@ body { font-family: 'Segoe UI', sans-serif; }
   </aside>
 
   <main class="flex-1 p-8 overflow-y-auto">
-    <!-- 儀表板 -->
     <div id="view-dashboard">
       <h1 class="text-3xl font-bold mb-6">老闆，早安！戰情總覽：</h1>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -65,7 +62,6 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
-    <!-- 客戶管理 -->
     <div id="view-crm" class="hidden">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">客戶關係管理</h1>
@@ -91,7 +87,6 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
-    <!-- 訂單管理 -->
     <div id="view-orders" class="hidden">
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold">訂單管理</h1>
@@ -108,7 +103,6 @@ body { font-family: 'Segoe UI', sans-serif; }
       </div>
     </div>
 
-    <!-- 倉庫庫存 -->
     <div id="view-inventory" class="hidden">
       <h1 class="text-3xl font-bold mb-6">倉庫庫存管理</h1>
       <div id="warehouse-inventory-container" class="space-y-6"></div>
@@ -322,7 +316,7 @@ document.getElementById('logout-btn').addEventListener('click', function() {
   sb.auth.signOut().then(function() { location.reload(); });
 });
 
-// 視圖切換 (使用事件委派)
+// 視圖切換
 document.querySelectorAll('nav a').forEach(function(link) {
   link.addEventListener('click', function(e) {
     e.preventDefault();
@@ -404,7 +398,6 @@ function renderTagFilters() {
   });
   container.innerHTML = html;
   
-  // 綁定事件
   container.querySelectorAll('.tag-filter-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var tagId = this.getAttribute('data-tag-id');
@@ -415,91 +408,24 @@ function renderTagFilters() {
   });
 }
 
-// 標籤管理 Modal
-document.getElementById('btn-open-tag-modal').addEventListener('click', function() {
-  document.getElementById('tag-modal').classList.remove('hidden');
-  renderTagList();
-});
-document.getElementById('btn-close-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
-document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
-
-function renderTagList() {
-  var html = '';
-  allTags.forEach(function(t) {
-    html += '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button class="btn-delete-tag text-red-600 hover:text-red-800 text-sm" data-id="' + t.id + '">刪除</button></div>';
-  });
-  document.getElementById('tag-list-container').innerHTML = html;
-  
-  document.querySelectorAll('.btn-delete-tag').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var id = this.getAttribute('data-id');
-      showConfirm('確定刪除此標籤？').then(function(ok) {
-        if (ok) {
-          sb.from('tags').delete().eq('id', id).then(function() { loadTags().then(renderTagList); });
-        }
-      });
-    });
-  });
-}
-
-document.getElementById('btn-add-tag').addEventListener('click', function() {
-  var name = document.getElementById('new-tag-name').value.trim();
-  var color = document.getElementById('new-tag-color').value;
-  if (!name) return;
-  sb.from('tags').insert([{ name: name, color: color, category: 'customer' }]).then(function() {
-    document.getElementById('new-tag-name').value = '';
-    loadTags().then(renderTagList);
-  });
-});
-
-// 窗口管理 Modal
-document.getElementById('btn-open-window-modal').addEventListener('click', function() {
-  document.getElementById('window-modal').classList.remove('hidden');
-  renderWindowList();
-});
-document.getElementById('btn-close-window-modal').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
-document.getElementById('btn-cancel-window').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
-
-function renderWindowList() {
-  var html = '';
-  allWindows.forEach(function(w) {
-    html += '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button class="btn-delete-window text-red-600 hover:text-red-800 text-sm" data-id="' + w.id + '">刪除</button></div>';
-  });
-  document.getElementById('window-list-container').innerHTML = html;
-  
-  document.querySelectorAll('.btn-delete-window').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var id = this.getAttribute('data-id');
-      showConfirm('確定刪除此窗口？').then(function(ok) {
-        if (ok) {
-          sb.from('contact_windows').update({ is_active: false }).eq('id', id).then(function() { loadWindows().then(renderWindowList); });
-        }
-      });
-    });
-  });
-}
-
-document.getElementById('btn-add-window').addEventListener('click', function() {
-  var name = document.getElementById('new-window-name').value.trim();
-  var role = document.getElementById('new-window-role').value;
-  if (!name) return;
-  sb.from('contact_windows').insert([{ name: name, role: role }]).then(function() {
-    document.getElementById('new-window-name').value = '';
-    loadWindows().then(renderWindowList);
-  });
-});
-
-// 客戶搜尋
+// 客戶搜尋 - 修正版（確保能顯示）
 var searchTimer;
 document.getElementById('customer-search').addEventListener('input', function(e) {
   clearTimeout(searchTimer);
   var kw = e.target.value.trim();
   var dd = document.getElementById('search-dropdown');
-  if (!kw) { dd.classList.add('hidden'); loadCustomers(); return; }
+  if (!kw) { 
+    dd.classList.add('hidden'); 
+    loadCustomers(); 
+    return; 
+  }
   searchTimer = setTimeout(function() {
     var filtered = allCustomers.filter(function(c) {
-      return (c.contact_person && c.contact_person.indexOf(kw) !== -1) || (c.company_name && c.company_name.indexOf(kw) !== -1) || (c.phone && c.phone.indexOf(kw) !== -1);
+      return (c.contact_person && c.contact_person.indexOf(kw) !== -1) || 
+             (c.company_name && c.company_name.indexOf(kw) !== -1) || 
+             (c.phone && c.phone.indexOf(kw) !== -1);
     });
+    
     var html = '';
     if (filtered.length === 0) {
       html = '<div class="p-3 text-gray-500">無結果</div>';
@@ -511,11 +437,14 @@ document.getElementById('customer-search').addEventListener('input', function(e)
     dd.innerHTML = html;
     dd.classList.remove('hidden');
     
+    // 綁定點擊事件
     dd.querySelectorAll('.search-item').forEach(function(item) {
       item.addEventListener('click', function() {
         var id = this.getAttribute('data-id');
-        openCustomerModal(id);
-        dd.classList.add('hidden');
+        if (id) {
+          openCustomerModal(id);
+          dd.classList.add('hidden');
+        }
       });
     });
   }, 300);
@@ -672,7 +601,7 @@ document.getElementById('btn-save-customer').addEventListener('click', function(
   });
 });
 
-// 客戶列表 (使用事件委派)
+// 客戶列表
 function loadCustomers() {
   var query = sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id)');
   if (currentTagFilter) query = query.eq('customer_tags.tag_id', currentTagFilter);
@@ -700,7 +629,6 @@ function loadCustomers() {
       tbody.appendChild(tr);
     });
     
-    // 綁定事件
     tbody.querySelectorAll('.btn-view-detail').forEach(function(btn) {
       btn.addEventListener('click', function() { viewCustomerDetail(this.getAttribute('data-id')); });
     });
@@ -713,7 +641,6 @@ function loadCustomers() {
   });
 }
 
-// 客戶詳情
 function viewCustomerDetail(id) {
   sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id), customer_addresses(*)').eq('id', id).single().then(function(result) {
     var c = result.data;
@@ -1069,7 +996,7 @@ document.getElementById('btn-save-order').addEventListener('click', function() {
   });
 });
 
-// 訂單列表 (使用事件委派)
+// 訂單列表
 function loadOrders(searchKw) {
   if (!searchKw) searchKw = '';
   sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false }).then(function(result) {
@@ -1188,6 +1115,80 @@ function loadWarehouseInventory() {
   }
   Promise.all(promises);
 }
+
+// 標籤管理 Modal
+document.getElementById('btn-open-tag-modal').addEventListener('click', function() {
+  document.getElementById('tag-modal').classList.remove('hidden');
+  renderTagList();
+});
+document.getElementById('btn-close-tag-modal').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-tag').addEventListener('click', function() { document.getElementById('tag-modal').classList.add('hidden'); });
+
+function renderTagList() {
+  var html = '';
+  allTags.forEach(function(t) {
+    html += '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button class="btn-delete-tag text-red-600 hover:text-red-800 text-sm" data-id="' + t.id + '">刪除</button></div>';
+  });
+  document.getElementById('tag-list-container').innerHTML = html;
+  
+  document.querySelectorAll('.btn-delete-tag').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      showConfirm('確定刪除此標籤？').then(function(ok) {
+        if (ok) {
+          sb.from('tags').delete().eq('id', id).then(function() { loadTags().then(renderTagList); });
+        }
+      });
+    });
+  });
+}
+
+document.getElementById('btn-add-tag').addEventListener('click', function() {
+  var name = document.getElementById('new-tag-name').value.trim();
+  var color = document.getElementById('new-tag-color').value;
+  if (!name) return;
+  sb.from('tags').insert([{ name: name, color: color, category: 'customer' }]).then(function() {
+    document.getElementById('new-tag-name').value = '';
+    loadTags().then(renderTagList);
+  });
+});
+
+// 窗口管理 Modal
+document.getElementById('btn-open-window-modal').addEventListener('click', function() {
+  document.getElementById('window-modal').classList.remove('hidden');
+  renderWindowList();
+});
+document.getElementById('btn-close-window-modal').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
+document.getElementById('btn-cancel-window').addEventListener('click', function() { document.getElementById('window-modal').classList.add('hidden'); });
+
+function renderWindowList() {
+  var html = '';
+  allWindows.forEach(function(w) {
+    html += '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button class="btn-delete-window text-red-600 hover:text-red-800 text-sm" data-id="' + w.id + '">刪除</button></div>';
+  });
+  document.getElementById('window-list-container').innerHTML = html;
+  
+  document.querySelectorAll('.btn-delete-window').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var id = this.getAttribute('data-id');
+      showConfirm('確定刪除此窗口？').then(function(ok) {
+        if (ok) {
+          sb.from('contact_windows').update({ is_active: false }).eq('id', id).then(function() { loadWindows().then(renderWindowList); });
+        }
+      });
+    });
+  });
+}
+
+document.getElementById('btn-add-window').addEventListener('click', function() {
+  var name = document.getElementById('new-window-name').value.trim();
+  var role = document.getElementById('new-window-role').value;
+  if (!name) return;
+  sb.from('contact_windows').insert([{ name: name, role: role }]).then(function() {
+    document.getElementById('new-window-name').value = '';
+    loadWindows().then(renderWindowList);
+  });
+});
 
 // 初始化
 sb.auth.getSession().then(function(result) {
