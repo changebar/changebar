@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>老闆退休管理系統 v3.4</title>
+    <title>老闆退休管理系統 v3.5</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -12,7 +12,6 @@
         .nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
         .search-dropdown { position: absolute; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-height: 300px; overflow-y: auto; width: 100%; }
         .search-item:hover { background-color: #f3f4f6; cursor: pointer; }
-        /* 標籤顏色 */
         .tag-1 { background-color: #f43f5e; color: white; }
         .tag-2 { background-color: #ec4899; color: white; }
         .tag-3 { background-color: #8b5cf6; color: white; }
@@ -42,7 +41,7 @@
     <!-- 主系統 -->
     <div id="main-system" class="hidden min-h-screen flex">
         <aside class="w-64 bg-gray-800 text-white flex flex-col flex-shrink-0">
-            <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統 v3.4</div>
+            <div class="p-4 text-xl font-bold border-b border-gray-700">退休管理系統 v3.5</div>
             <nav class="flex-1 p-4 space-y-2">
                 <a href="#" onclick="switchView('dashboard')" id="nav-dashboard" class="block py-2 px-4 rounded hover:bg-gray-700 nav-active">儀表板</a>
                 <a href="#" onclick="switchView('crm')" id="nav-crm" class="block py-2 px-4 rounded hover:bg-gray-700">客戶管理</a>
@@ -83,7 +82,7 @@
                 </div>
 
                 <div class="mb-4 relative">
-                    <input type="text" id="customer-search" placeholder=" 搜尋客戶姓名、公司、電話..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+                    <input type="text" id="customer-search" placeholder="🔍 搜尋客戶姓名、公司、電話..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
                     <div id="search-dropdown" class="search-dropdown mt-2 hidden"></div>
                 </div>
 
@@ -95,7 +94,7 @@
                 </div>
             </div>
 
-            <!-- 訂單管理 (加入搜尋與日期) -->
+            <!-- 訂單管理 -->
             <div id="view-orders" class="hidden">
                 <div class="flex justify-between items-center mb-6">
                     <h1 class="text-3xl font-bold">訂單管理</h1>
@@ -158,22 +157,6 @@
             <div class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-lg flex-shrink-0">
                 <button type="button" onclick="closeCustomerModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
                 <button type="button" onclick="saveCustomer()" class="px-6 py-2 bg-blue-600 text-white rounded font-bold hover:bg-blue-700">儲存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 客戶詳情 Modal (恢復) -->
-    <div id="customer-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-            <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
-                <h2 class="text-2xl font-bold">客戶詳細資料</h2>
-                <button onclick="document.getElementById('customer-detail-modal').classList.add('hidden')" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
-            </div>
-            <div class="p-6 overflow-y-auto flex-1" id="customer-detail-content">
-                <!-- 內容由 JS 動態生成 -->
-            </div>
-            <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0">
-                <button onclick="document.getElementById('customer-detail-modal').classList.add('hidden')" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button>
             </div>
         </div>
     </div>
@@ -246,28 +229,6 @@
         </div>
     </div>
 
-    <!-- 標籤與窗口 Modal -->
-    <div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
-            <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button onclick="closeTagModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <div class="flex gap-2 mb-4"><input type="text" id="new-tag-name" placeholder="新標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="new-tag-color" class="px-3 py-2 border rounded"><option value="1">紅色</option><option value="2">粉色</option><option value="3">紫色</option><option value="4">靛藍</option><option value="5">藍色</option><option value="6">青色</option><option value="7">綠色</option><option value="8">黃綠</option><option value="9">黃色</option><option value="10">橘色</option></select><button onclick="addNewTag()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
-                <div id="tag-list-container" class="space-y-2"></div>
-            </div>
-            <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button onclick="closeTagModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
-        </div>
-    </div>
-    <div id="window-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
-            <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button onclick="closeWindowModal()" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
-            <div class="p-6 overflow-y-auto flex-1">
-                <div class="flex gap-2 mb-4"><input type="text" id="new-window-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><select id="new-window-role" class="px-3 py-2 border rounded"><option value="sales">業務</option><option value="support">客服</option><option value="manager">經理</option></select><button onclick="addNewWindow()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">新增</button></div>
-                <div id="window-list-container" class="space-y-2"></div>
-            </div>
-            <div class="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg flex-shrink-0"><button onclick="closeWindowModal()" class="px-6 py-2 bg-gray-300 rounded hover:bg-gray-400">關閉</button></div>
-        </div>
-    </div>
-
     <!-- 自訂 Alert/Confirm 置中視窗 -->
     <div id="custom-alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
         <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
@@ -288,7 +249,7 @@
         let editingOrderId = null, originalOrderItems = [], currentCustomerTags = [], currentCustomerType = 'B2C', currentTagFilter = null;
         const STANDARD_SHIPPING_FEE = 100;
 
-        // 自訂 Alert/Confirm 函數 (取代原生，確保置中)
+        // 自訂 Alert/Confirm 函數
         function showAlert(message) {
             return new Promise(resolve => {
                 document.getElementById('custom-alert-message').textContent = message;
@@ -350,35 +311,50 @@
         async function loadWarehouses() { const { data } = await sb.from('warehouses').select('*').eq('is_active', true); allWarehouses = data || []; }
         async function loadProducts() { const { data } = await sb.from('products').select('*').eq('type', 'finished'); allProducts = data || []; }
 
+        // 修復：儀表板數據載入 (加入錯誤處理)
         async function loadDashboardData() {
-            const { count } = await sb.from('customers').select('*', { count: 'exact', head: true });
-            document.getElementById('stat-customers').textContent = count || 0;
-            const { data: orders } = await sb.from('orders').select('total_amount, absorbed_shipping_fee');
-            document.getElementById('stat-orders').textContent = orders?.length || 0;
-            const total = orders ? orders.reduce((s, o) => s + (o.total_amount || 0), 0) : 0;
-            document.getElementById('stat-revenue').textContent = '$' + total.toLocaleString();
-            const absorbed = orders ? orders.reduce((s, o) => s + (o.absorbed_shipping_fee || 0), 0) : 0;
-            document.getElementById('stat-shipping-cost').textContent = '$' + absorbed.toLocaleString();
+            try {
+                const { count } = await sb.from('customers').select('*', { count: 'exact', head: true });
+                document.getElementById('stat-customers').textContent = count || 0;
+                
+                // 嘗試抓取訂單數據，如果失敗就設為 0
+                const { data: orders, error } = await sb.from('orders').select('total_amount, absorbed_shipping_fee');
+                
+                if (error) {
+                    console.warn('儀表板訂單數據載入失敗 (可能是欄位不存在):', error.message);
+                    document.getElementById('stat-orders').textContent = '0';
+                    document.getElementById('stat-revenue').textContent = '$0';
+                    document.getElementById('stat-shipping-cost').textContent = '$0';
+                } else {
+                    document.getElementById('stat-orders').textContent = orders?.length || 0;
+                    const total = orders ? orders.reduce((s, o) => s + (o.total_amount || 0), 0) : 0;
+                    document.getElementById('stat-revenue').textContent = '$' + total.toLocaleString();
+                    const absorbed = orders ? orders.reduce((s, o) => s + (o.absorbed_shipping_fee || 0), 0) : 0;
+                    document.getElementById('stat-shipping-cost').textContent = '$' + absorbed.toLocaleString();
+                }
+            } catch (e) {
+                console.error('儀表板載入錯誤:', e);
+            }
         }
 
         // 標籤篩選與管理
         function renderTagFilters() {
             const container = document.getElementById('tag-filters');
-            container.innerHTML = `<button onclick="filterByTag(null)" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 ${currentTagFilter === null ? 'font-bold ring-2 ring-blue-500' : ''}">全部</button>` +
-                allTags.map(t => `<button onclick="filterByTag('${t.id}')" class="px-3 py-1 tag-${t.color} rounded-full text-sm hover:opacity-80 ${currentTagFilter === t.id ? 'ring-2 ring-offset-1 ring-gray-800' : ''}">${t.name}</button>`).join('');
+            container.innerHTML = '<button onclick="filterByTag(null)" class="px-3 py-1 bg-gray-200 rounded-full text-sm hover:bg-gray-300 ' + (currentTagFilter === null ? 'font-bold ring-2 ring-blue-500' : '') + '">全部</button>' +
+                allTags.map(t => '<button onclick="filterByTag(\'' + t.id + '\')" class="px-3 py-1 tag-' + t.color + ' rounded-full text-sm hover:opacity-80 ' + (currentTagFilter === t.id ? 'ring-2 ring-offset-1 ring-gray-800' : '') + '">' + t.name + '</button>').join('');
         }
         window.filterByTag = function(tagId) { currentTagFilter = tagId; renderTagFilters(); loadCustomers(); }
 
         window.openTagModal = function() { document.getElementById('tag-modal').classList.remove('hidden'); renderTagList(); }
         window.closeTagModal = function() { document.getElementById('tag-modal').classList.add('hidden'); }
         function renderTagList() {
-            document.getElementById('tag-list-container').innerHTML = allTags.map(t => `<div class="flex justify-between items-center p-2 border rounded"><span class="tag-${t.color} px-2 py-1 rounded text-sm">${t.name}</span><button onclick="deleteTag('${t.id}')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>`).join('');
+            document.getElementById('tag-list-container').innerHTML = allTags.map(t => '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-' + t.color + ' px-2 py-1 rounded text-sm">' + t.name + '</span><button onclick="deleteTag(\'' + t.id + '\')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>').join('');
         }
         window.addNewTag = async function() {
             const name = document.getElementById('new-tag-name').value.trim();
             const color = document.getElementById('new-tag-color').value;
             if (!name) return;
-            await sb.from('tags').insert([{ name, color, category: 'customer' }]);
+            await sb.from('tags').insert([{ name: name, color: color, category: 'customer' }]);
             document.getElementById('new-tag-name').value = '';
             await loadTags(); renderTagList();
         }
@@ -391,13 +367,13 @@
         window.openWindowModal = function() { document.getElementById('window-modal').classList.remove('hidden'); renderWindowList(); }
         window.closeWindowModal = function() { document.getElementById('window-modal').classList.add('hidden'); }
         function renderWindowList() {
-            document.getElementById('window-list-container').innerHTML = allWindows.map(w => `<div class="flex justify-between items-center p-2 border rounded"><span>${w.name} (${w.role})</span><button onclick="deleteWindow('${w.id}')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>`).join('');
+            document.getElementById('window-list-container').innerHTML = allWindows.map(w => '<div class="flex justify-between items-center p-2 border rounded"><span>' + w.name + ' (' + w.role + ')</span><button onclick="deleteWindow(\'' + w.id + '\')" class="text-red-600 hover:text-red-800 text-sm">刪除</button></div>').join('');
         }
         window.addNewWindow = async function() {
             const name = document.getElementById('new-window-name').value.trim();
             const role = document.getElementById('new-window-role').value;
             if (!name) return;
-            await sb.from('contact_windows').insert([{ name, role }]);
+            await sb.from('contact_windows').insert([{ name: name, role: role }]);
             document.getElementById('new-window-name').value = '';
             await loadWindows(); renderWindowList();
         }
@@ -409,28 +385,35 @@
 
         // 客戶搜尋
         let searchTimer;
-        document.getElementById('customer-search')?.addEventListener('input', (e) => {
+        document.getElementById('customer-search').addEventListener('input', function(e) {
             clearTimeout(searchTimer);
             const kw = e.target.value.trim();
             const dd = document.getElementById('search-dropdown');
             if (!kw) { dd.classList.add('hidden'); loadCustomers(); return; }
-            searchTimer = setTimeout(() => {
-                const filtered = allCustomers.filter(c => (c.contact_person && c.contact_person.includes(kw)) || (c.company_name && c.company_name.includes(kw)) || (c.phone && c.phone.includes(kw)));
-                dd.innerHTML = filtered.map(c => `<div class="search-item p-3 border-b" onclick="openCustomerModal('${c.id}')">${c.company_name || c.contact_person} - ${c.contact_person} (${c.phone})</div>`).join('') || '<div class="p-3 text-gray-500">無結果</div>';
+            searchTimer = setTimeout(function() {
+                const filtered = allCustomers.filter(function(c) {
+                    return (c.contact_person && c.contact_person.includes(kw)) || (c.company_name && c.company_name.includes(kw)) || (c.phone && c.phone.includes(kw));
+                });
+                dd.innerHTML = filtered.map(function(c) {
+                    return '<div class="search-item p-3 border-b" onclick="openCustomerModal(\'' + c.id + '\')">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
+                }).join('') || '<div class="p-3 text-gray-500">無結果</div>';
                 dd.classList.remove('hidden');
             }, 300);
         });
 
         // 客戶管理
-        function toggleCompanyField() { document.getElementById('company-required').classList.toggle('hidden', document.getElementById('cust-type').value === 'B2C'); }
+        function toggleCompanyField() { 
+            document.getElementById('company-required').classList.toggle('hidden', document.getElementById('cust-type').value === 'B2C'); 
+        }
         
-        window.openCustomerModal = function(customerId = null) {
+        window.openCustomerModal = function(customerId) {
+            if (!customerId) customerId = null;
             document.getElementById('customer-modal-title').textContent = customerId ? '編輯客戶' : '新增客戶';
             document.getElementById('customer-form').reset();
             document.getElementById('cust-id').value = customerId || '';
             document.getElementById('cust-type').value = 'B2C';
             toggleCompanyField();
-            document.getElementById('cust-window').innerHTML = '<option value="">請選擇...</option>' + allWindows.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+            document.getElementById('cust-window').innerHTML = '<option value="">請選擇...</option>' + allWindows.map(function(w) { return '<option value="' + w.id + '">' + w.name + '</option>'; }).join('');
             renderCustomerTags();
             document.getElementById('customer-addresses-container').innerHTML = '';
             if (customerId) loadCustomerForEdit(customerId);
@@ -439,14 +422,17 @@
         }
         window.closeCustomerModal = function() { document.getElementById('customer-modal').classList.add('hidden'); }
 
-        function renderCustomerTags(selectedTags = []) {
-            document.getElementById('customer-tags-container').innerHTML = allTags.map(t => `<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer hover:bg-gray-50"><input type="checkbox" value="${t.id}" ${selectedTags.includes(t.id) ? 'checked' : ''} class="cust-tag-checkbox"><span class="tag-${t.color} px-2 py-1 rounded text-xs">${t.name}</span></label>`).join('');
+        function renderCustomerTags(selectedTags) {
+            if (!selectedTags) selectedTags = [];
+            document.getElementById('customer-tags-container').innerHTML = allTags.map(function(t) {
+                return '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer hover:bg-gray-50"><input type="checkbox" value="' + t.id + '" ' + (selectedTags.includes(t.id) ? 'checked' : '') + ' class="cust-tag-checkbox"><span class="tag-' + t.color + ' px-2 py-1 rounded text-xs">' + t.name + '</span></label>';
+            }).join('');
         }
 
         function updateAddressPreview() {
             const contact = document.getElementById('cust-contact').value;
             const phone = document.getElementById('cust-phone').value;
-            document.querySelectorAll('#customer-addresses-container > div').forEach(div => {
+            document.querySelectorAll('#customer-addresses-container > div').forEach(function(div) {
                 const recipientInput = div.querySelector('.addr-recipient');
                 const phoneInput = div.querySelector('.addr-phone');
                 if (!recipientInput.dataset.manual) recipientInput.value = contact;
@@ -454,30 +440,17 @@
             });
         }
 
-        function addCustomerAddress(addressData = null) {
+        function addCustomerAddress(addressData) {
+            if (!addressData) addressData = null;
             const container = document.getElementById('customer-addresses-container');
-            const id = addressData?.id || 'new-' + Date.now();
-            const type = addressData?.address_type || 'home';
+            const id = addressData ? addressData.id : 'new-' + Date.now();
+            const type = addressData ? addressData.address_type : 'home';
             const contact = document.getElementById('cust-contact').value;
             const phone = document.getElementById('cust-phone').value;
             const div = document.createElement('div');
             div.className = 'border rounded-lg p-4 bg-gray-50';
             div.dataset.addressId = id;
-            div.innerHTML = `
-                <div class="flex justify-between items-center mb-3"><h4 class="font-bold">地址 ${container.children.length + 1}</h4><button type="button" onclick="this.closest('.border').remove()" class="text-red-600 hover:text-red-800">刪除</button></div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="block text-xs font-bold mb-1">類型</label><select class="addr-type w-full px-3 py-2 border rounded"><option value="home" ${type==='home'?'selected':''}>住家</option><option value="office" ${type==='office'?'selected':''}>公司</option><option value="cvs_711" ${type==='cvs_711'?'selected':''}>7-11</option><option value="cvs_family" ${type==='cvs_family'?'selected':''}>全家</option></select></div>
-                    <div><label class="block text-xs font-bold mb-1">聯絡窗口名</label><input type="text" class="addr-name w-full px-3 py-2 border rounded" value="${addressData?.address_name || ''}"></div>
-                    <div><label class="block text-xs font-bold mb-1">收件人 *</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" required value="${addressData?.recipient_name || contact || ''}" oninput="this.dataset.manual='true'"></div>
-                    <div><label class="block text-xs font-bold mb-1">電話 *</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" required value="${addressData?.recipient_phone || phone || ''}" oninput="this.dataset.manual='true'"></div>
-                    <div><label class="block text-xs font-bold mb-1">縣市</label><input type="text" class="addr-city w-full px-3 py-2 border rounded" value="${addressData?.city || ''}"></div>
-                    <div><label class="block text-xs font-bold mb-1">區</label><input type="text" class="addr-district w-full px-3 py-2 border rounded" value="${addressData?.district || ''}"></div>
-                    <div class="col-span-2"><label class="block text-xs font-bold mb-1">街道</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="${addressData?.street || ''}"></div>
-                    <div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="${addressData?.cvs_store_name || ''}"></div>
-                    <div><label class="block text-xs font-bold mb-1">門市代碼</label><input type="text" class="addr-cvs-code w-full px-3 py-2 border rounded" value="${addressData?.cvs_store_code || ''}"></div>
-                    <div class="col-span-2"><label class="flex items-center gap-2"><input type="checkbox" class="addr-default" ${addressData?.is_default ? 'checked' : ''}><span class="text-sm font-bold">設為預設</span></label></div>
-                </div>
-            `;
+            div.innerHTML = '<div class="flex justify-between items-center mb-3"><h4 class="font-bold">地址 ' + (container.children.length + 1) + '</h4><button type="button" onclick="this.closest(\'.border\').remove()" class="text-red-600 hover:text-red-800">刪除</button></div><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">類型</label><select class="addr-type w-full px-3 py-2 border rounded"><option value="home" ' + (type==='home'?'selected':'') + '>住家</option><option value="office" ' + (type==='office'?'selected':'') + '>公司</option><option value="cvs_711" ' + (type==='cvs_711'?'selected':'') + '>7-11</option><option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option></select></div><div><label class="block text-xs font-bold mb-1">聯絡窗口名</label><input type="text" class="addr-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.address_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">收件人 *</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_name : contact || '') + '" oninput="this.dataset.manual=\'true\'"></div><div><label class="block text-xs font-bold mb-1">電話 *</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" required value="' + (addressData ? addressData.recipient_phone : phone || '') + '" oninput="this.dataset.manual=\'true\'"></div><div><label class="block text-xs font-bold mb-1">縣市</label><input type="text" class="addr-city w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.city : '') + '"></div><div><label class="block text-xs font-bold mb-1">區</label><input type="text" class="addr-district w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.district : '') + '"></div><div class="col-span-2"><label class="block text-xs font-bold mb-1">街道</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.street : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_name : '') + '"></div><div><label class="block text-xs font-bold mb-1">門市代碼</label><input type="text" class="addr-cvs-code w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.cvs_store_code : '') + '"></div><div class="col-span-2"><label class="flex items-center gap-2"><input type="checkbox" class="addr-default" ' + (addressData && addressData.is_default ? 'checked' : '') + '><span class="text-sm font-bold">設為預設</span></label></div></div>';
             container.appendChild(div);
         }
 
@@ -493,10 +466,10 @@
             document.getElementById('cust-contact').value = c.contact_person;
             document.getElementById('cust-phone').value = c.phone;
             document.getElementById('cust-window').value = c.primary_contact_window_id || '';
-            renderCustomerTags(c.customer_tags?.map(ct => ct.tag_id) || []);
+            renderCustomerTags(c.customer_tags ? c.customer_tags.map(function(ct) { return ct.tag_id; }) : []);
             const { data: addresses } = await sb.from('customer_addresses').select('*').eq('customer_id', id);
             document.getElementById('customer-addresses-container').innerHTML = '';
-            if (addresses?.length) addresses.forEach(addr => addCustomerAddress(addr));
+            if (addresses && addresses.length) addresses.forEach(function(addr) { addCustomerAddress(addr); });
             else addCustomerAddress();
         }
 
@@ -507,26 +480,52 @@
             if (type === 'B2B' && !company) return await showAlert('B2B 請填寫公司名稱！');
             if (!document.getElementById('cust-contact').value || !document.getElementById('cust-phone').value) return await showAlert('聯絡人和電話必填！');
 
-            const tagIds = Array.from(document.querySelectorAll('.cust-tag-checkbox:checked')).map(cb => cb.value);
-            const customerData = { type, company_name: company || null, tax_id: document.getElementById('cust-tax-id').value || null, invoice_title: document.getElementById('cust-invoice-title').value || null, contact_person: document.getElementById('cust-contact').value, phone: document.getElementById('cust-phone').value, primary_contact_window_id: document.getElementById('cust-window').value || null };
+            const tagIds = Array.from(document.querySelectorAll('.cust-tag-checkbox:checked')).map(function(cb) { return cb.value; });
+            const customerData = { 
+                type: type, 
+                company_name: company || null, 
+                tax_id: document.getElementById('cust-tax-id').value || null, 
+                invoice_title: document.getElementById('cust-invoice-title').value || null, 
+                contact_person: document.getElementById('cust-contact').value, 
+                phone: document.getElementById('cust-phone').value, 
+                primary_contact_window_id: document.getElementById('cust-window').value || null 
+            };
 
             try {
                 let customerId = id;
                 if (id) await sb.from('customers').update(customerData).eq('id', id);
-                else { const { data } = await sb.from('customers').insert([customerData]).select().single(); customerId = data.id; }
+                else { 
+                    const { data } = await sb.from('customers').insert([customerData]).select().single(); 
+                    customerId = data.id; 
+                }
 
                 await sb.from('customer_tags').delete().eq('customer_id', customerId);
-                if (tagIds.length) await sb.from('customer_tags').insert(tagIds.map(tid => ({ customer_id: customerId, tag_id: tid })));
+                if (tagIds.length) await sb.from('customer_tags').insert(tagIds.map(function(tid) { return { customer_id: customerId, tag_id: tid }; }));
 
                 await sb.from('customer_addresses').delete().eq('customer_id', customerId);
                 const addressDivs = document.querySelectorAll('#customer-addresses-container > div');
-                for (const div of addressDivs) {
-                    await sb.from('customer_addresses').insert([{ customer_id: customerId, address_type: div.querySelector('.addr-type').value, address_name: div.querySelector('.addr-name').value, recipient_name: div.querySelector('.addr-recipient').value, recipient_phone: div.querySelector('.addr-phone').value, city: div.querySelector('.addr-city').value, district: div.querySelector('.addr-district').value, street: div.querySelector('.addr-street').value, cvs_store_name: div.querySelector('.addr-cvs-name').value, cvs_store_code: div.querySelector('.addr-cvs-code').value, is_default: div.querySelector('.addr-default').checked }]);
+                for (let i = 0; i < addressDivs.length; i++) {
+                    const div = addressDivs[i];
+                    await sb.from('customer_addresses').insert([{ 
+                        customer_id: customerId, 
+                        address_type: div.querySelector('.addr-type').value, 
+                        address_name: div.querySelector('.addr-name').value, 
+                        recipient_name: div.querySelector('.addr-recipient').value, 
+                        recipient_phone: div.querySelector('.addr-phone').value, 
+                        city: div.querySelector('.addr-city').value, 
+                        district: div.querySelector('.addr-district').value, 
+                        street: div.querySelector('.addr-street').value, 
+                        cvs_store_name: div.querySelector('.addr-cvs-name').value, 
+                        cvs_store_code: div.querySelector('.addr-cvs-code').value, 
+                        is_default: div.querySelector('.addr-default').checked 
+                    }]);
                 }
                 await showAlert('客戶已儲存！');
                 closeCustomerModal();
                 loadCustomers();
-            } catch (err) { await showAlert('儲存失敗：' + err.message); }
+            } catch (err) { 
+                await showAlert('儲存失敗：' + err.message); 
+            }
         }
 
         async function loadCustomers() {
@@ -534,41 +533,45 @@
             if (currentTagFilter) query = query.eq('customer_tags.tag_id', currentTagFilter);
             const { data } = await query.order('created_at', { ascending: false });
             allCustomers = data || [];
-            if (!allCustomers.length) { document.getElementById('customer-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>'; return; }
-            document.getElementById('customer-table-body').innerHTML = allCustomers.map(c => {
-                const tags = c.customer_tags?.map(ct => { const tag = allTags.find(t => t.id === ct.tag_id); return tag ? `<span class="tag-${tag.color} px-2 py-1 rounded text-xs mr-1">${tag.name}</span>` : ''; }).join('') || '';
-                return `<tr class="hover:bg-gray-50"><td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800'}">${c.type}</span></td><td class="px-6 py-4"><div class="font-medium">${c.company_name || c.contact_person}</div><div class="text-xs text-gray-500">${c.phone}</div></td><td class="px-6 py-4 text-sm">${c.tax_id || '-'}</td><td class="px-6 py-4">${tags}</td><td class="px-6 py-4"><button onclick="viewCustomerDetail('${c.id}')" class="text-blue-600 hover:underline text-sm mr-2">詳情</button><button onclick="openCustomerModal('${c.id}')" class="text-green-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteCustomer('${c.id}')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>`;
+            if (!allCustomers.length) { 
+                document.getElementById('customer-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無客戶</td></tr>'; 
+                return; 
+            }
+            document.getElementById('customer-table-body').innerHTML = allCustomers.map(function(c) {
+                const tags = c.customer_tags ? c.customer_tags.map(function(ct) { 
+                    const tag = allTags.find(function(t) { return t.id === ct.tag_id; }); 
+                    return tag ? '<span class="tag-' + tag.color + ' px-2 py-1 rounded text-xs mr-1">' + tag.name + '</span>' : ''; 
+                }).join('') : '';
+                return '<tr class="hover:bg-gray-50"><td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ' + (c.type==='B2B'?'bg-blue-100 text-blue-800':'bg-green-100 text-green-800') + '">' + c.type + '</span></td><td class="px-6 py-4"><div class="font-medium">' + (c.company_name || c.contact_person) + '</div><div class="text-xs text-gray-500">' + c.phone + '</div></td><td class="px-6 py-4 text-sm">' + (c.tax_id || '-') + '</td><td class="px-6 py-4">' + tags + '</td><td class="px-6 py-4"><button onclick="viewCustomerDetail(\'' + c.id + '\')" class="text-blue-600 hover:underline text-sm mr-2">詳情</button><button onclick="openCustomerModal(\'' + c.id + '\')" class="text-green-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteCustomer(\'' + c.id + '\')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>';
             }).join('');
         }
 
-        // 客戶詳情功能 (恢復)
         window.viewCustomerDetail = async function(id) {
             const { data: c } = await sb.from('customers').select('*, contact_windows(name), customer_tags(tag_id), customer_addresses(*)').eq('id', id).single();
             if (!c) return;
             const addrMap = { home:'住家', office:'公司', cvs_711:'7-11', cvs_family:'全家' };
-            let html = `
-                <div class="space-y-4 text-sm">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><b>類型:</b> ${c.type}</div>
-                        <div><b>聯繫窗口:</b> ${c.contact_windows?.name || '未分配'}</div>
-                        ${c.company_name ? `<div><b>公司名稱:</b> ${c.company_name}</div><div><b>統一編號:</b> ${c.tax_id || '-'}</div>` : ''}
-                        <div><b>聯絡人:</b> ${c.contact_person}</div>
-                        <div><b>電話:</b> ${c.phone}</div>
-                        <div class="col-span-2"><b>標籤:</b> ${c.customer_tags?.map(ct => { const t = allTags.find(x => x.id === ct.tag_id); return t ? `<span class="tag-${t.color} px-2 py-1 rounded text-xs mr-1">${t.name}</span>` : ''; }).join('') || '-'}</div>
-                    </div>
-                    <div class="border-t pt-3">
-                        <h3 class="font-bold mb-2">寄送地址列表</h3>
-                        ${c.customer_addresses?.map(a => `
-                            <div class="border p-3 rounded mb-2 ${a.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}">
-                                <div class="font-bold">${addrMap[a.address_type] || a.address_type} ${a.is_default ? '<span class="text-blue-600 text-xs">(預設)</span>' : ''} ${a.address_name ? `(${a.address_name})` : ''}</div>
-                                <div>${a.recipient_name} · ${a.recipient_phone}</div>
-                                <div>${a.city || ''}${a.district || ''}${a.street || ''}</div>
-                                ${a.cvs_store_name ? `<div>${a.cvs_store_name} (${a.cvs_store_code || ''})</div>` : ''}
-                            </div>
-                        `).join('') || '<p class="text-gray-500">尚無地址</p>'}
-                    </div>
-                </div>
-            `;
+            let html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-3"><div><b>類型:</b> ' + c.type + '</div><div><b>聯繫窗口:</b> ' + (c.contact_windows ? c.contact_windows.name : '未分配') + '</div>';
+            if (c.company_name) {
+                html += '<div><b>公司名稱:</b> ' + c.company_name + '</div><div><b>統一編號:</b> ' + (c.tax_id || '-') + '</div>';
+            }
+            html += '<div><b>聯絡人:</b> ' + c.contact_person + '</div><div><b>電話:</b> ' + c.phone + '</div><div class="col-span-2"><b>標籤:</b> ' + (c.customer_tags ? c.customer_tags.map(function(ct) { 
+                const t = allTags.find(function(x) { return x.id === ct.tag_id; }); 
+                return t ? '<span class="tag-' + t.color + ' px-2 py-1 rounded text-xs mr-1">' + t.name + '</span>' : ''; 
+            }).join('') : '-') + '</div></div><div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址列表</h3>';
+            
+            if (c.customer_addresses && c.customer_addresses.length) {
+                c.customer_addresses.forEach(function(a) {
+                    html += '<div class="border p-3 rounded mb-2 ' + (a.is_default ? 'border-blue-500 bg-blue-50' : 'border-gray-200') + '"><div class="font-bold">' + (addrMap[a.address_type] || a.address_type) + (a.is_default ? ' <span class="text-blue-600 text-xs">(預設)</span>' : '') + (a.address_name ? ' (' + a.address_name + ')' : '') + '</div><div>' + a.recipient_name + ' · ' + a.recipient_phone + '</div><div>' + (a.city || '') + (a.district || '') + (a.street || '') + '</div>';
+                    if (a.cvs_store_name) {
+                        html += '<div>' + a.cvs_store_name + (a.cvs_store_code ? ' (' + a.cvs_store_code + ')' : '') + '</div>';
+                    }
+                    html += '</div>';
+                });
+            } else {
+                html += '<p class="text-gray-500">尚無地址</p>';
+            }
+            html += '</div></div>';
+            
             document.getElementById('customer-detail-content').innerHTML = html;
             document.getElementById('customer-detail-modal').classList.remove('hidden');
         }
@@ -580,27 +583,32 @@
                 await sb.from('customer_addresses').delete().eq('customer_id', id);
                 const { data: orders } = await sb.from('orders').select('id').eq('customer_id', id);
                 if (orders && orders.length > 0) {
-                    for (const o of orders) { await sb.from('orders').update({ customer_id: null }).eq('id', o.id); }
+                    for (let i = 0; i < orders.length; i++) {
+                        await sb.from('orders').update({ customer_id: null }).eq('id', orders[i].id);
+                    }
                 }
                 const { error } = await sb.from('customers').delete().eq('id', id);
                 if (error) throw error;
                 await showAlert('客戶已刪除');
                 loadCustomers();
-            } catch (err) { await showAlert('刪除失敗：' + err.message); }
+            } catch (err) { 
+                await showAlert('刪除失敗：' + err.message); 
+            }
         }
 
         // 訂單搜尋
         let orderSearchTimer;
-        document.getElementById('order-search')?.addEventListener('input', (e) => {
+        document.getElementById('order-search').addEventListener('input', function(e) {
             clearTimeout(orderSearchTimer);
             const kw = e.target.value.trim().toLowerCase();
-            orderSearchTimer = setTimeout(() => {
+            orderSearchTimer = setTimeout(function() {
                 loadOrders(kw);
             }, 300);
         });
 
         // 訂單管理
-        window.openOrderModal = function(orderId = null) {
+        window.openOrderModal = function(orderId) {
+            if (!orderId) orderId = null;
             editingOrderId = orderId;
             document.getElementById('order-modal-title').textContent = orderId ? '編輯訂單' : '新增訂單';
             document.getElementById('order-form').reset();
@@ -615,28 +623,45 @@
             else addOrderItemRow();
             document.getElementById('order-modal').classList.remove('hidden');
         }
-        window.closeOrderModal = function() { document.getElementById('order-modal').classList.add('hidden'); editingOrderId = null; originalOrderItems = []; }
+        window.closeOrderModal = function() { 
+            document.getElementById('order-modal').classList.add('hidden'); 
+            editingOrderId = null; 
+            originalOrderItems = []; 
+        }
 
         function toggleInvoiceFields() {
             const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
             const fields = ['order-invoice-title', 'order-tax-id', 'order-invoice-type', 'order-invoice-no', 'order-tax-handling'];
-            fields.forEach(id => document.getElementById(id).disabled = !needInvoice);
+            fields.forEach(function(id) { 
+                document.getElementById(id).disabled = !needInvoice; 
+            });
             if (needInvoice) {
-                const customer = allCustomers.find(c => c.id === document.getElementById('selected-customer-id').value);
-                if (customer) { document.getElementById('order-invoice-title').value = customer.invoice_title || customer.company_name || ''; document.getElementById('order-tax-id').value = customer.tax_id || ''; }
-            } else { document.getElementById('order-invoice-title').value = ''; document.getElementById('order-tax-id').value = ''; document.getElementById('order-invoice-no').value = ''; }
+                const customer = allCustomers.find(function(c) { return c.id === document.getElementById('selected-customer-id').value; });
+                if (customer) { 
+                    document.getElementById('order-invoice-title').value = customer.invoice_title || customer.company_name || ''; 
+                    document.getElementById('order-tax-id').value = customer.tax_id || ''; 
+                }
+            } else { 
+                document.getElementById('order-invoice-title').value = ''; 
+                document.getElementById('order-tax-id').value = ''; 
+                document.getElementById('order-invoice-no').value = ''; 
+            }
             calculateOrderFinalTotal();
         }
 
         let orderSearchTimer2;
-        document.getElementById('order-customer-search')?.addEventListener('input', (e) => {
+        document.getElementById('order-customer-search').addEventListener('input', function(e) {
             clearTimeout(orderSearchTimer2);
             const kw = e.target.value.trim();
             const dd = document.getElementById('order-customer-dropdown');
             if (!kw) { dd.classList.add('hidden'); return; }
-            orderSearchTimer2 = setTimeout(() => {
-                const filtered = allCustomers.filter(c => (c.contact_person && c.contact_person.includes(kw)) || (c.company_name && c.company_name.includes(kw)) || (c.phone && c.phone.includes(kw)));
-                dd.innerHTML = filtered.map(c => `<div class="search-item p-3 border-b" onclick="selectOrderCustomer('${c.id}', '${c.company_name || c.contact_person}', '${c.tax_id || ''}', '${c.invoice_title || ''}', '${JSON.stringify(c.customer_tags?.map(ct=>ct.tag_id) || [])}', '${c.type}')">${c.company_name || c.contact_person} - ${c.contact_person} (${c.phone})</div>`).join('') || '<div class="p-3 text-gray-500">無結果</div>';
+            orderSearchTimer2 = setTimeout(function() {
+                const filtered = allCustomers.filter(function(c) {
+                    return (c.contact_person && c.contact_person.includes(kw)) || (c.company_name && c.company_name.includes(kw)) || (c.phone && c.phone.includes(kw));
+                });
+                dd.innerHTML = filtered.map(function(c) {
+                    return '<div class="search-item p-3 border-b" onclick="selectOrderCustomer(\'' + c.id + '\', \'' + (c.company_name || c.contact_person) + '\', \'' + (c.tax_id || '') + '\', \'' + (c.invoice_title || '') + '\', \'' + JSON.stringify(c.customer_tags ? c.customer_tags.map(function(ct) { return ct.tag_id; }) : []) + '\', \'' + c.type + '\')">' + (c.company_name || c.contact_person) + ' - ' + c.contact_person + ' (' + c.phone + ')</div>';
+                }).join('') || '<div class="p-3 text-gray-500">無結果</div>';
                 dd.classList.remove('hidden');
             }, 300);
         });
@@ -650,109 +675,196 @@
             currentCustomerTags = JSON.parse(tagsJson);
             currentCustomerType = type;
             const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
-            if (needInvoice) { document.getElementById('order-invoice-title').value = invoiceTitle || (type === 'B2B' ? name : ''); document.getElementById('order-tax-id').value = taxId || ''; }
+            if (needInvoice) { 
+                document.getElementById('order-invoice-title').value = invoiceTitle || (type === 'B2B' ? name : ''); 
+                document.getElementById('order-tax-id').value = taxId || ''; 
+            }
             toggleInvoiceFields();
             const { data: addresses } = await sb.from('customer_addresses').select('*').eq('customer_id', id);
             const addrSelect = document.getElementById('shipping-address-select');
             addrSelect.innerHTML = '<option value="">選擇已存地址...</option>';
-            if (addresses?.length) { addresses.forEach(a => { const text = `${a.address_type} - ${a.address_name || a.street || a.cvs_store_name} (${a.recipient_name})`; addrSelect.innerHTML += `<option value="${a.id}" ${a.is_default ? 'selected' : ''}>${text}</option>`; }); }
+            if (addresses && addresses.length) { 
+                addresses.forEach(function(a) { 
+                    const text = (a.address_type || '') + ' - ' + (a.address_name || a.street || a.cvs_store_name || '') + ' (' + a.recipient_name + ')';
+                    addrSelect.innerHTML += '<option value="' + a.id + '" ' + (a.is_default ? 'selected' : '') + '>' + text + '</option>'; 
+                }); 
+            }
             calculateOrderFinalTotal();
         }
 
-        window.enableTempAddress = function() { document.getElementById('temp-address-section').classList.remove('hidden'); document.getElementById('shipping-address-select').value = ''; }
-        window.selectSavedAddress = function() { document.getElementById('temp-address-section').classList.add('hidden'); }
+        window.enableTempAddress = function() { 
+            document.getElementById('temp-address-section').classList.remove('hidden'); 
+            document.getElementById('shipping-address-select').value = ''; 
+        }
+        window.selectSavedAddress = function() { 
+            document.getElementById('temp-address-section').classList.add('hidden'); 
+        }
 
-        window.addOrderItemRow = function(productData = null) {
+        window.addOrderItemRow = function(productData) {
+            if (!productData) productData = null;
             const container = document.getElementById('order-items-container');
             const id = 'row-' + Date.now();
-            const options = allProducts.map(p => `<option value="${p.id}" data-price="${p.sell_price}" ${productData?.product_id === p.id ? 'selected' : ''}>${p.name} - $${p.sell_price} (庫存: ${p.current_stock})</option>`).join('');
+            const options = allProducts.map(function(p) {
+                return '<option value="' + p.id + '" data-price="' + p.sell_price + '" ' + (productData && productData.product_id === p.id ? 'selected' : '') + '>' + p.name + ' - $' + p.sell_price + ' (庫存: ' + p.current_stock + ')</option>';
+            }).join('');
             const div = document.createElement('div');
             div.id = id;
             div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded';
-            div.innerHTML = `<div class="flex-1"><label class="block text-xs font-bold mb-1">產品</label><select class="order-product w-full px-3 py-2 border rounded" onchange="updateItemPrice('${id}')"><option value="">選擇產品...</option>${options}</select></div><div class="w-24"><label class="block text-xs font-bold mb-1">數量</label><input type="number" class="order-qty w-full px-3 py-2 border rounded" value="${productData?.quantity || 1}" min="1" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">單價</label><input type="number" class="order-price w-full px-3 py-2 border rounded" value="${productData?.unit_price || ''}" step="0.01" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">小計</label><div class="order-subtotal px-3 py-2 font-bold">$0</div></div><button type="button" onclick="document.getElementById('${id}').remove(); calculateOrderFinalTotal()" class="px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">X</button>`;
+            div.innerHTML = '<div class="flex-1"><label class="block text-xs font-bold mb-1">產品</label><select class="order-product w-full px-3 py-2 border rounded" onchange="updateItemPrice(\'' + id + '\')"><option value="">選擇產品...</option>' + options + '</select></div><div class="w-24"><label class="block text-xs font-bold mb-1">數量</label><input type="number" class="order-qty w-full px-3 py-2 border rounded" value="' + (productData ? productData.quantity : 1) + '" min="1" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">單價</label><input type="number" class="order-price w-full px-3 py-2 border rounded" value="' + (productData ? productData.unit_price : '') + '" step="0.01" onchange="calculateOrderFinalTotal()"></div><div class="w-32"><label class="block text-xs font-bold mb-1">小計</label><div class="order-subtotal px-3 py-2 font-bold">$0</div></div><button type="button" onclick="document.getElementById(\'' + id + '\').remove(); calculateOrderFinalTotal()" class="px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200">X</button>';
             container.appendChild(div);
-            if (productData?.unit_price) updateItemPrice(id, productData.unit_price);
+            if (productData && productData.unit_price) updateItemPrice(id, productData.unit_price);
             calculateOrderFinalTotal();
         }
 
-        window.updateItemPrice = function(rowId, forcedPrice = null) {
+        window.updateItemPrice = function(rowId, forcedPrice) {
             const row = document.getElementById(rowId);
             const select = row.querySelector('.order-product');
             const priceInput = row.querySelector('.order-price');
-            if (forcedPrice !== null) priceInput.value = forcedPrice;
+            if (forcedPrice !== null && forcedPrice !== undefined) priceInput.value = forcedPrice;
             else if (select.value) priceInput.value = select.options[select.selectedIndex].dataset.price;
             calculateOrderFinalTotal();
         }
 
         window.calculateOrderFinalTotal = function() {
             let subtotal = 0;
-            document.querySelectorAll('#order-items-container > div').forEach(row => { const price = parseFloat(row.querySelector('.order-price').value) || 0; const qty = parseInt(row.querySelector('.order-qty').value) || 0; row.querySelector('.order-subtotal').textContent = '$' + (price * qty).toLocaleString(); subtotal += price * qty; });
+            document.querySelectorAll('#order-items-container > div').forEach(function(row) {
+                const price = parseFloat(row.querySelector('.order-price').value) || 0;
+                const qty = parseInt(row.querySelector('.order-qty').value) || 0;
+                row.querySelector('.order-subtotal').textContent = '$' + (price * qty).toLocaleString();
+                subtotal += price * qty;
+            });
             document.getElementById('display-subtotal').textContent = '$' + subtotal.toLocaleString();
             const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
             const taxType = document.getElementById('order-tax-handling').value;
             let tax = 0;
-            if (needInvoice) { if (taxType === 'tax_excluded') { tax = subtotal * 0.05; document.getElementById('display-tax-row').classList.remove('hidden'); } else if (taxType === 'tax_included') { tax = subtotal * 0.05 / 1.05; document.getElementById('display-tax-row').classList.remove('hidden'); } else { document.getElementById('display-tax-row').classList.add('hidden'); } } else { document.getElementById('display-tax-row').classList.add('hidden'); }
+            if (needInvoice) {
+                if (taxType === 'tax_excluded') { 
+                    tax = subtotal * 0.05; 
+                    document.getElementById('display-tax-row').classList.remove('hidden'); 
+                } else if (taxType === 'tax_included') { 
+                    tax = subtotal * 0.05 / 1.05; 
+                    document.getElementById('display-tax-row').classList.remove('hidden'); 
+                } else { 
+                    document.getElementById('display-tax-row').classList.add('hidden'); 
+                }
+            } else { 
+                document.getElementById('display-tax-row').classList.add('hidden'); 
+            }
             document.getElementById('display-tax').textContent = '$' + Math.round(tax).toLocaleString();
             let shippingFee = 0, absorbedShipping = 0;
-            const isVIP = currentCustomerTags.some(tagId => allTags.find(t => t.id === tagId)?.name === 'VIP');
+            const isVIP = currentCustomerTags.some(function(tagId) {
+                const tag = allTags.find(function(t) { return t.id === tagId; });
+                return tag && tag.name === 'VIP';
+            });
             const threshold = isVIP ? 1000 : 2000;
-            if (subtotal < threshold && subtotal > 0) shippingFee = STANDARD_SHIPPING_FEE; else if (subtotal >= threshold) absorbedShipping = STANDARD_SHIPPING_FEE;
+            if (subtotal < threshold && subtotal > 0) shippingFee = STANDARD_SHIPPING_FEE; 
+            else if (subtotal >= threshold) absorbedShipping = STANDARD_SHIPPING_FEE;
             document.getElementById('display-shipping').textContent = '$' + shippingFee.toLocaleString();
-            if (absorbedShipping > 0) { document.getElementById('display-absorbed-row').classList.remove('hidden'); document.getElementById('display-absorbed').textContent = '$' + absorbedShipping.toLocaleString(); } else { document.getElementById('display-absorbed-row').classList.add('hidden'); }
+            if (absorbedShipping > 0) { 
+                document.getElementById('display-absorbed-row').classList.remove('hidden'); 
+                document.getElementById('display-absorbed').textContent = '$' + absorbedShipping.toLocaleString(); 
+            } else { 
+                document.getElementById('display-absorbed-row').classList.add('hidden'); 
+            }
             document.getElementById('order-total-amount').textContent = '$' + Math.round(subtotal + tax + shippingFee).toLocaleString();
         }
 
         window.submitOrder = async function() {
             const customerId = document.getElementById('selected-customer-id').value;
             if (!customerId) return await showAlert('請選擇客戶！');
-            const items = []; let subtotal = 0;
-            document.querySelectorAll('#order-items-container > div').forEach(row => { const prodId = row.querySelector('.order-product').value; const qty = parseInt(row.querySelector('.order-qty').value) || 0; const price = parseFloat(row.querySelector('.order-price').value) || 0; if (prodId && qty > 0) { items.push({ product_id: prodId, quantity: qty, unit_price: price }); subtotal += price * qty; } });
+            const items = []; 
+            let subtotal = 0;
+            document.querySelectorAll('#order-items-container > div').forEach(function(row) {
+                const prodId = row.querySelector('.order-product').value;
+                const qty = parseInt(row.querySelector('.order-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.order-price').value) || 0;
+                if (prodId && qty > 0) { 
+                    items.push({ product_id: prodId, quantity: qty, unit_price: price }); 
+                    subtotal += price * qty; 
+                }
+            });
             if (!items.length) return await showAlert('請至少加入一筆產品！');
             const needInvoice = document.getElementById('order-need-invoice').value === 'yes';
             const taxType = document.getElementById('order-tax-handling').value;
             let tax = needInvoice ? (taxType === 'tax_excluded' ? subtotal * 0.05 : (taxType === 'tax_included' ? subtotal * 0.05 / 1.05 : 0)) : 0;
-            const isVIP = currentCustomerTags.some(tagId => allTags.find(t => t.id === tagId)?.name === 'VIP');
+            const isVIP = currentCustomerTags.some(function(tagId) {
+                const tag = allTags.find(function(t) { return t.id === tagId; });
+                return tag && tag.name === 'VIP';
+            });
             const threshold = isVIP ? 1000 : 2000;
             let shippingFee = subtotal < threshold && subtotal > 0 ? STANDARD_SHIPPING_FEE : 0;
             let absorbedShipping = subtotal >= threshold ? STANDARD_SHIPPING_FEE : 0;
             const finalTotal = subtotal + tax + shippingFee;
-            const orderData = { customer_id: customerId, total_amount: finalTotal, notes: document.getElementById('order-notes').value, status: 'confirmed', invoice_title: needInvoice ? document.getElementById('order-invoice-title').value : null, invoice_tax_id: needInvoice ? document.getElementById('order-tax-id').value : null, invoice_type: needInvoice ? document.getElementById('order-invoice-type').value : null, invoice_no: needInvoice ? document.getElementById('order-invoice-no').value : null, tax_handling: needInvoice ? taxType : 'no_invoice', tax_amount: tax, shipping_fee: shippingFee, absorbed_shipping_fee: absorbedShipping };
+            const orderData = { 
+                customer_id: customerId, 
+                total_amount: finalTotal, 
+                notes: document.getElementById('order-notes').value, 
+                status: 'confirmed', 
+                invoice_title: needInvoice ? document.getElementById('order-invoice-title').value : null, 
+                invoice_tax_id: needInvoice ? document.getElementById('order-tax-id').value : null, 
+                invoice_type: needInvoice ? document.getElementById('order-invoice-type').value : null, 
+                invoice_no: needInvoice ? document.getElementById('order-invoice-no').value : null, 
+                tax_handling: needInvoice ? taxType : 'no_invoice', 
+                tax_amount: tax, 
+                shipping_fee: shippingFee, 
+                absorbed_shipping_fee: absorbedShipping 
+            };
             try {
                 if (editingOrderId) {
-                    for (const item of originalOrderItems) { const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single(); if(prod) await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id); }
+                    for (let i = 0; i < originalOrderItems.length; i++) {
+                        const item = originalOrderItems[i];
+                        const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
+                        if (prod) await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id);
+                    }
                     await sb.from('order_items').delete().eq('order_id', editingOrderId);
                     await sb.from('orders').update(orderData).eq('id', editingOrderId);
-                } else { orderData.order_no = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random()*10000).toString().padStart(4,'0'); const { data } = await sb.from('orders').insert([orderData]).select().single(); editingOrderId = data.id; }
-                await sb.from('order_items').insert(items.map(item => ({ order_id: editingOrderId, product_id: item.product_id, quantity: item.quantity, unit_price: item.unit_price })));
-                for (const item of items) { const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single(); if(prod) await sb.from('products').update({ current_stock: prod.current_stock - item.quantity }).eq('id', item.product_id); }
+                } else { 
+                    orderData.order_no = 'ORD-' + new Date().getFullYear() + '-' + Math.floor(Math.random()*10000).toString().padStart(4,'0'); 
+                    const { data } = await sb.from('orders').insert([orderData]).select().single(); 
+                    editingOrderId = data.id; 
+                }
+                await sb.from('order_items').insert(items.map(function(item) {
+                    return { order_id: editingOrderId, product_id: item.product_id, quantity: item.quantity, unit_price: item.unit_price };
+                }));
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
+                    const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
+                    if (prod) await sb.from('products').update({ current_stock: prod.current_stock - item.quantity }).eq('id', item.product_id);
+                }
                 await showAlert('訂單已儲存！');
                 closeOrderModal();
                 loadOrders();
                 loadDashboardData();
-            } catch (err) { await showAlert('儲存失敗：' + err.message); }
+            } catch (err) { 
+                await showAlert('儲存失敗：' + err.message); 
+            }
         }
 
         // 訂單列表 (加入搜尋與日期顯示)
-        async function loadOrders(searchKw = '') {
+        async function loadOrders(searchKw) {
+            if (!searchKw) searchKw = '';
             const { data } = await sb.from('orders').select('*, customers(company_name, contact_person)').order('created_at', { ascending: false });
-            if (!data?.length) { document.getElementById('order-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>'; return; }
+            if (!data || !data.length) { 
+                document.getElementById('order-table-body').innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">尚無訂單</td></tr>'; 
+                return; 
+            }
             
             // 過濾搜尋
             let filteredData = data;
             if (searchKw) {
-                filteredData = data.filter(o => {
-                    const customerName = (o.customers?.company_name || o.customers?.contact_person || '').toLowerCase();
+                filteredData = data.filter(function(o) {
+                    const customerName = (o.customers && (o.customers.company_name || o.customers.contact_person) || '').toLowerCase();
                     const invoiceNo = (o.invoice_no || '').toLowerCase();
                     return customerName.includes(searchKw) || invoiceNo.includes(searchKw);
                 });
             }
 
-            document.getElementById('order-table-body').innerHTML = filteredData.map(o => {
+            document.getElementById('order-table-body').innerHTML = filteredData.map(function(o) {
                 // 格式化日期
                 const dateObj = new Date(o.created_at);
-                const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth()+1).padStart(2,'0')}-${String(dateObj.getDate()).padStart(2,'0')} ${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+                const dateStr = dateObj.getFullYear() + '-' + String(dateObj.getMonth()+1).padStart(2,'0') + '-' + String(dateObj.getDate()).padStart(2,'0') + ' ' + String(dateObj.getHours()).padStart(2,'0') + ':' + String(dateObj.getMinutes()).padStart(2,'0');
                 
-                return `<tr class="hover:bg-gray-50"><td class="px-6 py-4 font-bold text-gray-700">${dateStr}</td><td class="px-6 py-4">${o.customers?.company_name || o.customers?.contact_person || '已刪除客戶'}</td><td class="px-6 py-4">$${Math.round(o.total_amount).toLocaleString()}</td><td class="px-6 py-4 text-sm">${o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無'}</td><td class="px-6 py-4"><button onclick="openOrderModal('${o.id}')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteOrder('${o.id}')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>`;
+                return '<tr class="hover:bg-gray-50"><td class="px-6 py-4 font-bold text-gray-700">' + dateStr + '</td><td class="px-6 py-4">' + (o.customers ? (o.customers.company_name || o.customers.contact_person) : '已刪除客戶') + '</td><td class="px-6 py-4">$' + Math.round(o.total_amount).toLocaleString() + '</td><td class="px-6 py-4 text-sm">' + (o.invoice_no ? (o.invoice_type === '3' ? '三聯' : '二聯') : '無') + '</td><td class="px-6 py-4"><button onclick="openOrderModal(\'' + o.id + '\')" class="text-blue-600 hover:underline text-sm mr-2">編輯</button><button onclick="deleteOrder(\'' + o.id + '\')" class="text-red-600 hover:underline text-sm">刪除</button></td></tr>';
             }).join('');
         }
 
@@ -761,7 +873,7 @@
             if (!order) return;
             originalOrderItems = order.order_items || [];
             const c = order.customers;
-            if (c) selectOrderCustomer(c.id, c.company_name || c.contact_person, c.tax_id, c.invoice_title, JSON.stringify(c.customer_tags?.map(ct=>ct.tag_id) || []), c.type);
+            if (c) selectOrderCustomer(c.id, c.company_name || c.contact_person, c.tax_id, c.invoice_title, JSON.stringify(c.customer_tags ? c.customer_tags.map(function(ct) { return ct.tag_id; }) : []), c.type);
             document.getElementById('order-notes').value = order.notes || '';
             document.getElementById('order-need-invoice').value = order.invoice_no ? 'yes' : 'no';
             document.getElementById('order-invoice-title').value = order.invoice_title || '';
@@ -771,7 +883,7 @@
             document.getElementById('order-tax-handling').value = order.tax_handling || 'tax_included';
             toggleInvoiceFields();
             document.getElementById('order-items-container').innerHTML = '';
-            order.order_items?.forEach(item => addOrderItemRow(item));
+            if (order.order_items) order.order_items.forEach(function(item) { addOrderItemRow(item); });
         }
 
         // 訂單刪除 (修復：先刪發票，再刪明細，最後刪訂單)
@@ -783,7 +895,13 @@
                 
                 // 2. 回補庫存
                 const { data: items } = await sb.from('order_items').select('*').eq('order_id', id);
-                for (const item of (items || [])) { const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single(); if(prod) await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id); }
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        const { data: prod } = await sb.from('products').select('current_stock').eq('id', item.product_id).single();
+                        if (prod) await sb.from('products').update({ current_stock: prod.current_stock + item.quantity }).eq('id', item.product_id);
+                    }
+                }
                 
                 // 3. 刪除明細與訂單
                 await sb.from('order_items').delete().eq('order_id', id);
@@ -792,22 +910,42 @@
                 await showAlert('訂單已刪除！');
                 loadOrders();
                 loadDashboardData();
-            } catch (err) { await showAlert('刪除失敗：' + err.message); }
+            } catch (err) { 
+                await showAlert('刪除失敗：' + err.message); 
+            }
         };
 
         async function loadWarehouseInventory() {
             const container = document.getElementById('warehouse-inventory-container');
             container.innerHTML = '';
-            for (const warehouse of allWarehouses) {
+            for (let i = 0; i < allWarehouses.length; i++) {
+                const warehouse = allWarehouses[i];
                 const { data: inventory } = await sb.from('product_inventory').select('*, products(name, sku, safety_stock)').eq('warehouse_id', warehouse.id);
                 const div = document.createElement('div');
                 div.className = 'bg-white rounded-lg shadow p-6';
-                div.innerHTML = `<h3 class="text-xl font-bold mb-4">${warehouse.name}</h3><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">產品</th><th class="px-4 py-2 text-left">SKU</th><th class="px-4 py-2 text-left">庫存</th><th class="px-4 py-2 text-left">狀態</th></tr></thead><tbody>${inventory?.map(inv => `<tr class="border-t"><td class="px-4 py-2">${inv.products?.name}</td><td class="px-4 py-2 text-sm text-gray-600">${inv.products?.sku}</td><td class="px-4 py-2 font-bold">${inv.quantity}</td><td class="px-4 py-2">${inv.quantity < (inv.products?.safety_stock || inv.safety_stock) ? '<span class="text-red-600 font-bold">低庫存</span>' : '<span class="text-green-600">正常</span>'}</td></tr>`).join('') || '<tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">無資料</td></tr>'}</tbody></table>`;
+                let html = '<h3 class="text-xl font-bold mb-4">' + warehouse.name + '</h3><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="px-4 py-2 text-left">產品</th><th class="px-4 py-2 text-left">SKU</th><th class="px-4 py-2 text-left">庫存</th><th class="px-4 py-2 text-left">狀態</th></tr></thead><tbody>';
+                if (inventory && inventory.length) {
+                    for (let j = 0; j < inventory.length; j++) {
+                        const inv = inventory[j];
+                        html += '<tr class="border-t"><td class="px-4 py-2">' + (inv.products ? inv.products.name : '') + '</td><td class="px-4 py-2 text-sm text-gray-600">' + (inv.products ? inv.products.sku : '') + '</td><td class="px-4 py-2 font-bold">' + inv.quantity + '</td><td class="px-4 py-2">' + (inv.quantity < (inv.products ? inv.products.safety_stock : inv.safety_stock) ? '<span class="text-red-600 font-bold">低庫存</span>' : '<span class="text-green-600">正常</span>') + '</td></tr>';
+                    }
+                } else {
+                    html += '<tr><td colspan="4" class="px-4 py-2 text-center text-gray-500">無資料</td></tr>';
+                }
+                html += '</tbody></table>';
+                div.innerHTML = html;
                 container.appendChild(div);
             }
         }
 
-        (async () => { const { data: { session } } = await sb.auth.getSession(); if (session) { document.getElementById('login-view').classList.add('hidden'); document.getElementById('main-system').classList.remove('hidden'); await loadInitialData(); } })();
+        (async function() { 
+            const { data } = await sb.auth.getSession();
+            if (data && data.session) { 
+                document.getElementById('login-view').classList.add('hidden'); 
+                document.getElementById('main-system').classList.remove('hidden'); 
+                await loadInitialData(); 
+            } 
+        })();
     </script>
 </body>
 </html>
