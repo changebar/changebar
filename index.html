@@ -151,8 +151,8 @@ body { font-family: 'Segoe UI', sans-serif; }
           <div><label class="block text-sm font-bold mb-1">統一編號</label><input type="text" id="cust-tax-id" class="w-full px-3 py-2 border rounded"></div>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded"></div>
-          <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded"></div>
+          <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="cust-contact" required class="w-full px-3 py-2 border rounded" onchange="syncContactToAddress()"></div>
+          <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded" onchange="syncContactToAddress()"></div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div><label class="block text-sm font-bold mb-1">聯絡窗口名</label><div class="flex gap-2"><input type="text" id="cust-contact-window-name" class="w-full px-3 py-2 border rounded"><label class="flex items-center text-sm whitespace-nowrap"><input type="checkbox" id="cust-window-same-contact" class="mr-1">同聯絡人</label></div></div>
@@ -446,16 +446,30 @@ function renderCustomerTags(selectedTags) {
   document.getElementById('customer-tags-container').innerHTML = html;
 }
 
+// 同步聯絡人到地址
+function syncContactToAddress() {
+  var contact = document.getElementById('cust-contact').value;
+  var phone = document.getElementById('cust-phone').value;
+  var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
+  addressDivs.forEach(function(div) {
+    var recipientInput = div.querySelector('.addr-recipient');
+    var phoneInput = div.querySelector('.addr-phone');
+    if (recipientInput && !recipientInput.dataset.userEdited) {
+      recipientInput.value = contact;
+    }
+    if (phoneInput && !phoneInput.dataset.userEdited) {
+      phoneInput.value = phone;
+    }
+  });
+}
+
 function addCustomerAddress(addressData) {
   var container = document.getElementById('customer-addresses-container');
   var id = addressData ? addressData.id : 'new-' + Date.now();
   var type = addressData ? addressData.address_type : 'home';
   
-  // 確保正確取得聯絡人和電話
-  var contactInput = document.getElementById('cust-contact');
-  var phoneInput = document.getElementById('cust-phone');
-  var contact = contactInput ? contactInput.value : '';
-  var phone = phoneInput ? phoneInput.value : '';
+  var contact = document.getElementById('cust-contact').value;
+  var phone = document.getElementById('cust-phone').value;
   
   var isDefault = addressData ? addressData.is_default : (container.children.length === 0);
   
@@ -480,9 +494,12 @@ function addCustomerAddress(addressData) {
   html += '</select></div>';
   
   // 收件人自動帶入聯絡人
-  html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_name : contact) + '"></div>';
+  var recipientValue = addressData ? addressData.recipient_name : contact;
+  html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + recipientValue + '" onchange="this.dataset.userEdited=true"></div>';
+  
   // 電話自動帶入
-  html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_phone : phone) + '"></div>';
+  var phoneValue = addressData ? addressData.recipient_phone : phone;
+  html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + phoneValue + '" onchange="this.dataset.userEdited=true"></div>';
   
   // 一般地址欄位
   html += '<div class="addr-street-group col-span-2" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'none' : 'block') + '"><label class="block text-xs font-bold mb-1">地址</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.street || '') : '') + '" placeholder="完整地址"></div>';
@@ -498,7 +515,6 @@ function addCustomerAddress(addressData) {
   div.innerHTML = html;
   container.appendChild(div);
   
-  // 綁定刪除事件
   div.querySelector('.btn-remove-address').addEventListener('click', function() { 
     div.remove(); 
   });
