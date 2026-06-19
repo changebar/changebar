@@ -76,7 +76,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div id="tag-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div class="mb-4 relative">
-        <input type="text" id="customer-search" placeholder="🔍 搜尋客戶 (公司/姓名、聯絡人、聯絡窗口名)..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+        <input type="text" id="customer-search" placeholder=" 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -100,7 +100,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         </div>
       </div>
       <div class="mb-4 relative">
-        <input type="text" id="order-search" placeholder="🔍 搜尋訂單 (客戶名稱、發票號碼)..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
+        <input type="text" id="order-search" placeholder="🔍 搜尋訂單..." class="w-full px-4 py-3 border rounded-lg shadow-sm text-lg" autocomplete="off">
       </div>
       <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">
@@ -155,7 +155,7 @@ body { font-family: 'Segoe UI', sans-serif; }
           <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="cust-phone" required class="w-full px-3 py-2 border rounded"></div>
         </div>
         <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-bold mb-1">聯絡窗口名</label><div class="flex gap-2"><input type="text" id="cust-contact-window-name" class="w-full px-3 py-2 border rounded" placeholder="例：睿升、碩"><label class="flex items-center text-sm"><input type="checkbox" id="cust-window-same-contact" class="mr-1">同聯絡人</label></div></div>
+          <div><label class="block text-sm font-bold mb-1">聯絡窗口名</label><div class="flex gap-2"><input type="text" id="cust-contact-window-name" class="w-full px-3 py-2 border rounded"><label class="flex items-center text-sm whitespace-nowrap"><input type="checkbox" id="cust-window-same-contact" class="mr-1">同聯絡人</label></div></div>
           <div><label class="block text-sm font-bold mb-1">Email</label><input type="email" id="cust-email" class="w-full px-3 py-2 border rounded"></div>
         </div>
         <div><label class="block text-sm font-bold mb-1">標籤</label><div id="customer-tags-container" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50"></div></div>
@@ -206,14 +206,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         </div>
         <div>
           <label class="block text-sm font-bold mb-2">2. 寄送地址 *</label>
-          <div class="flex gap-2 mb-2">
-            <select id="shipping-address-select" class="flex-1 px-4 py-2 border rounded"><option value="">請先選擇客戶...</option></select>
-          </div>
-          <div id="temp-address-section" class="hidden grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded border">
-            <div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="temp-recipient" class="w-full px-3 py-2 border rounded"></div>
-            <div><label class="block text-xs font-bold mb-1">電話</label><input type="text" id="temp-phone" class="w-full px-3 py-2 border rounded"></div>
-            <div class="col-span-2"><label class="block text-xs font-bold mb-1">地址</label><input type="text" id="temp-address" class="w-full px-3 py-2 border rounded"></div>
-          </div>
+          <select id="shipping-address-select" class="w-full px-4 py-2 border rounded"><option value="">請先選擇客戶...</option></select>
         </div>
         <div>
           <label class="block text-sm font-bold mb-2">3. 產品明細</label>
@@ -223,7 +216,7 @@ body { font-family: 'Segoe UI', sans-serif; }
         <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
           <h3 class="font-bold mb-3">運費與成本</h3>
           <div class="grid grid-cols-2 gap-4">
-            <div><label class="block text-sm font-bold mb-1">運費金額</label><input type="number" id="shipping-amount" class="w-full px-3 py-2 border rounded" value="0" min="0" placeholder="例如: 100"></div>
+            <div><label class="block text-sm font-bold mb-1">運費金額</label><input type="number" id="shipping-amount" class="w-full px-3 py-2 border rounded" value="0" min="0"></div>
             <div><label class="block text-sm font-bold mb-1">運費支付方式</label><select id="shipping-type" class="w-full px-3 py-2 border rounded"><option value="free">免運 (公司吸收)</option><option value="customer_pay">客人自付</option></select></div>
           </div>
         </div>
@@ -248,7 +241,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
-<!-- 其他 Modal (標籤、窗口、詳情、Alert) 保持不變，為節省空間省略 -->
+<!-- 標籤 Modal -->
 <div id="tag-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理標籤</h2><button id="btn-close-tag-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -260,6 +253,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
+<!-- 窗口 Modal -->
 <div id="window-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[80vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">管理聯繫窗口</h2><button id="btn-close-window-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -271,6 +265,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
+<!-- 客戶詳情 Modal -->
 <div id="customer-detail-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
     <div class="p-6 border-b flex justify-between items-center flex-shrink-0"><h2 class="text-2xl font-bold">客戶詳細資料</h2><button id="btn-close-detail-modal" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button></div>
@@ -279,6 +274,7 @@ body { font-family: 'Segoe UI', sans-serif; }
   </div>
 </div>
 
+<!-- Alert Modal -->
 <div id="custom-alert-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
   <div class="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
     <p id="custom-alert-message" class="text-lg mb-6 text-gray-800">訊息內容</p>
@@ -416,7 +412,6 @@ document.getElementById('btn-cancel-customer').addEventListener('click', closeCu
 document.getElementById('btn-add-address').addEventListener('click', function() { addCustomerAddress(); });
 document.getElementById('cust-type').addEventListener('change', function() { document.getElementById('company-required').classList.toggle('hidden', this.value === 'B2C'); });
 
-// 聯絡窗口名同聯絡人勾選
 document.getElementById('cust-window-same-contact').addEventListener('change', function() {
   if (this.checked) {
     document.getElementById('cust-contact-window-name').value = document.getElementById('cust-contact').value;
@@ -479,14 +474,11 @@ function addCustomerAddress(addressData) {
   html += '<option value="cvs_family" ' + (type==='cvs_family'?'selected':'') + '>全家</option>';
   html += '</select></div>';
   
-  // 一般地址或超商地址都顯示收件人和電話
-  html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_name : contact || '') + '"></div>';
-  html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_phone : phone || '') + '"></div>';
+  html += '<div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="addr-recipient w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_name : contact) + '"></div>';
+  html += '<div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="addr-phone w-full px-3 py-2 border rounded" value="' + (addressData ? addressData.recipient_phone : phone) + '"></div>';
   
-  // 一般地址顯示地址欄位
   html += '<div class="addr-street-group col-span-2" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'none' : 'block') + '"><label class="block text-xs font-bold mb-1">地址</label><input type="text" class="addr-street w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.street || '') : '') + '" placeholder="完整地址"></div>';
   
-  // 超商地址顯示門市名稱和門市地址
   html += '<div class="cvs-fields col-span-2 grid grid-cols-2 gap-3" style="display:' + ((type === 'cvs_711' || type === 'cvs_family') ? 'grid' : 'none') + '">';
   html += '<div><label class="block text-xs font-bold mb-1">門市名稱</label><input type="text" class="addr-cvs-name w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_name || '') : '') + '" placeholder="例：7-11 台北車站店"></div>';
   html += '<div><label class="block text-xs font-bold mb-1">門市地址</label><input type="text" class="addr-cvs-address w-full px-3 py-2 border rounded" value="' + (addressData ? (addressData.cvs_store_address || '') : '') + '" placeholder="門市完整地址"></div>';
@@ -572,13 +564,14 @@ document.getElementById('btn-save-customer').addEventListener('click', function(
     });
   }).then(function() {
     var custId = document.getElementById('cust-id').value;
+    if (!custId) throw new Error('客戶 ID 遺失');
     return sb.from('customer_addresses').delete().eq('customer_id', custId);
   }).then(function() {
+    var custId = document.getElementById('cust-id').value;
     var addressDivs = document.querySelectorAll('#customer-addresses-container > div');
     var promises = [];
     for (var i = 0; i < addressDivs.length; i++) {
       var div = addressDivs[i];
-      var custId = document.getElementById('cust-id').value;
       var addrType = div.querySelector('.addr-type').value;
       var addrData = {
         customer_id: custId,
@@ -735,7 +728,6 @@ function openOrderModal(orderId) {
   document.getElementById('selected-customer-id').value = '';
   document.getElementById('selected-customer-display').classList.add('hidden');
   document.getElementById('order-items-container').innerHTML = '';
-  document.getElementById('temp-address-section').classList.add('hidden');
   document.getElementById('shipping-address-select').innerHTML = '<option value="">請先選擇客戶...</option>';
   currentCustomerTags = [];
   currentCustomerType = 'B2C';
@@ -798,7 +790,6 @@ function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
   currentCustomerTags = tags || [];
   currentCustomerType = type;
   
-  // 載入地址並自動帶入
   sb.from('customer_addresses').select('*').eq('customer_id', id).then(function(result) {
     var addresses = result.data || [];
     var addrSelect = document.getElementById('shipping-address-select');
@@ -823,13 +814,10 @@ function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
         addrSelect.innerHTML += '<option value="' + a.id + '" ' + selected + '>' + displayText + (a.is_default ? ' [預設]' : '') + '</option>';
       }
       
-      // 自動選擇預設地址並帶入資料
       if (defaultAddr) {
         addrSelect.value = defaultAddr.id;
-        fillTempAddress(defaultAddr);
       } else if (addresses.length > 0) {
         addrSelect.value = addresses[0].id;
-        fillTempAddress(addresses[0]);
       }
     }
   }).catch(function(err) { 
@@ -839,33 +827,6 @@ function selectOrderCustomer(id, name, taxId, invoiceTitle, tags, type) {
   toggleInvoiceFields();
   calculateOrderFinalTotal();
 }
-
-function fillTempAddress(addr) {
-  if (!addr) return;
-  document.getElementById('temp-address-section').classList.remove('hidden');
-  document.getElementById('temp-recipient').value = addr.recipient_name || '';
-  document.getElementById('temp-phone').value = addr.recipient_phone || '';
-  if (addr.address_type === 'cvs_711' || addr.address_type === 'cvs_family') {
-    document.getElementById('temp-address').value = (addr.cvs_store_name || '') + (addr.cvs_store_address ? ' - ' + addr.cvs_store_address : '');
-  } else {
-    document.getElementById('temp-address').value = addr.street || '';
-  }
-}
-
-// 地址選擇變更時自動帶入
-document.getElementById('shipping-address-select').addEventListener('change', function() {
-  var addrId = this.value;
-  if (!addrId || addrId === '') return;
-  
-  var customerId = document.getElementById('selected-customer-id').value;
-  if (!customerId) return;
-  
-  sb.from('customer_addresses').select('*').eq('id', addrId).single().then(function(result) {
-    if (result.data) {
-      fillTempAddress(result.data);
-    }
-  });
-});
 
 function addOrderItemRow(productData) {
   var container = document.getElementById('order-items-container');
