@@ -591,8 +591,7 @@ document.getElementById('btn-save-customer').addEventListener('click', function(
     primary_contact_window_id: document.getElementById('cust-window').value || null 
   };
 
-  var savePromise = id ? sb.from('customers').update(customerData).eq('id', id) : sb.from('customers').insert([customerData]).select().single();
-  
+  var savePromise = id ? sb.from('customers').update(customerData).eq('id', id).select().single() : sb.from('customers').insert([customerData]).select().single();
   savePromise.then(function(result) {
     if (!result || !result.data) throw new Error('無法取得客戶資料');
     var customerId = id || result.data.id;
