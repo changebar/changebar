@@ -307,7 +307,7 @@ function renderBoss(c) {
     </div>
     
     <div class="bg-white p-6 rounded-xl shadow-lg">
-      <h3 class="text-lg font-bold mb-4 text-gray-800"> 營運指標</h3>
+      <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
         <div class="p-4 bg-blue-50 rounded-lg"><p class="text-3xl font-bold text-blue-600">${D.customers.length}</p><p class="text-gray-500 mt-2">總客戶數</p></div>
         <div class="p-4 bg-green-50 rounded-lg"><p class="text-3xl font-bold text-green-600">${D.products.length}</p><p class="text-gray-500 mt-2">總產品數</p></div>
@@ -494,7 +494,7 @@ function renderOrders(c) {
     <div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">📦 訂單出貨</h1><button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">+ 新增出貨單</button></div>
     <div class="flex gap-4 mb-4">
       <input type="month" id="ord-month" value="${bossMonth}" onchange="renderOrdTable()" class="px-4 py-2 border rounded">
-      <input type="text" id="ord-search" placeholder=" 搜尋客戶/發票..." class="flex-1 px-4 py-2 border rounded" oninput="renderOrdTable()">
+      <input type="text" id="ord-search" placeholder="🔍 搜尋客戶/發票..." class="flex-1 px-4 py-2 border rounded" oninput="renderOrdTable()">
     </div>
     <div class="bg-white rounded-lg shadow overflow-hidden"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">日期</th><th class="px-4 py-3 text-left text-xs">客戶</th><th class="px-4 py-3 text-left text-xs">金額</th><th class="px-4 py-3 text-left text-xs">發票</th><th class="px-4 py-3 text-left text-xs">操作</th></tr></thead><tbody id="ord-tbody"></tbody></table></div>
   `;
@@ -765,14 +765,14 @@ window.delOrd = async function(id) {
 function renderCRM(c) {
   c.innerHTML = `
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold">👥 客戶管理</h1>
+      <h1 class="text-3xl font-bold"> 客戶管理</h1>
       <div class="space-x-2">
         <button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">管理聯繫窗口</button>
         <button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">管理標籤</button>
         <button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700">+ 新增客戶</button>
       </div>
     </div>
-    <div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg" oninput="renderCustTable()"></div>
+    <div class="mb-4"><input type="text" id="cust-search" placeholder=" 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg" oninput="renderCustTable()"></div>
     <div class="bg-white rounded-lg shadow overflow-hidden"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">類型</th><th class="px-4 py-3 text-left text-xs">公司/姓名</th><th class="px-4 py-3 text-left text-xs">聯絡人/電話</th><th class="px-4 py-3 text-left text-xs">抬頭/統編</th><th class="px-4 py-3 text-left text-xs">操作</th></tr></thead><tbody id="cust-tbody"></tbody></table></div>
   `;
   renderCustTable();
@@ -929,21 +929,44 @@ window.manageTags = function() {
 window.addTag = async function() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value, category:'customer'}]); await loadAll(); manageTags(); };
 window.delTag = async function(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); };
 
-// ==================== 倉庫管理 ====================
+// ==================== 倉庫管理 (已修復 400 錯誤) ====================
 function renderWarehouses(c) {
   c.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">倉庫名稱</th><th class="px-4 py-3 text-left text-xs">位置</th><th class="px-4 py-3 text-left text-xs">狀態</th><th class="px-4 py-3 text-left text-xs">操作</th></tr></thead><tbody id="wh-tbody"></tbody></table></div>`;
   document.getElementById('wh-tbody').innerHTML = D.warehouses.map(w=>`<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">${w.name}</td><td class="px-4 py-3 text-sm">${w.location||'-'}</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${w.is_active?'bg-green-100 text-green-800':'bg-gray-100 text-gray-800'}">${w.is_active?'啟用':'停用'}</span></td><td class="px-4 py-3 space-x-2"><button onclick="openWarehouseModal('${w.id}')" class="text-green-600 text-sm">編輯</button><button onclick="delWarehouse('${w.id}')" class="text-red-600 text-sm">刪除</button></td></tr>`).join('');
 }
+
 window.openWarehouseModal = function(id) {
-  editingId = id||null; const w = id?D.warehouses.find(x=>x.id===id):null;
-  const html = `<input type="hidden" id="wh-id" value="${id||''}"><div class="mb-4"><label class="block text-sm font-bold mb-1">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded" value="${w?.name||''}" placeholder="例如：台北倉、冷凍庫"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded" value="${w?.location||''}"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded"><option value="true" ${w?.is_active!==false?'selected':''}>啟用</option><option value="false" ${w?.is_active===false?'selected':''}>停用</option></select></div>`;
-  openModal(id?'編輯倉庫':'新增倉庫', html, async()=>{
-    const d={name:document.getElementById('wh-name').value, location:document.getElementById('wh-loc').value, is_active:document.getElementById('wh-active').value==='true'};
-    if(!d.name) return showAlert('倉庫名稱必填！');
-    if(editingId) await sb.from('warehouses').update(d).eq('id',editingId); else await sb.from('warehouses').insert([d]);
-    showAlert('倉庫已儲存！'); closeModal(); await loadAll(); render();
-  });
+  editingId = id||null; 
+  const w = id ? D.warehouses.find(x=>x.id===id) : null;
+  const html = `
+    <input type="hidden" id="wh-id" value="${id||''}">
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded" value="${w?.name||''}" placeholder="例如：台北倉、冷凍庫"></div>
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded" value="${w?.location||''}"></div>
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded"><option value="true" ${w?.is_active!==false?'selected':''}>啟用</option><option value="false" ${w?.is_active===false?'selected':''}>停用</option></select></div>
+  `;
+  openModal(id?'編輯倉庫':'新增倉庫', html, saveWarehouse);
 };
+
+async function saveWarehouse() {
+  const name = document.getElementById('wh-name').value.trim();
+  if(!name) return showAlert('倉庫名稱必填！');
+  
+  // 嚴格限定只傳送這三個欄位，避免 400 Bad Request
+  const data = {
+    name: name,
+    location: document.getElementById('wh-loc').value,
+    is_active: document.getElementById('wh-active').value === 'true'
+  };
+  
+  try {
+    if(editingId) {
+      await sb.from('warehouses').update(data).eq('id', editingId);
+    } else {
+      await sb.from('warehouses').insert([data]);
+    }
+    showAlert('倉庫已儲存！'); closeModal(); await loadAll(); render();
+  } catch(e) { showAlert('失敗：'+e.message); }
+}
 window.delWarehouse = async function(id) { if(!confirm('確定刪除？')) return; await sb.from('warehouses').delete().eq('id',id); await loadAll(); render(); };
 
 // ==================== 商品與 BOM ====================
@@ -973,7 +996,7 @@ window.delBom = async function(id) { if(!confirm('確定刪除?')) return; await
 // ==================== 庫存盤點（倉庫級別獨立低庫存）====================
 function renderInventory(c) {
   let tabsHtml = D.warehouses.filter(w=>w.is_active).map((w,i)=>`<button onclick="showWhTab('${w.id}')" class="wh-tab px-4 py-2 rounded-lg ${i===0?'bg-blue-600 text-white':'bg-gray-200 text-gray-700'}" data-wh="${w.id}">${w.name}</button>`).join('');
-  c.innerHTML = `<h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap">${tabsHtml||'<p class="text-gray-500">尚未建立倉庫</p>'}</div><div id="inv-content"></div>`;
+  c.innerHTML = `<h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap">${tabsHtml||'<p class="text-gray-500">尚未建立倉庫，請先至倉庫管理新增。</p>'}</div><div id="inv-content"></div>`;
   if(D.warehouses.filter(w=>w.is_active).length > 0) showWhTab(D.warehouses.filter(w=>w.is_active)[0].id);
 }
 
@@ -1017,7 +1040,7 @@ window.saveInvItem = async function(btn) {
 // ==================== 採購入庫（含購買發票模式）====================
 function renderPurchases(c) {
   c.innerHTML = `
-    <div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold">🛒 採購入庫</h1>
+    <div class="flex justify-between items-center mb-6"><h1 class="text-3xl font-bold"> 採購入庫</h1>
       <div class="space-x-2">
         <button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">+ 一般採購</button>
         <button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold">+ 購買發票</button>
