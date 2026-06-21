@@ -6,9 +6,8 @@
 <title>養芯健康 ERP</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  body { font-family: 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
   .hidden { display: none !important; }
   .nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
   .tag-1{background:#f43f5e;color:#fff}.tag-2{background:#ec4899;color:#fff}.tag-3{background:#8b5cf6;color:#fff}.tag-4{background:#6366f1;color:#fff}.tag-5{background:#3b82f6;color:#fff}.tag-6{background:#06b6d4;color:#fff}.tag-7{background:#10b981;color:#fff}.tag-8{background:#84cc16;color:#fff}.tag-9{background:#eab308;color:#000}.tag-10{background:#f97316;color:#fff}
@@ -17,14 +16,16 @@
     .sidebar { position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease-in-out; width: 80%; max-width: 300px; }
     .sidebar.open { transform: translateX(0); }
     .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; }
-    .main-content { padding: 1rem; padding-top: 4rem; }
+    .main-content { padding: 1.5rem; padding-top: 4rem; }
     .mobile-menu-btn { display: flex !important; }
     .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .btn-touch { padding: 0.75rem 1rem; font-size: 0.875rem; min-height: 44px; }
+    .content-card { padding: 1.5rem; }
   }
   @media (min-width: 769px) {
     .mobile-menu-btn { display: none !important; }
     .sidebar-overlay { display: none !important; }
+    .content-card { padding: 2rem; }
   }
 </style>
 </head>
@@ -72,14 +73,14 @@
       <a href="#" data-view="orders" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">📦 訂單出貨</a>
       <div class="text-gray-400 text-xs mt-4 mb-2 px-4 font-semibold">商品後勤</div>
       <a href="#" data-view="products" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">🏭 商品與BOM</a>
-      <a href="#" data-view="warehouses" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"> 倉庫管理</a>
+      <a href="#" data-view="warehouses" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">🏢 倉庫管理</a>
       <a href="#" data-view="inventory" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">📊 庫存盤點</a>
       <a href="#" data-view="purchases" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">🛒 採購入庫</a>
       <a href="#" data-view="vendors" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">🏢 廠商管理</a>
       <div class="text-gray-400 text-xs mt-4 mb-2 px-4 font-semibold">財務金流</div>
-      <a href="#" data-view="finance" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors"> 收支與訂閱</a>
+      <a href="#" data-view="finance" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">💰 收支與訂閱</a>
       <a href="#" data-view="banks" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">🏦 銀行帳戶</a>
-      <a href="#" data-view="settings" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">️ 通路與員工</a>
+      <a href="#" data-view="settings" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors">⚙️ 通路與員工</a>
     </nav>
     <div class="p-4 border-t border-gray-700">
       <button id="logout-btn" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold transition-colors">登出</button>
@@ -311,7 +312,7 @@ function render() {
   else if(currentView==='settings') renderSettings(m);
 }
 
-// ==================== 老闆查閱（完整功能：累積數據/訂閱換算/代墊統計）====================
+// ==================== 老闆查閱（完整功能）====================
 function renderBoss(c) {
   const [y, m] = bossMonth.split('-').map(Number);
   const monthOrders = D.orders.filter(o => { const d=new Date(o.created_at); return d.getFullYear()===y && d.getMonth()+1===m; });
@@ -324,7 +325,6 @@ function renderBoss(c) {
   const sub = monthSubs.reduce((s,x)=>s+(x.amount||0),0);
   const totalCash = D.banks.reduce((s,b)=>s+(b.balance||0),0);
   const monthlyProfit = rev - pur - exp - sub;
-  const profitMargin = rev > 0 ? ((monthlyProfit / rev) * 100).toFixed(1) : 0;
   
   const subTag = D.tags.find(t => t.name.includes('訂閱'));
   let subCustomerCount = 0;
@@ -339,104 +339,85 @@ function renderBoss(c) {
     subMonthlyRevenue += dailyRevenue * 30;
   });
 
-  const companyShipping = monthOrders.reduce((s, o) => s + (o.absorbed_shipping_fee || 0), 0);
-  const customerShipping = monthOrders.reduce((s, o) => s + (o.customer_paid_shipping || 0), 0);
-
-  const unreimbursedExpenses = D.expenses.filter(e => e.employee_id && !e.is_reimbursed);
-  const unreimbursedTotal = unreimbursedExpenses.reduce((s, e) => s + (e.amount || 0), 0);
-  const unreimbursedByEmp = {};
-  unreimbursedExpenses.forEach(e => {
-    const emp = D.emps.find(x => x.id === e.employee_id);
-    if(emp) unreimbursedByEmp[emp.name] = (unreimbursedByEmp[emp.name] || 0) + (e.amount || 0);
-  });
-
   const totalCustomers = D.customers.length;
   const monthOrderCount = monthOrders.length;
 
   c.innerHTML = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-      <h1 class="text-3xl font-bold">👑 老闆查閱</h1>
-      <div class="flex flex-wrap gap-2 w-full md:w-auto">
-        <input type="month" value="${bossMonth}" onchange="bossMonth=this.value;render()" class="px-4 py-2 border rounded-lg shadow flex-1 md:flex-none">
-        <button onclick="alert('報表下載功能開發中')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold whitespace-nowrap btn-touch">📥 下載報表</button>
+    <div class="content-card">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h1 class="text-3xl font-bold">👑 老闆查閱</h1>
+        <input type="month" value="${bossMonth}" onchange="bossMonth=this.value;render()" class="px-4 py-2 border rounded-lg shadow">
       </div>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
-        <p class="text-sm opacity-90">本月業績</p>
-        <p class="text-3xl font-bold mt-2">NT$${rev.toLocaleString()}</p>
-        <p class="text-xs mt-2 opacity-75">訂單數：${monthOrderCount} 單</p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white">
+          <p class="text-sm opacity-90">本月業績</p>
+          <p class="text-3xl font-bold mt-2">${rev.toLocaleString()}</p>
+          <p class="text-xs mt-2 opacity-75">訂單數：${monthOrderCount} 單</p>
+        </div>
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
+          <p class="text-sm opacity-90">本月採購</p>
+          <p class="text-3xl font-bold mt-2">${pur.toLocaleString()}</p>
+        </div>
+        <div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white">
+          <p class="text-sm opacity-90">本月開銷(含訂閱)</p>
+          <p class="text-3xl font-bold mt-2">${(exp+sub).toLocaleString()}</p>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
+          <p class="text-sm opacity-90">本月淨利</p>
+          <p class="text-3xl font-bold mt-2">${monthlyProfit.toLocaleString()}</p>
+        </div>
       </div>
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white">
-        <p class="text-sm opacity-90">本月採購</p>
-        <p class="text-3xl font-bold mt-2">NT$${pur.toLocaleString()}</p>
-      </div>
-      <div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white">
-        <p class="text-sm opacity-90">本月開銷(含訂閱)</p>
-        <p class="text-3xl font-bold mt-2">NT$${(exp+sub).toLocaleString()}</p>
-      </div>
-      <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white">
-        <p class="text-sm opacity-90">本月淨利</p>
-        <p class="text-3xl font-bold mt-2">NT$${monthlyProfit.toLocaleString()}</p>
-      </div>
-    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
-        <div class="space-y-4">
-          <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">${totalCustomers} 位</span></div>
-          <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">本月訂單數</span><span class="text-2xl font-bold text-indigo-600">${monthOrderCount} 單</span></div>
-          <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">${subCustomerCount} 位</span></div>
-          <div class="flex justify-between items-center"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">NT$${Math.round(subMonthlyRevenue).toLocaleString()}</span></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">${totalCustomers} 位</span></div>
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">本月訂單數</span><span class="text-2xl font-bold text-indigo-600">${monthOrderCount} 單</span></div>
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">${subCustomerCount} 位</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">${Math.round(subMonthlyRevenue).toLocaleString()}</span></div>
+          </div>
         </div>
-      </div>
-      <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">🚚 運費與員工代墊</h3>
-        <div class="space-y-4">
-          <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">公司吸收運費</span><span class="text-xl font-bold text-red-600">NT$${companyShipping.toLocaleString()}</span></div>
-          <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">客戶自付運費</span><span class="text-xl font-bold text-green-600">NT$${customerShipping.toLocaleString()}</span></div>
-          <div class="flex justify-between items-center pt-2"><span class="text-gray-600 font-bold">待結帳代墊總額</span><span class="text-xl font-bold text-orange-600">NT$${unreimbursedTotal.toLocaleString()}</span></div>
-          ${Object.keys(unreimbursedByEmp).length > 0 ? `<div class="text-xs text-gray-500 bg-gray-50 p-2 rounded">${Object.entries(unreimbursedByEmp).map(([name, amt]) => `<div>${name}: NT$${amt.toLocaleString()}</div>`).join('')}</div>` : '<div class="text-xs text-gray-500">目前無待結帳代墊款項</div>'}
+        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3>
+          <p class="text-4xl font-bold text-orange-600 mb-6">現金總額：${totalCash.toLocaleString()}</p>
+          <div class="space-y-2">
+            ${D.banks.map(b=>`<div class="flex justify-between items-center p-3 bg-gray-50 rounded"><span class="font-medium">${b.account_name}</span><span class="font-bold text-green-600">${(b.balance||0).toLocaleString()}</span></div>`).join('')}
+          </div>
         </div>
-      </div>
-    </div>
-    
-    <div class="bg-white p-6 rounded-xl shadow-lg">
-      <h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金狀態 (現金總額：NT$${totalCash.toLocaleString()})</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        ${D.banks.map(b=>`<div class="p-4 bg-gray-50 rounded-lg border"><p class="font-bold text-lg">${b.account_name}</p><p class="text-gray-500 text-sm">${b.bank_name} - ${b.account_number}</p><p class="text-2xl font-bold text-green-600 mt-2">NT$${(b.balance||0).toLocaleString()}</p></div>`).join('')}
       </div>
     </div>
   `;
 }
 
-// ==================== 客戶管理（完整功能：標籤/窗口/地址/訂閱）====================
+// ==================== 客戶管理（完整修復）====================
 function renderCRM(c) {
   c.innerHTML = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-      <h1 class="text-3xl font-bold"> 客戶管理</h1>
-      <div class="flex flex-wrap gap-2 w-full md:w-auto">
-        <button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button>
-        <button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button>
-        <button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button>
+    <div class="content-card">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h1 class="text-3xl font-bold">👥 客戶管理</h1>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+          <button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button>
+          <button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button>
+          <button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button>
+        </div>
       </div>
-    </div>
-    <div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg" oninput="renderCustTable()"></div>
-    <div class="bg-white rounded-lg shadow overflow-hidden table-container">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人/電話</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-          </tr>
-        </thead>
-        <tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody>
-      </table>
+      <div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg" oninput="renderCustTable()"></div>
+      <div class="bg-white rounded-lg shadow overflow-hidden table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">公司/姓名</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人/電話</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+            </tr>
+          </thead>
+          <tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
     </div>
   `;
   renderCustTable();
@@ -470,10 +451,42 @@ function renderCustTable() {
 async function viewCustDetail(id) {
   const c = D.customers.find(x=>x.id===id);
   if(!c) return showAlert('找不到客戶');
+  
+  const win = D.windows.find(w=>w.id===c.primary_contact_window_id);
+  const custTags = (D.customerTags || []).filter(ct => ct.customer_id === c.id).map(ct => {
+    const tag = D.tags.find(t => t.id === ct.tag_id);
+    return tag ? `<span class="tag-${tag.color} px-2 py-1 rounded text-xs mr-1">${tag.name}</span>` : '';
+  }).join('');
+  
   const {data:addrs} = await sb.from('customer_addresses').select('*').eq('customer_id', id);
-  const addrHtml = (addrs||[]).map(a => `<div class="border p-3 rounded mb-2 bg-gray-50"><b>${a.address_type} ${a.is_default?'(預設)':''}</b><br>${a.recipient_name} (${a.recipient_phone})<br>${a.street || a.cvs_store_name}</div>`).join('') || '<p class="text-gray-500">無地址</p>';
+  const addrHtml = (addrs||[]).map(a => `
+    <div class="border p-3 rounded mb-2 bg-gray-50">
+      <div class="font-bold text-sm mb-1">${a.address_type} ${a.is_default?'(預設)':''}</div>
+      <div class="text-sm">收件人：${a.recipient_name} (${a.recipient_phone})</div>
+      <div class="text-sm text-gray-600">${a.street || a.cvs_store_name || '-'}</div>
+    </div>
+  `).join('') || '<p class="text-gray-500">無地址</p>';
 
-  const html = `<div class="space-y-4"><div class="grid grid-cols-2 gap-4 text-sm"><div><b>公司:</b> ${c.company_name||'-'}</div><div><b>聯絡人:</b> ${c.contact_person}</div><div><b>電話:</b> ${c.phone}</div><div><b>統編:</b> ${c.tax_id||'-'}</div></div><div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址</h3>${addrHtml}</div></div>`;
+  const html = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div><b>類型:</b> ${c.type}</div>
+        <div><b>主要窗口:</b> ${win?.name || '-'}</div>
+        <div><b>公司:</b> ${c.company_name||'-'}</div>
+        <div><b>統編:</b> ${c.tax_id||'-'}</div>
+        <div><b>聯絡人:</b> ${c.contact_person}</div>
+        <div><b>電話:</b> ${c.phone}</div>
+        <div><b>Email:</b> ${c.email||'-'}</div>
+        <div><b>聯絡窗口名:</b> ${c.contact_window_name||'-'}</div>
+        <div class="md:col-span-2"><b>標籤:</b> ${custTags || '無'}</div>
+        ${c.is_subscription ? `<div class="md:col-span-2 bg-indigo-50 p-2 rounded"><b>訂閱客戶:</b> 是 (週期: ${c.subscription_days} 天)</div>` : ''}
+      </div>
+      <div class="border-t pt-3">
+        <h3 class="font-bold mb-2">寄送地址</h3>
+        ${addrHtml}
+      </div>
+    </div>
+  `;
   openModal('客戶詳情', html, null, true);
 }
 
@@ -485,15 +498,42 @@ async function openCustModal(id) {
   
   const html = `
     <input type="hidden" id="c-id" value="${id||''}">
-    <div class="grid grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div><label class="block text-sm font-bold mb-1">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded"><option value="B2C" ${c?.type==='B2C'?'selected':''}>B2C</option><option value="B2B" ${c?.type==='B2B'?'selected':''}>B2B</option></select></div>
+      <div><label class="block text-sm font-bold mb-1">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded"><option value="">無</option>${D.windows.map(w=>`<option value="${w.id}" ${c?.primary_contact_window_id===w.id?'selected':''}>${w.name}</option>`).join('')}</select></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div><label class="block text-sm font-bold mb-1">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded" value="${c?.company_name||''}"></div>
+      <div><label class="block text-sm font-bold mb-1">聯絡窗口名 (手動輸入)</label><input type="text" id="c-winname" class="w-full px-3 py-2 border rounded" value="${c?.contact_window_name||''}"></div>
     </div>
-    <div class="grid grid-cols-2 gap-4 mb-4">
-      <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded" value="${c?.contact_person||''}"></div>
-      <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded" value="${c?.phone||''}"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div><label class="block text-sm font-bold mb-1">聯絡人 *</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded" value="${c?.contact_person||''}" oninput="syncAddrContact()"></div>
+      <div><label class="block text-sm font-bold mb-1">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded" value="${c?.phone||''}" oninput="syncAddrContact()"></div>
     </div>
-    <div class="mb-4"><label class="block text-sm font-bold mb-1">標籤</label><div class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">${D.tags.map(t=>`<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer"><input type="checkbox" value="${t.id}" class="c-tag-cb" ${custTagIds.includes(t.id)?'checked':''}><span class="tag-${t.color} px-2 py-1 rounded text-xs">${t.name}</span></label>`).join('')}</div></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div><label class="block text-sm font-bold mb-1">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded" value="${c?.invoice_title||''}"></div>
+      <div><label class="block text-sm font-bold mb-1">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded" value="${c?.tax_id||''}"></div>
+    </div>
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded" value="${c?.email||''}"></div>
+    
+    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">
+      <h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3>
+      <label class="flex items-center gap-2 cursor-pointer mb-2">
+        <input type="checkbox" id="c-is-sub" class="w-5 h-5 text-indigo-600 rounded" ${c?.is_subscription?'checked':''} onchange="document.getElementById('c-sub-days-box').style.display = this.checked ? 'block' : 'none'">
+        <span class="font-medium">此客戶為訂閱客戶</span>
+      </label>
+      <div id="c-sub-days-box" style="display:${c?.is_subscription?'block':'none'}">
+        <label class="block text-sm font-bold mb-1">訂閱週期 (天數)</label>
+        <select id="c-sub-days" class="w-full px-3 py-2 border rounded">
+          <option value="30" ${c?.subscription_days===30?'selected':''}>30 天 (月繳)</option>
+          <option value="45" ${c?.subscription_days===45?'selected':''}>45 天</option>
+          <option value="60" ${c?.subscription_days===60?'selected':''}>60 天 (雙月繳)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">${D.tags.map(t=>`<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer"><input type="checkbox" value="${t.id}" class="c-tag-cb" ${custTagIds.includes(t.id)?'checked':''}><span class="tag-${t.color} px-2 py-1 rounded text-xs">${t.name}</span></label>`).join('')}</div></div>
+    
     <div class="border-t pt-4">
       <div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">寄送地址</h3><button type="button" onclick="addAddr()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">+ 新增地址</button></div>
       <div id="addr-box" class="space-y-3"></div>
@@ -511,19 +551,33 @@ async function openCustModal(id) {
   }
 }
 
+function syncAddrContact() {
+  const contact = document.getElementById('c-contact')?.value || '';
+  const phone = document.getElementById('c-phone')?.value || '';
+  const recvInput = document.querySelector('#addr-box .a-recv');
+  const phoneInput = document.querySelector('#addr-box .a-phone');
+  if(recvInput && !recvInput.dataset.userEdited) recvInput.value = contact;
+  if(phoneInput && !phoneInput.dataset.userEdited) phoneInput.value = phone;
+}
+
 function addAddr(isDefault = false) {
   const box = document.getElementById('addr-box');
+  const contact = document.getElementById('c-contact')?.value || '';
+  const phone = document.getElementById('c-phone')?.value || '';
   const div = document.createElement('div');
   div.className = 'border rounded-lg p-4 bg-gray-50';
+  const isFirst = box.children.length === 0;
+  const shouldBeDefault = isDefault || (isFirst && !isDefault);
+  
   div.innerHTML = `
     <div class="flex justify-between items-center mb-3">
-      <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="a-def" ${isDefault?'checked':''}><span>預設</span></label>
+      <label class="flex items-center gap-1 text-sm"><input type="checkbox" class="a-def" ${shouldBeDefault?'checked':''}><span>預設</span></label>
       <button type="button" onclick="this.closest('.border').remove()" class="text-red-600">刪除</button>
     </div>
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div><label class="block text-xs font-bold mb-1">類型</label><select class="a-type w-full px-3 py-2 border rounded"><option value="home">住家</option><option value="office">公司</option><option value="cvs_711">7-11</option><option value="cvs_family">全家</option></select></div>
-      <div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="a-recv w-full px-3 py-2 border rounded"></div>
-      <div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="a-phone w-full px-3 py-2 border rounded"></div>
+      <div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="a-recv w-full px-3 py-2 border rounded" value="${contact}" oninput="this.dataset.userEdited='true'"></div>
+      <div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="a-phone w-full px-3 py-2 border rounded" value="${phone}" oninput="this.dataset.userEdited='true'"></div>
       <div><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" class="a-addr w-full px-3 py-2 border rounded"></div>
     </div>
   `;
@@ -532,11 +586,21 @@ function addAddr(isDefault = false) {
 
 async function saveCust() {
   const id = document.getElementById('c-id').value;
+  const isSub = document.getElementById('c-is-sub').checked;
+  const subDays = isSub ? parseInt(document.getElementById('c-sub-days').value) : null;
+  
   const data = {
     type: document.getElementById('c-type').value, 
     company_name: document.getElementById('c-comp').value||null,
     contact_person: document.getElementById('c-contact').value, 
-    phone: document.getElementById('c-phone').value
+    phone: document.getElementById('c-phone').value,
+    contact_window_name: document.getElementById('c-winname').value||null,
+    primary_contact_window_id: document.getElementById('c-win').value||null,
+    invoice_title: document.getElementById('c-title').value||null,
+    tax_id: document.getElementById('c-tax').value||null,
+    email: document.getElementById('c-email').value||null,
+    is_subscription: isSub,
+    subscription_days: subDays
   };
   if(!data.contact_person || !data.phone) return showAlert('聯絡人和電話必填！');
   
@@ -556,7 +620,14 @@ async function saveCust() {
     await sb.from('customer_addresses').delete().eq('customer_id', cid);
     const addrs = [];
     document.querySelectorAll('#addr-box > div').forEach(d => {
-      addrs.push({ customer_id:cid, address_type:d.querySelector('.a-type').value, recipient_name:d.querySelector('.a-recv').value, recipient_phone:d.querySelector('.a-phone').value, street:d.querySelector('.a-addr').value, is_default:d.querySelector('.a-def').checked });
+      addrs.push({ 
+        customer_id:cid, 
+        address_type:d.querySelector('.a-type').value, 
+        recipient_name:d.querySelector('.a-recv').value, 
+        recipient_phone:d.querySelector('.a-phone').value, 
+        street:d.querySelector('.a-addr').value, 
+        is_default:d.querySelector('.a-def').checked 
+      });
     });
     if(addrs.length) await sb.from('customer_addresses').insert(addrs);
     
@@ -569,50 +640,59 @@ async function saveCust() {
 
 async function delCust(id) {
   if(!confirm('確定刪除？')) return;
-  await sb.from('customer_addresses').delete().eq('customer_id',id);
-  await sb.from('customer_tags').delete().eq('customer_id',id);
-  await sb.from('customers').delete().eq('id',id);
-  await loadAll(); render();
+  try {
+    // 先刪除關聯資料
+    await sb.from('customer_addresses').delete().eq('customer_id',id);
+    await sb.from('customer_tags').delete().eq('customer_id',id);
+    // 最後刪除客戶
+    await sb.from('customers').delete().eq('id',id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('刪除失敗：'+e.message);
+  }
 }
 
 function manageWindows() {
-  const html = `<div class="flex gap-2 mb-4"><input type="text" id="w-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><button onclick="addWin()" class="px-4 py-2 bg-blue-600 text-white rounded">新增</button></div><div class="space-y-2">${D.windows.map(w=>`<div class="flex justify-between p-2 border rounded"><span>${w.name}</span><button onclick="delWin('${w.id}')" class="text-red-600 text-sm">刪除</button></div>`).join('')}</div>`;
+  const html = `<div class="flex gap-2 mb-4"><input type="text" id="w-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded"><button onclick="addWin()" class="px-4 py-2 bg-blue-600 text-white rounded">新增</button></div><div id="win-list" class="space-y-2">${D.windows.map(w=>`<div class="flex justify-between p-2 border rounded"><span>${w.name}</span><button onclick="delWin('${w.id}')" class="text-red-600 text-sm">刪除</button></div>`).join('')}</div>`;
   openModal('管理聯繫窗口', html, null, true);
 }
 async function addWin() { const n = document.getElementById('w-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('contact_windows').insert([{name:n}]); await loadAll(); manageWindows(); }
 async function delWin(id) { if(!confirm('確定刪除？')) return; await sb.from('contact_windows').delete().eq('id',id); await loadAll(); manageWindows(); }
 
 function manageTags() {
-  const html = `<div class="flex gap-2 mb-4"><input type="text" id="t-name" placeholder="標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="t-color" class="px-3 py-2 border rounded">${Object.entries(COLOR_NAMES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><button onclick="addTag()" class="px-4 py-2 bg-blue-600 text-white rounded">新增</button></div><div class="space-y-2">${D.tags.map(t=>`<div class="flex justify-between p-2 border rounded"><span class="tag-${t.color} px-2 py-1 rounded text-sm">${t.name}</span><button onclick="delTag('${t.id}')" class="text-red-600 text-sm">刪除</button></div>`).join('')}</div>`;
+  const html = `<div class="flex gap-2 mb-4"><input type="text" id="t-name" placeholder="標籤名稱" class="flex-1 px-3 py-2 border rounded"><select id="t-color" class="px-3 py-2 border rounded">${Object.entries(COLOR_NAMES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><button onclick="addTag()" class="px-4 py-2 bg-blue-600 text-white rounded">新增</button></div><div id="tag-list" class="space-y-2">${D.tags.map(t=>`<div class="flex justify-between p-2 border rounded"><span class="tag-${t.color} px-2 py-1 rounded text-sm">${t.name}</span><button onclick="delTag('${t.id}')" class="text-red-600 text-sm">刪除</button></div>`).join('')}</div>`;
   openModal('管理標籤', html, null, true);
 }
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
-  // ==================== 訂單出貨（完整功能：發票/運費/金流/訂閱）====================
+  // ==================== 訂單出貨（完整功能）====================
 function renderOrders(c) {
   c.innerHTML = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-      <h1 class="text-3xl font-bold">📦 訂單出貨</h1>
-      <button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button>
-    </div>
-    <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
-      <input type="month" id="ord-month" value="${bossMonth}" onchange="renderOrdTable()" class="px-4 py-2 border rounded md:w-48">
-      <input type="text" id="ord-search" placeholder="🔍 搜尋客戶/發票..." class="flex-1 px-4 py-2 border rounded" oninput="renderOrdTable()">
-    </div>
-    <div class="bg-white rounded-lg shadow overflow-hidden table-container">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">銷售通路</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">發票</th>
-            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-          </tr>
-        </thead>
-        <tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>
-      </table>
+    <div class="content-card">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <h1 class="text-3xl font-bold">📦 訂單出貨</h1>
+        <button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button>
+      </div>
+      <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
+        <input type="month" id="ord-month" value="${bossMonth}" onchange="renderOrdTable()" class="px-4 py-2 border rounded md:w-48">
+        <input type="text" id="ord-search" placeholder="🔍 搜尋客戶/發票..." class="flex-1 px-4 py-2 border rounded" oninput="renderOrdTable()">
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden table-container">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">銷售通路</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">發票</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+            </tr>
+          </thead>
+          <tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
     </div>
   `;
   renderOrdTable();
@@ -636,7 +716,7 @@ function renderOrdTable() {
       <td class="px-4 py-3 whitespace-nowrap">${new Date(o.created_at).toLocaleDateString()}</td>
       <td class="px-4 py-3">${c?.company_name||c?.contact_person||'-'}</td>
       <td class="px-4 py-3 text-sm">${ch?.name||'-'}</td>
-      <td class="px-4 py-3 font-bold">NT$${(o.total_amount||0).toLocaleString()}</td>
+      <td class="px-4 py-3 font-bold">${(o.total_amount||0).toLocaleString()}</td>
       <td class="px-4 py-3 text-sm">${o.invoice_no||'無'}</td>
       <td class="px-4 py-3 whitespace-nowrap space-x-2">
         <button onclick="viewOrdDetail('${o.id}')" class="text-blue-600 text-sm hover:underline">詳情</button>
@@ -664,8 +744,8 @@ async function viewOrdDetail(id) {
       <td class="py-2">${i.products?.name || '-'}</td>
       <td class="py-2">${i.products?.sku || '-'}</td>
       <td class="py-2">${i.quantity}</td>
-      <td class="py-2">NT$${i.unit_price}</td>
-      <td class="py-2">NT$${(i.quantity * i.unit_price).toLocaleString()}</td>
+      <td class="py-2">${i.unit_price}</td>
+      <td class="py-2">${(i.quantity * i.unit_price).toLocaleString()}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" class="py-2 text-center text-gray-500">無商品明細</td></tr>';
 
@@ -675,7 +755,7 @@ async function viewOrdDetail(id) {
       <div><b>客戶:</b> ${c?.company_name||c?.contact_person||'-'}</div><div><b>發票:</b> ${o.invoice_no||'無'}</div>
       <div><b>銷售通路:</b> ${ch?.name||'-'}</div><div><b>付款方式:</b> ${pm?.name||'-'}</div>
       <div><b>入帳帳戶:</b> ${b?.account_name||'-'}</div>
-      <div><b>總金額:</b> NT$${(o.total_amount||0).toLocaleString()}</div>
+      <div><b>總金額:</b> ${(o.total_amount||0).toLocaleString()}</div>
       ${o.is_subscription ? `<div class="md:col-span-2 bg-indigo-50 p-2 rounded"><b>訂閱訂單:</b> 是 (週期: ${o.subscription_days} 天)</div>` : ''}
     </div>
     <div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址</h3><p>${addr.recv||'-'} ${addr.phone||''}<br>${addr.addr||'-'}</p></div>
@@ -741,13 +821,13 @@ async function openOrdModal(id) {
 
     <div class="mb-4"><label class="block text-sm font-bold mb-1">產品明細</label><div id="o-items" class="space-y-3"></div><button type="button" onclick="addOrdItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm">+ 新增產品</button></div>
     <div class="bg-gray-50 p-4 rounded">
-      <div class="text-sm text-gray-600">商品小計：NT$<span id="o-subtotal">0</span></div>
-      <div class="text-sm text-gray-600" id="o-tax-row" style="display:${o?.tax_handling!=='no'?'block':'none'}">稅金：NT$<span id="o-tax">0</span></div>
-      <div class="text-sm text-gray-600" id="o-ship-row" style="display:${o?.shipping_fee>0?'block':'none'}">運費：NT$<span id="o-ship-display">0</span></div>
-      <div class="text-sm text-gray-600" id="o-commission-row">抽成/手續費：NT$<span id="o-commission">0</span></div>
-      <div class="text-xl font-bold mt-2">總金額：NT$<span id="o-total">0</span></div>
+      <div class="text-sm text-gray-600">商品小計：<span id="o-subtotal">0</span></div>
+      <div class="text-sm text-gray-600" id="o-tax-row" style="display:${o?.tax_handling!=='no'?'block':'none'}">稅金：<span id="o-tax">0</span></div>
+      <div class="text-sm text-gray-600" id="o-ship-row" style="display:${o?.shipping_fee>0?'block':'none'}">運費：<span id="o-ship-display">0</span></div>
+      <div class="text-sm text-gray-600" id="o-commission-row">抽成/手續費：<span id="o-commission">0</span></div>
+      <div class="text-xl font-bold mt-2">總金額：<span id="o-total">0</span></div>
       <div class="text-xs text-gray-500 mt-1" id="o-inv-info"></div>
-      <div class="text-sm text-green-600 mt-2 font-bold">預估淨利：NT$<span id="o-profit">0</span> (毛利率：<span id="o-margin">0</span>%)</div>
+      <div class="text-sm text-green-600 mt-2 font-bold">預估淨利：<span id="o-profit">0</span> (毛利率：<span id="o-margin">0</span>%)</div>
     </div>
   `;
   openModal(id?'編輯出貨單':'新增出貨單', html, saveOrd);
@@ -810,7 +890,7 @@ function addOrdItem() {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
-  div.innerHTML = `<div class="flex-1 min-w-[150px]"><select class="o-prod w-full px-3 py-2 border rounded" onchange="if(this.value){this.parentElement.parentElement.querySelector('.o-price').value=this.options[this.selectedIndex].dataset.price;}calcOrd()"><option value="">選擇產品</option>${D.products.map(p=>`<option value="${p.id}" data-price="${p.sell_price}" data-cost="${p.cost_price}">${p.name} (NT$${p.sell_price})</option>`).join('')}</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded" value="1" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded" value="0" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove();calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded">X</button>`;
+  div.innerHTML = `<div class="flex-1 min-w-[150px]"><select class="o-prod w-full px-3 py-2 border rounded" onchange="if(this.value){this.parentElement.parentElement.querySelector('.o-price').value=this.options[this.selectedIndex].dataset.price;}calcOrd()"><option value="">選擇產品</option>${D.products.map(p=>`<option value="${p.id}" data-price="${p.sell_price}" data-cost="${p.cost_price}">${p.name} (${p.sell_price})</option>`).join('')}</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded" value="1" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded" value="0" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove();calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded">X</button>`;
   box.appendChild(div);
 }
 
@@ -829,8 +909,8 @@ function calcOrd() {
   const shipType = document.getElementById('o-ship-type').value;
   const invType = document.getElementById('o-inv-type').value;
   let tax = 0, invInfo = '';
-  if(invType==='tax') { tax = Math.round(sub * 0.05); invInfo = `稅外加：商品 NT$${sub.toLocaleString()} + 5% 稅金 NT$${tax.toLocaleString()} = 客人需付 NT$${(sub+tax).toLocaleString()}`; document.getElementById('o-tax-row').style.display = 'block'; } 
-  else if(invType==='has') { tax = 0; invInfo = `有發票：訂單價格即為含稅價 NT$${sub.toLocaleString()}`; document.getElementById('o-tax-row').style.display = 'block'; } 
+  if(invType==='tax') { tax = Math.round(sub * 0.05); invInfo = `稅外加：商品 ${sub.toLocaleString()} + 5% 稅金 ${tax.toLocaleString()} = 客人需付 ${(sub+tax).toLocaleString()}`; document.getElementById('o-tax-row').style.display = 'block'; } 
+  else if(invType==='has') { tax = 0; invInfo = `有發票：訂單價格即為含稅價 ${sub.toLocaleString()}`; document.getElementById('o-tax-row').style.display = 'block'; } 
   else { document.getElementById('o-tax-row').style.display = 'none'; }
   document.getElementById('o-tax').textContent = tax.toLocaleString();
   document.getElementById('o-inv-info').textContent = invInfo;
@@ -926,11 +1006,11 @@ async function delOrd(id) {
   } 
 }
 
-// ==================== 商品與 BOM（完整功能）====================
+// ==================== 商品與 BOM（完整修復）====================
 function renderProducts(c) {
-  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold"> 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總庫存</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
+  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總庫存</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
   const tm = {material:'原料',semi:'半成品',finished:'成品'};
-  document.getElementById('prod-tbody').innerHTML = D.products.map(p=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${tm[p.type]||p.type}</td><td class="px-4 py-3">NT$${p.sell_price||0}</td><td class="px-4 py-3 text-gray-500">NT$${p.cost_price||0}</td><td class="px-4 py-3 font-bold">${p.current_stock||0}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal('${p.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delProd('${p.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
+  document.getElementById('prod-tbody').innerHTML = D.products.map(p=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${tm[p.type]||p.type}</td><td class="px-4 py-3">${p.sell_price||0}</td><td class="px-4 py-3 text-gray-500">${p.cost_price||0}</td><td class="px-4 py-3 font-bold">${p.current_stock||0}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal('${p.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delProd('${p.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
   document.getElementById('bom-tbody').innerHTML = D.bom.map(b=>{const p1=D.products.find(x=>x.id===b.parent_product_id);const p2=D.products.find(x=>x.id===b.child_product_id);return `<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p1?.name||'-'}</td><td class="px-4 py-3">${p2?.name||'-'}</td><td class="px-4 py-3 font-bold">${b.quantity}</td><td class="px-4 py-3"><button onclick="delBom('${b.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;}).join('');
 }
 
@@ -996,9 +1076,10 @@ async function delBom(id) {
     showAlert('失敗：'+e.message); 
   }
 }
+
 // ==================== 倉庫管理 ====================
 function renderWarehouses(c) {
-  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold"> 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">倉庫名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
+  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">倉庫名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
   document.getElementById('wh-tbody').innerHTML = D.warehouses.map(w=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${w.name}</td><td class="px-4 py-3 text-sm">${w.location||'-'}</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${w.is_active?'bg-green-100 text-green-800':'bg-gray-100 text-gray-800'}">${w.is_active?'啟用':'停用'}</span></td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openWarehouseModal('${w.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delWarehouse('${w.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
 }
 
@@ -1037,7 +1118,7 @@ function renderInventory(c) {
   let tabsHtml = `<button onclick="showWhTab('all')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700" data-wh="all">📦 全部庫存總覽</button>`;
   tabsHtml += D.warehouses.filter(w=>w.is_active).map((w)=>`<button onclick="showWhTab('${w.id}')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700" data-wh="${w.id}">${w.name}</button>`).join('');
   
-  c.innerHTML = `<h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">${tabsHtml}</div><div id="inv-content"></div>`;
+  c.innerHTML = `<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">${tabsHtml}</div><div id="inv-content"></div></div>`;
   showWhTab('all');
 }
 
@@ -1091,24 +1172,26 @@ function saveInvItem(btn, pid, wid) {
   promise.then(() => { loadAll().then(() => { showWhTab(wid); showAlert('庫存已更新！'); }); }).catch(e => showAlert('失敗：'+e.message));
 }
 
-// ==================== 採購入庫（完整功能：發票/稅金最後四捨五入/自動入庫/扣款）====================
+// ==================== 採購入庫（完整功能：稅金最後四捨五入）====================
 function renderPurchases(c) {
   c.innerHTML = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒 採購入庫</h1>
-      <div class="flex flex-wrap gap-2 w-full md:w-auto">
-        <button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button>
-        <button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button>
+    <div class="content-card">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒 採購入庫</h1>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+          <button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button>
+          <button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button>
+        </div>
       </div>
-    </div>
-    <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
-      <input type="month" id="pur-month" value="${bossMonth}" onchange="renderPurTable()" class="px-4 py-2 border rounded md:w-48">
-      <input type="text" id="pur-search" placeholder="🔍 搜尋廠商..." class="flex-1 px-4 py-2 border rounded" oninput="renderPurTable()">
-    </div>
-    <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
-    <div class="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
-      <div class="flex justify-between items-center">
-        <span class="text-lg font-bold text-blue-800">📊 篩選結果總金額</span>
-        <span class="text-2xl font-bold text-blue-600">NT$<span id="pur-total-display">0</span></span>
+      <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
+        <input type="month" id="pur-month" value="${bossMonth}" onchange="renderPurTable()" class="px-4 py-2 border rounded md:w-48">
+        <input type="text" id="pur-search" placeholder="🔍 搜尋廠商..." class="flex-1 px-4 py-2 border rounded" oninput="renderPurTable()">
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+      <div class="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div class="flex justify-between items-center">
+          <span class="text-lg font-bold text-blue-800">📊 篩選結果總金額</span>
+          <span class="text-2xl font-bold text-blue-600"><span id="pur-total-display">0</span></span>
+        </div>
       </div>
     </div>
   `;
@@ -1133,7 +1216,7 @@ function renderPurTable() {
     const v=D.vendors.find(x=>x.id===p.vendor_id);
     const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
     const dateStr = new Date(p.created_at).toLocaleDateString('zh-TW');
-    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">${dateStr}</td><td class="px-4 py-3">${v?.name||'-'}</td><td class="px-4 py-3">${typeLabel}</td><td class="px-4 py-3 font-bold">NT$${(p.total_amount||0).toLocaleString()}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurDetail('${p.id}')" class="text-blue-600 text-sm hover:underline">詳情</button><button onclick="openPurEdit('${p.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delPur('${p.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;
+    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">${dateStr}</td><td class="px-4 py-3">${v?.name||'-'}</td><td class="px-4 py-3">${typeLabel}</td><td class="px-4 py-3 font-bold">${(p.total_amount||0).toLocaleString()}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurDetail('${p.id}')" class="text-blue-600 text-sm hover:underline">詳情</button><button onclick="openPurEdit('${p.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delPur('${p.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;
   }).join('');
 }
 
@@ -1151,8 +1234,8 @@ async function viewPurDetail(id) {
       <td class="py-2">${i.products?.name || '-'}</td>
       <td class="py-2">${i.products?.sku || '-'}</td>
       <td class="py-2">${i.quantity}</td>
-      <td class="py-2">NT$${i.unit_price}</td>
-      <td class="py-2">NT$${(i.quantity * i.unit_price).toLocaleString()}</td>
+      <td class="py-2">${i.unit_price}</td>
+      <td class="py-2">${(i.quantity * i.unit_price).toLocaleString()}</td>
     </tr>
   `).join('') || '<tr><td colspan="5" class="py-2 text-center text-gray-500">無商品明細</td></tr>';
 
@@ -1170,13 +1253,13 @@ async function viewPurDetail(id) {
       <div class="bg-orange-50 p-4 rounded border">
         <h3 class="font-bold mb-2 text-orange-800">📄 購買發票明細</h3>
         <p>此筆為購買發票支出，僅支付稅金。</p>
-        <p class="mt-2"><b>發票稅金金額：NT$${(p.total_amount||0).toLocaleString()}</b></p>
+        <p class="mt-2"><b>發票稅金金額：${(p.total_amount||0).toLocaleString()}</b></p>
       </div>
       ` : ''}
       <div class="border-t pt-3"><h3 class="font-bold mb-2">商品明細</h3>
         <div class="overflow-x-auto"><table class="min-w-full text-sm"><thead><tr><th class="text-left py-2">產品</th><th class="text-left py-2">SKU</th><th class="text-left py-2">數量</th><th class="text-left py-2">單價</th><th class="text-left py-2">小計</th></tr></thead><tbody>${itemsHtml}</tbody></table></div>
       </div>
-      <div class="bg-gray-50 p-4 rounded"><div class="text-xl font-bold">總金額：NT$${(p.total_amount||0).toLocaleString()}</div></div>
+      <div class="bg-gray-50 p-4 rounded"><div class="text-xl font-bold">總金額：${(p.total_amount||0).toLocaleString()}</div></div>
     </div>
   `;
   openModal('採購詳情', html, null, true);
@@ -1214,17 +1297,17 @@ async function openPurModal(isInvoicePurchase, editId = null) {
     ${isInvoicePurchase ? `
     <div class="bg-orange-50 p-4 rounded mb-4 border border-orange-200">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-        <div><span class="text-sm text-gray-600 block">商品總價</span><span class="font-bold text-lg">NT$<span id="pu-subtotal">0</span></span></div>
-        <div><span class="text-sm text-gray-600 block">稅金 (5% 四捨五入)</span><span class="font-bold text-lg text-orange-600">NT$<span id="pu-tax">0</span></span></div>
-        <div><span class="text-sm text-gray-600 block">需付款 (僅稅金)</span><span class="font-bold text-xl text-red-600">NT$<span id="pu-total">0</span></span></div>
+        <div><span class="text-sm text-gray-600 block">商品總價</span><span class="font-bold text-lg"><span id="pu-subtotal">0</span></span></div>
+        <div><span class="text-sm text-gray-600 block">稅金 (5% 四捨五入)</span><span class="font-bold text-lg text-orange-600"><span id="pu-tax">0</span></span></div>
+        <div><span class="text-sm text-gray-600 block">需付款 (僅稅金)</span><span class="font-bold text-xl text-red-600"><span id="pu-total">0</span></span></div>
       </div>
     </div>
     ` : `
     <div class="bg-gray-50 p-4 rounded mb-4">
-      <div class="text-xl font-bold">採購總金額：NT$<span id="pu-total">0</span></div>
+      <div class="text-xl font-bold">採購總金額：<span id="pu-total">0</span></div>
     </div>
     `}
-    <div class="mb-4"><label class="block text-sm font-bold mb-1">出帳帳戶</label><select id="pu-bank" class="w-full px-3 py-2 border rounded"><option value="">不扣款</option>${D.banks.map(b=>`<option value="${b.id}" ${existingData?.bank_account_id===b.id?'selected':''}>${b.account_name} (餘額: NT$${(b.balance||0).toLocaleString()})</option>`).join('')}</select></div>
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">出帳帳戶</label><select id="pu-bank" class="w-full px-3 py-2 border rounded"><option value="">不扣款</option>${D.banks.map(b=>`<option value="${b.id}" ${existingData?.bank_account_id===b.id?'selected':''}>${b.account_name} (餘額: ${(b.balance||0).toLocaleString()})</option>`).join('')}</select></div>
   `;
   openModal(isInvoicePurchase?(editId?'編輯購買發票':'購買發票'):(editId?'編輯採購':'一般採購入庫'), html, savePur);
   
@@ -1352,22 +1435,63 @@ async function delPur(id) {
   } catch(e) { 
     showAlert('失敗：'+e.message); 
   }
-}  
-  // ==================== 廠商管理 ====================
+}
+  // ==================== 廠商管理（增加合作狀態與自動排序）====================
 function renderVendors(c) {
-  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold"> 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
-  document.getElementById('ven-tbody').innerHTML = D.vendors.map(v=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${v.name}</td><td class="px-4 py-3">${v.tax_id||'-'}</td><td class="px-4 py-3">${v.contact_person||'-'}</td><td class="px-4 py-3">${v.phone||'-'}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openVenModal('${v.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delVen('${v.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
+  // 將「暫時無配合」的廠商排到最下面
+  const sortedVendors = [...D.vendors].sort((a, b) => {
+    const statusA = a.cooperation_status || 'normal';
+    const statusB = b.cooperation_status || 'normal';
+    if (statusA === 'normal' && statusB === 'paused') return -1;
+    if (statusA === 'paused' && statusB === 'normal') return 1;
+    return 0;
+  });
+
+  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
+  
+  document.getElementById('ven-tbody').innerHTML = sortedVendors.map(v => {
+    const status = v.cooperation_status || 'normal';
+    const statusHtml = status === 'paused' 
+      ? '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">暫時無配合</span>' 
+      : '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">正常配合</span>';
+    return `<tr class="hover:bg-gray-50">
+      <td class="px-4 py-3 font-medium">${v.name}</td>
+      <td class="px-4 py-3">${v.tax_id||'-'}</td>
+      <td class="px-4 py-3">${v.contact_person||'-'}</td>
+      <td class="px-4 py-3">${v.phone||'-'}</td>
+      <td class="px-4 py-3">${statusHtml}</td>
+      <td class="px-4 py-3 whitespace-nowrap space-x-2">
+        <button onclick="openVenModal('${v.id}')" class="text-green-600 text-sm hover:underline">編輯</button>
+        <button onclick="delVen('${v.id}')" class="text-red-600 text-sm hover:underline">刪除</button>
+      </td>
+    </tr>`;
+  }).join('');
 }
 
 function openVenModal(id) {
   editingId=id||null; const v=id?D.vendors.find(x=>x.id===id):null;
-  const html = `<input type="hidden" id="v-id" value="${id||''}"><div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="v-name" class="w-full px-3 py-2 border rounded" value="${v?.name||''}"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">統編</label><input type="text" id="v-tax" class="w-full px-3 py-2 border rounded" value="${v?.tax_id||''}"></div><div><label class="block text-sm font-bold mb-1">聯絡人</label><input type="text" id="v-con" class="w-full px-3 py-2 border rounded" value="${v?.contact_person||''}"></div></div><div class="mb-4"><label class="block text-sm font-bold mb-1">電話</label><input type="text" id="v-phone" class="w-full px-3 py-2 border rounded" value="${v?.phone||''}"></div>`;
+  const html = `<input type="hidden" id="v-id" value="${id||''}">
+    <div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="v-name" class="w-full px-3 py-2 border rounded" value="${v?.name||''}"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div><label class="block text-sm font-bold mb-1">統編</label><input type="text" id="v-tax" class="w-full px-3 py-2 border rounded" value="${v?.tax_id||''}"></div>
+      <div><label class="block text-sm font-bold mb-1">聯絡人</label><input type="text" id="v-con" class="w-full px-3 py-2 border rounded" value="${v?.contact_person||''}"></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div><label class="block text-sm font-bold mb-1">電話</label><input type="text" id="v-phone" class="w-full px-3 py-2 border rounded" value="${v?.phone||''}"></div>
+      <div><label class="block text-sm font-bold mb-1">合作狀態</label><select id="v-status" class="w-full px-3 py-2 border rounded"><option value="normal" ${v?.cooperation_status==='normal'?'selected':''}>正常配合</option><option value="paused" ${v?.cooperation_status==='paused'?'selected':''}>暫時無配合</option></select></div>
+    </div>`;
   openModal(id?'編輯廠商':'新增廠商', html, saveVen);
 }
 
 async function saveVen() {
   const id = document.getElementById('v-id').value;
-  const d = {name:document.getElementById('v-name').value, tax_id:document.getElementById('v-tax').value, contact_person:document.getElementById('v-con').value, phone:document.getElementById('v-phone').value};
+  const d = {
+    name:document.getElementById('v-name').value, 
+    tax_id:document.getElementById('v-tax').value, 
+    contact_person:document.getElementById('v-con').value, 
+    phone:document.getElementById('v-phone').value,
+    cooperation_status: document.getElementById('v-status').value
+  };
   if(!d.name) return showAlert('名稱必填！');
   try {
     if(id) await sb.from('vendors').update(d).eq('id',id); 
@@ -1378,26 +1502,28 @@ async function saveVen() {
 
 async function delVen(id) { if(!confirm('確定刪除?')) return; try { await sb.from('vendors').delete().eq('id',id); await loadAll(); render(); } catch(e) { showAlert('失敗：'+e.message); } }
 
-// ==================== 收支與訂閱（含員工代墊與撥款管理/銀行扣款）====================
+// ==================== 收支與訂閱（含員工代墊與自動扣款）====================
 function renderFinance(c) {
   c.innerHTML = `
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1>
-      <div class="flex flex-wrap gap-2 w-full md:w-auto">
-        <button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button>
-        <button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button>
+    <div class="content-card">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1>
+        <div class="flex flex-wrap gap-2 w-full md:w-auto">
+          <button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button>
+          <button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button>
+        </div>
       </div>
+      <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
+        <input type="month" id="exp-month" value="${bossMonth}" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48">
+        <input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded" oninput="renderExpTable()">
+      </div>
+      <div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類別</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
+      
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div>
+      <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">供應商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結束日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
     </div>
-    <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
-      <input type="month" id="exp-month" value="${bossMonth}" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48">
-      <input type="text" id="exp-search" placeholder=" 搜尋..." class="flex-1 px-4 py-2 border rounded" oninput="renderExpTable()">
-    </div>
-    <div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類別</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
-    
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div>
-    <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">供應商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結束日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
   `;
   renderExpTable();
-  document.getElementById('sub-tbody').innerHTML = D.subs.map(s=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${s.name}</td><td class="px-4 py-3">${s.provider||'-'}</td><td class="px-4 py-3">${s.end_date||'-'}</td><td class="px-4 py-3 font-bold">NT$${(s.amount||0).toLocaleString()}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal('${s.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delSub('${s.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
+  document.getElementById('sub-tbody').innerHTML = D.subs.map(s=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${s.name}</td><td class="px-4 py-3">${s.provider||'-'}</td><td class="px-4 py-3">${s.end_date||'-'}</td><td class="px-4 py-3 font-bold">${(s.amount||0).toLocaleString()}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal('${s.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delSub('${s.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
 }
 
 function renderExpTable() {
@@ -1416,7 +1542,7 @@ function renderExpTable() {
     const statusHtml = e.is_reimbursed 
       ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">已結帳</span>' 
       : '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">待結帳</span>';
-    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">${e.payment_date}</td><td class="px-4 py-3">${cat?.name||'-'}</td><td class="px-4 py-3 font-bold text-red-600">NT$${(e.amount||0).toLocaleString()}</td><td class="px-4 py-3 text-sm">${e.description||'-'}</td><td class="px-4 py-3">${emp?.name||'-'}</td><td class="px-4 py-3">${statusHtml}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openExpModal('${e.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delExp('${e.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;
+    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">${e.payment_date}</td><td class="px-4 py-3">${cat?.name||'-'}</td><td class="px-4 py-3 font-bold text-red-600">${(e.amount||0).toLocaleString()}</td><td class="px-4 py-3 text-sm">${e.description||'-'}</td><td class="px-4 py-3">${emp?.name||'-'}</td><td class="px-4 py-3">${statusHtml}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openExpModal('${e.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delExp('${e.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;
   }).join('');
 }
 
@@ -1431,7 +1557,7 @@ async function openExpModal(id) {
     <div class="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
       <h3 class="font-bold text-orange-800 mb-2">💰 支出方式與撥款管理</h3>
       <div class="mb-3"><label class="block text-sm font-bold mb-1">代墊員工 (若無則不選，代表公司直接支出)</label><select id="e-emp" class="w-full px-3 py-2 border rounded" onchange="toggleExpBankSelect()"><option value="">無 (公司直接支付)</option>${D.emps.map(emp=>`<option value="${emp.id}" ${e?.employee_id===emp.id?'selected':''}>${emp.name}</option>`).join('')}</select></div>
-      <div class="mb-3" id="e-bank-box"><label class="block text-sm font-bold mb-1">出帳銀行帳戶 *</label><select id="e-bank" class="w-full px-3 py-2 border rounded"><option value="">請選擇銀行</option>${D.banks.map(b=>`<option value="${b.id}" ${e?.reimbursement_bank_id===b.id?'selected':''}>${b.account_name} - ${b.account_number} (餘額: NT$${(b.balance||0).toLocaleString()})</option>`).join('')}</select><p class="text-xs text-gray-500 mt-1">* 公司支出或員工代墊結帳都需要選擇出帳帳戶，系統將自動扣款</p></div>
+      <div class="mb-3" id="e-bank-box"><label class="block text-sm font-bold mb-1">出帳銀行帳戶 *</label><select id="e-bank" class="w-full px-3 py-2 border rounded"><option value="">請選擇銀行</option>${D.banks.map(b=>`<option value="${b.id}" ${e?.reimbursement_bank_id===b.id?'selected':''}>${b.account_name} (餘額: ${(b.balance||0).toLocaleString()})</option>`).join('')}</select><p class="text-xs text-gray-500 mt-1">* 公司支出或員工代墊結帳都需要選擇出帳帳戶，系統將自動扣款</p></div>
       <label class="flex items-center gap-2 cursor-pointer" id="e-reimbursed-box" style="display:${e?.employee_id?'block':'none'}"><input type="checkbox" id="e-reimbursed" class="w-5 h-5 text-orange-600 rounded" ${e?.is_reimbursed?'checked':''}><span class="font-medium">此筆費用已結帳給員工</span></label>
     </div>
   `;
@@ -1517,9 +1643,9 @@ async function saveSub() {
 }
 async function delSub(id) { if(!confirm('確定刪除?'))return; try { await sb.from('system_subscriptions').delete().eq('id',id); await loadAll(); render(); } catch(e) { showAlert('失敗：'+e.message); } }
 
-// ==================== 銀行帳戶 ====================
+// ==================== 銀行帳戶（保護預設帳戶不可刪除）====================
 function renderBanks(c) {
-  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold"> 銀行帳戶</h1><button onclick="openBankModal()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${D.banks.map(b=>`<div class="bg-white p-6 rounded-lg shadow"><h3 class="font-bold text-lg mb-2">${b.account_name}</h3><p class="text-gray-500 text-sm mb-4">${b.bank_name} - ${b.account_number}</p><p class="text-3xl font-bold text-green-600 mb-4">NT$${(b.balance||0).toLocaleString()}</p><div class="flex gap-2"><button onclick="adjBank('${b.id}')" class="flex-1 bg-blue-500 text-white py-2 rounded text-sm hover:bg-blue-600 btn-touch">手動調整</button><button onclick="delBank('${b.id}')" class="flex-1 bg-red-500 text-white py-2 rounded text-sm hover:bg-red-600 btn-touch">刪除</button></div></div>`).join('')}</div>`;
+  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-emerald-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">${D.banks.map(b=>`<div class="bg-white p-6 rounded-lg shadow"><h3 class="font-bold text-lg mb-2">${b.account_name}</h3><p class="text-gray-500 text-sm mb-4">${b.bank_name} - ${b.account_number}</p><p class="text-3xl font-bold text-green-600 mb-4">${(b.balance||0).toLocaleString()}</p><div class="flex gap-2"><button onclick="adjBank('${b.id}')" class="flex-1 bg-blue-500 text-white py-2 rounded text-sm hover:bg-blue-600 btn-touch">手動調整</button><button onclick="delBank('${b.id}')" class="flex-1 bg-red-500 text-white py-2 rounded text-sm hover:bg-red-600 btn-touch">刪除</button></div></div>`).join('')}</div></div>`;
 }
 
 function openBankModal(id) {
@@ -1537,33 +1663,54 @@ async function saveBank() {
 
 function adjBank(id) {
   const b = D.banks.find(x=>x.id===id);
-  const html = `<p class="mb-4">帳戶：<b>${b.account_name}</b> (目前：NT$${(b.balance||0).toLocaleString()})</p><div class="mb-4"><label class="block text-sm font-bold mb-1">調整後正確餘額</label><input type="number" id="adj-bal" class="w-full px-3 py-2 border rounded" value="${b.balance||0}"></div>`;
+  const html = `<p class="mb-4">帳戶：<b>${b.account_name}</b> (目前：${(b.balance||0).toLocaleString()})</p><div class="mb-4"><label class="block text-sm font-bold mb-1">調整後正確餘額</label><input type="number" id="adj-bal" class="w-full px-3 py-2 border rounded" value="${b.balance||0}"></div>`;
   openModal('手動調整餘額', html, async()=>{
     try { const newBalance = parseFloat(document.getElementById('adj-bal').value)||0; await sb.from('bank_accounts').update({balance: newBalance}).eq('id', id); showAlert('已更新！'); window.closeModal(); await loadAll(); render(); } catch(e) { showAlert('失敗：'+e.message); }
   });
 }
-async function delBank(id) { if(!confirm('確定刪除此銀行帳戶？')) return; try { const {data: expenses} = await sb.from('expenses').select('id').eq('reimbursement_bank_id', id).limit(1); if(expenses && expenses.length > 0) return showAlert('無法刪除：此銀行帳戶正被收支記錄使用。'); const {error} = await sb.from('bank_accounts').delete().eq('id', id); if(error) throw error; await loadAll(); render(); } catch(e) { showAlert('失敗：'+e.message); } }
+
+async function delBank(id) {
+  const b = D.banks.find(x=>x.id===id);
+  // 保護預設帳戶不可刪除
+  if(b && (b.account_name === '營業帳戶' || b.account_name === '公司主要帳戶')) {
+    return showAlert(`無法刪除：此為系統預設的「${b.account_name}」，不允許刪除。`);
+  }
+  
+  if(!confirm('確定刪除此銀行帳戶？')) return; 
+  try { 
+    const {data: expenses} = await sb.from('expenses').select('id').eq('reimbursement_bank_id', id).limit(1); 
+    if(expenses && expenses.length > 0) return showAlert('無法刪除：此銀行帳戶正被收支記錄使用。'); 
+    const {error} = await sb.from('bank_accounts').delete().eq('id', id); 
+    if(error) throw error; 
+    await loadAll(); 
+    render(); 
+  } catch(e) { 
+    showAlert('失敗：'+e.message); 
+  } 
+}
 
 // ==================== 通路與員工 (設定) ====================
 function renderSettings(c) {
   c.innerHTML = `
-    <h1 class="text-3xl font-bold mb-6">⚙️ 通路金流與員工設定</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white p-6 rounded-lg shadow">
-        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">銷售通路 (抽成)</h3><button onclick="openChModal()" class="bg-pink-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div>
-        <div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th class="text-left py-2 text-xs">名稱</th><th class="text-left py-2 text-xs">抽成%</th><th class="text-left py-2 text-xs">操作</th></tr></thead><tbody>${D.channels.map(ch=>`<tr class="border-t"><td class="py-2">${ch.name}</td><td class="py-2">${ch.commission_rate}%</td><td class="py-2 whitespace-nowrap"><button onclick="openChModal('${ch.id}')" class="text-green-600 text-xs mr-2">編輯</button><button onclick="delCh('${ch.id}')" class="text-red-600 text-xs">刪除</button></td></tr>`).join('')}</tbody></table></div>
+    <div class="content-card">
+      <h1 class="text-3xl font-bold mb-6">⚙️ 通路與員工</h1>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">銷售通路 (抽成)</h3><button onclick="openChModal()" class="bg-pink-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div>
+          <div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th class="text-left py-2 text-xs">名稱</th><th class="text-left py-2 text-xs">抽成%</th><th class="text-left py-2 text-xs">操作</th></tr></thead><tbody>${D.channels.map(ch=>`<tr class="border-t"><td class="py-2">${ch.name}</td><td class="py-2">${ch.commission_rate}%</td><td class="py-2 whitespace-nowrap"><button onclick="openChModal('${ch.id}')" class="text-green-600 text-xs mr-2">編輯</button><button onclick="delCh('${ch.id}')" class="text-red-600 text-xs">刪除</button></td></tr>`).join('')}</tbody></table></div>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">付款方式 (手續費)</h3><button onclick="openPmModal()" class="bg-orange-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div>
+          <div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th class="text-left py-2 text-xs">名稱</th><th class="text-left py-2 text-xs">費率%</th><th class="text-left py-2 text-xs">操作</th></tr></thead><tbody>${D.payments.map(p=>`<tr class="border-t"><td class="py-2">${p.name}</td><td class="py-2">${p.commission_rate}%</td><td class="py-2 whitespace-nowrap"><button onclick="openPmModal('${p.id}')" class="text-green-600 text-xs mr-2">編輯</button><button onclick="delPm('${p.id}')" class="text-red-600 text-xs">刪除</button></td></tr>`).join('')}</tbody></table></div>
+        </div>
       </div>
       <div class="bg-white p-6 rounded-lg shadow">
-        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold">付款方式 (手續費)</h3><button onclick="openPmModal()" class="bg-orange-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div>
-        <div class="overflow-x-auto"><table class="min-w-full"><thead><tr><th class="text-left py-2 text-xs">名稱</th><th class="text-left py-2 text-xs">費率%</th><th class="text-left py-2 text-xs">操作</th></tr></thead><tbody>${D.payments.map(p=>`<tr class="border-t"><td class="py-2">${p.name}</td><td class="py-2">${p.commission_rate}%</td><td class="py-2 whitespace-nowrap"><button onclick="openPmModal('${p.id}')" class="text-green-600 text-xs mr-2">編輯</button><button onclick="delPm('${p.id}')" class="text-red-600 text-xs">刪除</button></td></tr>`).join('')}</tbody></table></div>
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 class="text-lg font-bold">員工管理</h3><button onclick="openEmpModal()" class="bg-rose-600 text-white px-4 py-2 rounded btn-touch">+ 新增員工</button></div>
+        <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">薪水</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付銀行</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="emp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
       </div>
-    </div>
-    <div class="bg-white p-6 rounded-lg shadow">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h3 class="text-lg font-bold">員工管理</h3><button onclick="openEmpModal()" class="bg-rose-600 text-white px-4 py-2 rounded btn-touch">+ 新增員工</button></div>
-      <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">薪水</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">支付銀行</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="emp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
     </div>
   `;
-  document.getElementById('emp-tbody').innerHTML = D.emps.map(e=>{const b=D.banks.find(x=>x.id===e.bank_account_id);return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${e.name}</td><td class="px-4 py-3 font-bold">NT$${(e.salary||0).toLocaleString()}</td><td class="px-4 py-3">${b?.account_name||'-'}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openEmpModal('${e.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delEmp('${e.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;}).join('');
+  document.getElementById('emp-tbody').innerHTML = D.emps.map(e=>{const b=D.banks.find(x=>x.id===e.bank_account_id);return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${e.name}</td><td class="px-4 py-3 font-bold">${(e.salary||0).toLocaleString()}</td><td class="px-4 py-3">${b?.account_name||'-'}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openEmpModal('${e.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delEmp('${e.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;}).join('');
 }
 
 function openChModal(id) {
