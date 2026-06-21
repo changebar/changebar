@@ -152,6 +152,22 @@ function showAlert(msg) {
   });
 }
 
+// 全域 closeModal 函數
+window.closeModal = function() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  editingId = null;
+  isSaving = false;
+  const saveBtn = document.getElementById('modal-save-btn');
+  if(saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.textContent = '儲存 (Enter)';
+    saveBtn.onclick = null;
+  }
+  // 移除所有事件監聽
+  document.removeEventListener('keydown', window.enterHandler);
+  document.removeEventListener('keydown', window.escHandler);
+};
+
 // 開啟 Modal (置中 + 防呆 + Enter儲存/Esc關閉)
 function openModal(title, html, onSave, hideSave=false) {
   document.getElementById('modal-title').textContent = title;
@@ -171,10 +187,8 @@ function openModal(title, html, onSave, hideSave=false) {
     saveBtn.classList.add('hidden');
   } else { 
     saveBtn.classList.remove('hidden'); 
-    // 確保不會重複綁定
-    saveBtn.onclick = null;
     saveBtn.onclick = async () => {
-      if(isSaving) return; // 防呆：防止重複點擊
+      if(isSaving) return;
       isSaving = true;
       saveBtn.disabled = true;
       saveBtn.textContent = '儲存中...';
@@ -190,36 +204,21 @@ function openModal(title, html, onSave, hideSave=false) {
     };
   }
   
-  const closeModal = () => {
-    document.getElementById('modal-overlay').classList.add('hidden');
-    editingId = null;
-    isSaving = false;
-    saveBtn.disabled = false;
-    saveBtn.textContent = '儲存 (Enter)';
-    saveBtn.onclick = null; // 清除事件
-    document.removeEventListener('keydown', enterHandler);
-    document.removeEventListener('keydown', escHandler);
-  };
+  cancelBtn.onclick = window.closeModal;
+  closeBtn.onclick = window.closeModal;
   
-  // 定義 closeModal 為全域函數
-  window.closeModal = closeModal;
-  
-  cancelBtn.onclick = closeModal;
-  closeBtn.onclick = closeModal;
-  
-  // 快捷鍵處理
-  const escHandler = (e) => { if (e.key === 'Escape') closeModal(); };
-  document.addEventListener('keydown', escHandler);
+  // 定義全域事件處理函數
+  window.escHandler = (e) => { if (e.key === 'Escape') window.closeModal(); };
+  document.addEventListener('keydown', window.escHandler);
   
   if(!hideSave) {
-    const enterHandler = (e) => {
-      // 只有當焦點不在 textarea 或 input 時，Enter 才觸發儲存
+    window.enterHandler = (e) => {
       if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
         e.preventDefault();
         saveBtn.click();
       }
     };
-    document.addEventListener('keydown', enterHandler);
+    document.addEventListener('keydown', window.enterHandler);
   }
 }
 
@@ -241,7 +240,7 @@ document.querySelectorAll('nav a').forEach(a => {
   a.addEventListener('click', e => { 
     e.preventDefault(); 
     switchView(a.dataset.view); 
-    if(window.innerWidth <= 768) toggleSidebar(); // 手機版點擊後自動收起
+    if(window.innerWidth <= 768) toggleSidebar();
   });
 });
 
@@ -281,6 +280,7 @@ function render() {
   else if(currentView==='banks') renderBanks(m);
   else if(currentView==='settings') renderSettings(m);
 }
+
 // ==================== 老闆查閱（含員工代墊統計）====================
 function renderBoss(c) {
   const [y, m] = bossMonth.split('-').map(Number);
@@ -296,7 +296,6 @@ function renderBoss(c) {
   const monthlyProfit = rev - pur - exp - sub;
   const profitMargin = rev > 0 ? ((monthlyProfit / rev) * 100).toFixed(1) : 0;
   
-  // 訂閱客戶計算
   const subTag = D.tags.find(t => t.name.includes('訂閱'));
   let subCustomerCount = 0;
   if(subTag) {
@@ -304,18 +303,15 @@ function renderBoss(c) {
     subCustomerCount = new Set(subTagIds).size;
   }
 
-  // 訂閱月營收換算
   let subMonthlyRevenue = 0;
   monthOrders.filter(o => o.is_subscription && o.subscription_days > 0).forEach(o => {
     const dailyRevenue = (o.total_amount || 0) / o.subscription_days;
     subMonthlyRevenue += dailyRevenue * 30;
   });
 
-  // 運費統計
   const companyShipping = monthOrders.reduce((s, o) => s + (o.absorbed_shipping_fee || 0), 0);
   const customerShipping = monthOrders.reduce((s, o) => s + (o.customer_paid_shipping || 0), 0);
 
-  // 員工代墊未結帳統計
   const unreimbursedExpenses = D.expenses.filter(e => e.employee_id && !e.is_reimbursed);
   const unreimbursedTotal = unreimbursedExpenses.reduce((s, e) => s + (e.amount || 0), 0);
   const unreimbursedByEmp = {};
@@ -324,7 +320,6 @@ function renderBoss(c) {
     if(emp) unreimbursedByEmp[emp.name] = (unreimbursedByEmp[emp.name] || 0) + (e.amount || 0);
   });
 
-  // 即將到期訂閱
   const now = new Date();
   const thirtyDaysLater = new Date(now.getTime() + 30*24*60*60*1000);
   const expiringSubs = D.subs.filter(s => {
@@ -338,13 +333,13 @@ function renderBoss(c) {
       <h1 class="text-3xl font-bold">👑 老闆查閱</h1>
       <div class="flex flex-wrap gap-2 w-full md:w-auto">
         <input type="month" value="${bossMonth}" onchange="bossMonth=this.value;render()" class="px-4 py-2 border rounded-lg shadow flex-1 md:flex-none">
-        <button onclick="openDownloadModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold whitespace-nowrap btn-touch">📥 下載報表</button>
+        <button onclick="alert('報表下載功能開發中')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold whitespace-nowrap btn-touch">📥 下載報表</button>
       </div>
     </div>
     
     ${expiringSubs.length > 0 ? `
     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow mb-8">
-      <h3 class="text-lg font-bold text-yellow-800 mb-2">️ 即將到期的系統訂閱（30天內）</h3>
+      <h3 class="text-lg font-bold text-yellow-800 mb-2">⚠️ 即將到期的系統訂閱（30天內）</h3>
       <ul class="list-disc list-inside text-yellow-700">
         ${expiringSubs.map(s => {
           const daysLeft = Math.ceil((new Date(s.end_date) - now) / (1000*60*60*24));
@@ -426,7 +421,7 @@ function renderBoss(c) {
 function renderCRM(c) {
   c.innerHTML = `
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-      <h1 class="text-3xl font-bold"> 客戶管理</h1>
+      <h1 class="text-3xl font-bold">👥 客戶管理</h1>
       <div class="flex flex-wrap gap-2 w-full md:w-auto">
         <button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button>
         <button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button>
@@ -491,7 +486,6 @@ function viewCustDetail(id) {
     return tag ? `<span class="tag-${tag.color} px-2 py-1 rounded text-xs mr-1">${tag.name}</span>` : '';
   }).join('');
   
-  // 抓取地址 (簡化版，實際應從資料庫抓取，這裡用 D 中的資料模擬或重新查詢)
   sb.from('customer_addresses').select('*').eq('customer_id', id).then(({data:addrs}) => {
     const addrHtml = (addrs||[]).map(a => `
       <div class="border p-3 rounded mb-2 bg-gray-50">
@@ -777,7 +771,6 @@ function viewOrdDetail(id) {
 }
 
 function openOrdModal(id) {
-  // 為簡化代碼量，這裡僅提供基本框架，完整邏輯請參考先前版本
   editingId = id || null;
   const o = id ? D.orders.find(x=>x.id===id) : null;
   const html = `<div class="p-4 text-center text-gray-500">訂單編輯功能開發中... (請使用詳情查看)</div>`;
@@ -791,10 +784,11 @@ function delOrd(id) {
   }).then(() => {
     loadAll().then(render);
   }).catch(e => showAlert('失敗：'+e.message)); 
-}  
-  // ==================== 商品與 BOM（修復 updated_at 錯誤）====================
+}
+
+// ==================== 商品與 BOM（修復 updated_at 錯誤）====================
 function renderProducts(c) {
-  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold"> 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總庫存</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
+  c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總庫存</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
   const tm = {material:'原料',semi:'半成品',finished:'成品'};
   document.getElementById('prod-tbody').innerHTML = D.products.map(p=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${tm[p.type]||p.type}</td><td class="px-4 py-3">$${p.sell_price||0}</td><td class="px-4 py-3 text-gray-500">$${p.cost_price||0}</td><td class="px-4 py-3 font-bold">${p.current_stock||0}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal('${p.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delProd('${p.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
   document.getElementById('bom-tbody').innerHTML = D.bom.map(b=>{const p1=D.products.find(x=>x.id===b.parent_product_id);const p2=D.products.find(x=>x.id===b.child_product_id);return `<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p1?.name||'-'}</td><td class="px-4 py-3">${p2?.name||'-'}</td><td class="px-4 py-3 font-bold">${b.quantity}</td><td class="px-4 py-3"><button onclick="delBom('${b.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`;}).join('');
@@ -809,7 +803,6 @@ function openProdModal(id) {
 
 async function saveProd() {
   const id = document.getElementById('p-id').value;
-  // 嚴格限定只傳送這 5 個欄位，避免 updated_at 錯誤
   const d = {
     sku: document.getElementById('p-sku').value, 
     name: document.getElementById('p-name').value, 
@@ -826,7 +819,7 @@ async function saveProd() {
       const {error} = await sb.from('products').insert([{...d, current_stock:0}]);
       if(error) throw error;
     }
-    showAlert('已儲存！'); closeModal(); await loadAll(); render();
+    showAlert('已儲存！'); window.closeModal(); await loadAll(); render();
   } catch(e) { showAlert('失敗：'+e.message); }
 }
 
@@ -847,7 +840,7 @@ function openBomModal() {
   openModal('新增 BOM', html, async()=>{
     try {
       await sb.from('bom_list').insert([{parent_product_id:document.getElementById('b-p').value, child_product_id:document.getElementById('b-c').value, quantity:parseFloat(document.getElementById('b-q').value)}]); 
-      showAlert('已儲存！'); closeModal(); await loadAll(); render();
+      showAlert('已儲存！'); window.closeModal(); await loadAll(); render();
     } catch(e) { showAlert('失敗：'+e.message); }
   });
 }
@@ -878,12 +871,11 @@ function openWarehouseModal(id) {
 async function saveWarehouse() {
   const name = document.getElementById('wh-name').value.trim();
   if(!name) return showAlert('倉庫名稱必填！');
-  // 嚴格限定只傳送這三個欄位
   const data = { name: name, location: document.getElementById('wh-loc').value, is_active: document.getElementById('wh-active').value === 'true' };
   try {
     if(editingId) await sb.from('warehouses').update(data).eq('id', editingId);
     else await sb.from('warehouses').insert([data]);
-    showAlert('倉庫已儲存！'); closeModal(); await loadAll(); render();
+    showAlert('倉庫已儲存！'); window.closeModal(); await loadAll(); render();
   } catch(e) { showAlert('失敗：'+e.message); }
 }
 
@@ -928,7 +920,7 @@ function showWhTab(whId) {
       return `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-bold text-lg">${totalQty}</td><td class="px-4 py-3 text-xs">${whDetails || '無庫存記錄'}</td><td class="px-4 py-3">${low?'<span class="text-red-600 font-bold">低庫存</span>':totalQty>0?'<span class="text-green-600">正常</span>':'<span class="text-gray-400">無庫存</span>'}</td></tr>`;
     }).join('');
     
-    container.innerHTML = `<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-blue-50 border-b"><h3 class="font-bold text-blue-800"> 全部庫存總覽 (跨倉庫加總)</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">總庫存</th><th class="px-4 py-3 text-left text-xs">倉庫分佈</th><th class="px-4 py-3 text-left text-xs">狀態</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    container.innerHTML = `<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-blue-50 border-b"><h3 class="font-bold text-blue-800">📦 全部庫存總覽 (跨倉庫加總)</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">總庫存</th><th class="px-4 py-3 text-left text-xs">倉庫分佈</th><th class="px-4 py-3 text-left text-xs">狀態</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   } else {
     const wh = D.warehouses.find(w=>w.id===whId);
     const inv = D.warehouseInv.filter(i=>i.warehouse_id===whId);
@@ -978,7 +970,7 @@ function renderPurchases(c) {
     </div>
     <div class="flex flex-col md:flex-row gap-4 mb-4 w-full">
       <input type="month" id="pur-month" value="${bossMonth}" onchange="renderPurTable()" class="px-4 py-2 border rounded md:w-48">
-      <input type="text" id="pur-search" placeholder=" 搜尋廠商..." class="flex-1 px-4 py-2 border rounded" oninput="renderPurTable()">
+      <input type="text" id="pur-search" placeholder="🔍 搜尋廠商..." class="flex-1 px-4 py-2 border rounded" oninput="renderPurTable()">
     </div>
     <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">單號</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
   `;
@@ -1099,7 +1091,7 @@ function calcPur() {
   });
   
   if(isInvoiceMode) {
-    const tax = Math.round(subtotal * 0.05); // 最後總金額才四捨五入
+    const tax = Math.round(subtotal * 0.05);
     document.getElementById('pu-subtotal').textContent = subtotal.toLocaleString();
     document.getElementById('pu-tax').textContent = tax.toLocaleString();
     document.getElementById('pu-total').textContent = tax.toLocaleString();
@@ -1151,7 +1143,6 @@ async function savePur() {
       const purId = r.id;
       await sb.from('purchase_items').insert(items.map(i=>({...i, purchase_id:purId})));
       
-      // 一般採購自動入庫
       if(!isInvoiceMode && d.warehouse_id) {
         for(const i of items) {
           const existing = D.warehouseInv.find(w=>w.warehouse_id===d.warehouse_id && w.product_id===i.product_id);
@@ -1172,7 +1163,7 @@ async function savePur() {
     }
     
     showAlert(isInvoiceMode?'購買發票已記錄！':'採購已入庫！'); 
-    closeModal(); 
+    window.closeModal(); 
     await loadAll(); 
     render();
   } catch(e) { showAlert('失敗：'+e.message); }
@@ -1186,7 +1177,8 @@ function delPur(id) {
     loadAll().then(render);
   }).catch(e => showAlert('失敗：'+e.message));
 }
-  // ==================== 廠商管理 ====================
+
+// ==================== 廠商管理 ====================
 function renderVendors(c) {
   c.innerHTML = `<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>`;
   document.getElementById('ven-tbody').innerHTML = D.vendors.map(v=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${v.name}</td><td class="px-4 py-3">${v.tax_id||'-'}</td><td class="px-4 py-3">${v.contact_person||'-'}</td><td class="px-4 py-3">${v.phone||'-'}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openVenModal('${v.id}')" class="text-green-600 text-sm hover:underline">編輯</button><button onclick="delVen('${v.id}')" class="text-red-600 text-sm hover:underline">刪除</button></td></tr>`).join('');
