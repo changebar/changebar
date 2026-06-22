@@ -671,17 +671,19 @@ function manageTags() {
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
 
-// 第二段功能（訂單、商品、倉庫、庫存、採購）- 待提供
-function renderOrders(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">📦 訂單出貨</h1><p class="mt-4">第二段提供</p></div>'; }
-function renderProducts(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><p class="mt-4">第二段提供</p></div>'; }
-function renderWarehouses(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><p class="mt-4">第二段提供</p></div>'; }
-function renderInventory(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">📊 庫存盤點</h1><p class="mt-4">第二段提供</p></div>'; }
-function renderPurchases(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🛒 採購入庫</h1><p class="mt-4">第二段提供</p></div>'; }
-function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><p class="mt-4">第三段提供</p></div>'; }
-function renderFinance(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><p class="mt-4">第三段提供</p></div>'; }
-function renderBanks(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><p class="mt-4">第三段提供</p></div>'; }
-function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">⚙️ 通路與員工</h1><p class="mt-4">第三段提供</p></div>'; }
-</script>
+<!DOCTYPE html>
+<html>
+<head>...</head>
+<body>
+  <!-- HTML 內容 -->
+  
+  <script>
+    // 第一段代碼（登入、側邊欄、老闆查閱、客戶管理）
+    // ...
+    
+    // 第二段代碼（訂單、商品、倉庫、庫存、採購）
+    // ...這裡是我剛才提供的第二段代碼...
+  </script>
 </body>
 </html>
 // ==================== 訂單出貨 ====================
