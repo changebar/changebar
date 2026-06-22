@@ -153,17 +153,17 @@
 
 <div id="main-system" class="hidden min-h-screen flex">
   <!-- 左上角三條線按鈕（手機/平板）- 半透明、小尺寸 -->
-  <button onclick="toggleSidebar()" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
+  <button id="menu-toggle-btn" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
-  <div id="sidebar-overlay" onclick="toggleSidebar()" class="sidebar-overlay hidden"></div>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
   <aside id="sidebar" class="sidebar w-64 bg-gray-800 text-white flex flex-col flex-shrink-0 transition-transform transform">
     <div class="p-4 md:p-6 text-xl md:text-2xl font-bold border-b border-gray-700 text-center bg-gradient-to-r from-blue-600 to-purple-600 flex justify-between items-center">
       <span class="flex-1">養芯健康</span>
       <!-- 側邊欄內的 X 按鈕（手機/平板） -->
-      <button onclick="toggleSidebar()" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
+      <button id="sidebar-close-btn" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -246,28 +246,52 @@ const PRODUCT_TYPE_MAP = {
   'outer_box': '外箱子'
 };
 
-// 側邊欄切換功能 - 使用 window 全域函數
-window.toggleSidebar = function() {
+// 側邊欄切換功能 - 使用 addEventListener
+function initSidebar() {
+  const menuToggleBtn = document.getElementById('menu-toggle-btn');
+  const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
   const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
   
-  if (!sidebar || !overlay) return;
-  
-  const isOpen = sidebar.classList.contains('open');
-  
-  if (isOpen) {
-    // 收合
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    setTimeout(() => overlay.classList.add('hidden'), 300);
-  } else {
-    // 展開
-    overlay.classList.remove('hidden');
-    void overlay.offsetWidth; // 強制重繪
-    sidebar.classList.add('open');
-    overlay.classList.add('show');
+  function toggleSidebar() {
+    if (!sidebar || !sidebarOverlay) return;
+    
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      // 收合
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('show');
+      setTimeout(() => sidebarOverlay.classList.add('hidden'), 300);
+    } else {
+      // 展開
+      sidebarOverlay.classList.remove('hidden');
+      void sidebarOverlay.offsetWidth; // 強制重繪
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('show');
+    }
   }
-};
+  
+  // 綁定事件
+  if (menuToggleBtn) menuToggleBtn.addEventListener('click', toggleSidebar);
+  if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', toggleSidebar);
+  if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
+  
+  // 導航點擊後收合
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', e => { 
+      e.preventDefault(); 
+      switchView(a.dataset.view); 
+      // 手機/平板點擊後立即收合
+      if(window.innerWidth <= 1024 && sidebar.classList.contains('open')) {
+        toggleSidebar();
+      }
+    });
+  });
+}
+
+// 頁面加載後初始化
+document.addEventListener('DOMContentLoaded', initSidebar);
 
 function showAlert(msg) {
   document.getElementById('alert-message').textContent = msg;
@@ -285,11 +309,6 @@ document.addEventListener('keydown', (e) => {
     }
     if (!document.getElementById('alert-modal').classList.contains('hidden')) {
       document.getElementById('alert-modal').classList.add('hidden');
-    }
-    // ESC 收合側邊欄
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && sidebar.classList.contains('open')) {
-      window.toggleSidebar();
     }
   }
 });
@@ -391,21 +410,6 @@ document.getElementById('password').addEventListener('keypress', (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => sb.auth.signOut().then(() => location.reload()));
-
-// 導航點擊事件（點擊後自動收合側邊欄）
-document.querySelectorAll('nav a').forEach(a => {
-  a.addEventListener('click', e => { 
-    e.preventDefault(); 
-    switchView(a.dataset.view); 
-    // 手機/平板點擊後立即收合
-    if(window.innerWidth <= 1024) {
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar && sidebar.classList.contains('open')) {
-        window.toggleSidebar();
-      }
-    }
-  });
-});
 
 async function loadAll() {
   const map = {
