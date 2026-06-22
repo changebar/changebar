@@ -1156,11 +1156,338 @@ async function delPur(id) {
   }
 }
 
-// 第三段佔位（廠商、收支、銀行、設定）
-function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><p class="mt-4 text-gray-500">第三段提供</p></div>'; }
-function renderFinance(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><p class="mt-4 text-gray-500">第三段提供</p></div>'; }
-function renderBanks(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><p class="mt-4 text-gray-500">第三段提供</p></div>'; }
-function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">⚙️ 通路與員工</h1><p class="mt-4 text-gray-500">第三段提供</p></div>'; }
+// ==================== 廠商管理 ====================
+function renderVendors(c) {
+  const sortedVendors = [...D.vendors].sort(function(a, b) {
+    const statusA = a.cooperation_status || 'normal';
+    const statusB = b.cooperation_status || 'normal';
+    if (statusA === 'normal' && statusB === 'paused') return -1;
+    if (statusA === 'paused' && statusB === 'normal') return 1;
+    return 0;
+  });
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'ven-tbody\', 0)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  let html = '';
+  for(let i=0; i<sortedVendors.length; i++) {
+    const v = sortedVendors[i];
+    const status = v.cooperation_status || 'normal';
+    const statusHtml = status === 'paused' ? '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">暫時無配合</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">正常配合</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + v.name + '</td><td class="px-4 py-3">' + (v.tax_id || '-') + '</td><td class="px-4 py-3">' + (v.contact_person || '-') + '</td><td class="px-4 py-3">' + (v.phone || '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openVenModal(\'' + v.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delVen(\'' + v.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('ven-tbody').innerHTML = html;
+}
+
+function openVenModal(id) {
+  editingId = id || null;
+  const v = id ? D.vendors.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="v-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="v-name" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.name : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">統編</label><input type="text" id="v-tax" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.tax_id : '') + '"></div><div><label class="block text-sm font-bold mb-1">聯絡人</label><input type="text" id="v-con" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.contact_person : '') + '"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">電話</label><input type="text" id="v-phone" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.phone : '') + '"></div><div><label class="block text-sm font-bold mb-1">合作狀態</label><select id="v-status" class="w-full px-3 py-2 border rounded input-field"><option value="normal" ' + (v && v.cooperation_status === 'normal' ? 'selected' : '') + '>正常配合</option><option value="paused" ' + (v && v.cooperation_status === 'paused' ? 'selected' : '') + '>暫時無配合</option></select></div></div>';
+  openModal(id ? '編輯廠商' : '新增廠商', html, saveVen);
+}
+
+async function saveVen() {
+  const id = document.getElementById('v-id').value;
+  const d = {
+    name: document.getElementById('v-name').value,
+    tax_id: document.getElementById('v-tax').value,
+    contact_person: document.getElementById('v-con').value,
+    phone: document.getElementById('v-phone').value,
+    cooperation_status: document.getElementById('v-status').value
+  };
+  if(!d.name) return showAlert('名稱必填！');
+  try {
+    if(id) await sb.from('vendors').update(d).eq('id', id);
+    else await sb.from('vendors').insert([d]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+async function delVen(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    await sb.from('vendors').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+  // ==================== 收支與訂閱 ====================
+function renderFinance(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button><button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button></div></div><div class="flex flex-col md:flex-row gap-4 mb-4 w-full"><input type="month" id="exp-month" value="' + bossDateRange.start + '" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48 input-field"><input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded input-field" oninput="renderExpTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類別</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">供應商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結束日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  renderExpTable();
+  let subHtml = '';
+  for(let i=0; i<D.subs.length; i++) {
+    const s = D.subs[i];
+    subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('sub-tbody').innerHTML = subHtml;
+}
+
+function renderExpTable() {
+  const monthVal = document.getElementById('exp-month').value;
+  const kw = (document.getElementById('exp-search') ? document.getElementById('exp-search').value || '' : '').toLowerCase();
+  const list = D.expenses.filter(function(e) {
+    if(!e.payment_date) return false;
+    const d = new Date(e.payment_date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const matchMonth = (y + '-' + m) === monthVal;
+    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
+    const matchKw = !kw || (cat && cat.name.toLowerCase().indexOf(kw) !== -1) || (e.description && e.description.toLowerCase().indexOf(kw) !== -1);
+    return matchMonth && matchKw;
+  }).sort(function(a,b) { return new Date(b.payment_date) - new Date(a.payment_date); });
+  let html = '';
+  for(let i=0; i<list.length; i++) {
+    const e = list[i];
+    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
+    const emp = D.emps.find(function(x) { return x.id === e.employee_id; });
+    const statusHtml = e.is_reimbursed ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">已結帳</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">待結帳</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + e.payment_date + '</td><td class="px-4 py-3">' + (cat ? cat.name : '-') + '</td><td class="px-4 py-3 font-bold text-red-600">' + (e.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-sm">' + (e.description || '-') + '</td><td class="px-4 py-3">' + (emp ? emp.name : '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openExpModal(\'' + e.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delExp(\'' + e.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('exp-tbody').innerHTML = html;
+}
+
+async function openExpModal(id) {
+  editingId = id || null;
+  const e = id ? D.expenses.find(function(x) { return x.id === id; }) : null;
+  const isCompanyPay = !e || !e.employee_id;
+  let catOptions = '';
+  for(let i=0; i<D.expCats.length; i++) {
+    const c = D.expCats[i];
+    catOptions += '<option value="' + c.id + '" ' + (e && e.category_id === c.id ? 'selected' : '') + '>' + c.name + '</option>';
+  }
+  let empOptions = '<option value="">無 (公司直接支付)</option>';
+  for(let i=0; i<D.emps.length; i++) {
+    const emp = D.emps[i];
+    empOptions += '<option value="' + emp.id + '" ' + (e && e.employee_id === emp.id ? 'selected' : '') + '>' + emp.name + '</option>';
+  }
+  let bankOptions = '<option value="">請選擇銀行</option>';
+  for(let i=0; i<D.banks.length; i++) {
+    const b = D.banks[i];
+    bankOptions += '<option value="' + b.id + '" ' + (e && e.reimbursement_bank_id === b.id ? 'selected' : '') + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+  }
+  const html = '<input type="hidden" id="e-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-1">類別</label><select id="e-cat" class="w-full px-3 py-2 border rounded input-field">' + catOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-1">金額</label><input type="number" id="e-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.amount : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">描述</label><input type="text" id="e-desc" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.description : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">日期</label><input type="date" id="e-date" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.payment_date : new Date().toISOString().split('T')[0]) + '"></div><div class="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4"><h3 class="font-bold text-orange-800 mb-2">💰 支出方式與撥款管理</h3><div class="mb-3"><label class="block text-sm font-bold mb-1">代墊員工</label><select id="e-emp" class="w-full px-3 py-2 border rounded input-field" onchange="toggleExpBankSelect()">' + empOptions + '</select></div><div class="mb-3" id="e-bank-box"><label class="block text-sm font-bold mb-1">出帳銀行帳戶 *</label><select id="e-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select><p class="text-xs text-gray-500 mt-1">* 公司支出或員工代墊結帳都需要選擇出帳帳戶，系統將自動扣款</p></div><label class="flex items-center gap-2 cursor-pointer" id="e-reimbursed-box" style="display:' + (isCompanyPay ? 'block' : 'none') + '"><input type="checkbox" id="e-reimbursed" class="w-5 h-5 text-orange-600 rounded" ' + (e && e.is_reimbursed ? 'checked' : '') + ' ' + (isCompanyPay ? 'disabled' : '') + '><span class="font-medium">此筆費用已結帳 ' + (isCompanyPay ? '(公司支付自動結帳)' : '') + '</span></label></div>';
+  openModal(id ? '編輯收支' : '新增收支', html, saveExp);
+  toggleExpBankSelect();
+}
+
+function toggleExpBankSelect() {
+  const empId = document.getElementById('e-emp').value;
+  const reimbursedBox = document.getElementById('e-reimbursed-box');
+  const reimbursedCheck = document.getElementById('e-reimbursed');
+  if(reimbursedBox) {
+    reimbursedBox.style.display = 'block';
+    if(empId) {
+      reimbursedCheck.checked = false;
+      reimbursedCheck.disabled = false;
+      reimbursedBox.querySelector('span').textContent = '此筆費用已結帳給員工';
+    } else {
+      reimbursedCheck.checked = true;
+      reimbursedCheck.disabled = true;
+      reimbursedBox.querySelector('span').textContent = '此筆費用已結帳 (公司支付自動結帳)';
+    }
+  }
+}
+
+async function saveExp() {
+  const id = document.getElementById('e-id').value;
+  const empId = document.getElementById('e-emp').value || null;
+  const isCompanyPay = !empId;
+  const isReimbursed = isCompanyPay ? true : document.getElementById('e-reimbursed').checked;
+  const bankId = document.getElementById('e-bank').value || null;
+  const amount = parseFloat(document.getElementById('e-amt').value) || 0;
+  if(!bankId && amount > 0) return showAlert('請選擇出帳銀行帳戶！');
+  const d = { category_id: document.getElementById('e-cat').value, amount: amount, description: document.getElementById('e-desc').value, payment_date: document.getElementById('e-date').value, employee_id: empId, is_reimbursed: isReimbursed, reimbursement_bank_id: bankId, reimbursed_date: isReimbursed ? new Date().toISOString().split('T')[0] : null };
+  try {
+    if(id) { await sb.from('expenses').update(d).eq('id', id); showAlert('已更新！'); }
+    else {
+      const newExp = await sb.from('expenses').insert([d]).select().single();
+      if(newExp.error) throw newExp.error;
+      if(bankId && amount > 0) {
+        const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+        if(bank.data) { await sb.from('bank_accounts').update({balance: (bank.data.balance || 0) - amount}).eq('id', bankId); }
+      }
+      showAlert('已記錄並扣款！');
+    }
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delExp(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    const e = D.expenses.find(function(x) { return x.id === id; });
+    if(e && e.reimbursement_bank_id && e.amount > 0 && e.is_reimbursed) {
+      const bank = await sb.from('bank_accounts').select('balance').eq('id', e.reimbursement_bank_id).single();
+      if(bank.data) { await sb.from('bank_accounts').update({balance: (bank.data.balance || 0) + e.amount}).eq('id', e.reimbursement_bank_id); }
+    }
+    await sb.from('expenses').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+function manageExpCats() {
+  const html = '<div class="flex gap-2 mb-4"><input type="text" id="ec-name" placeholder="類別名稱" class="flex-1 px-3 py-2 border rounded input-field"><button onclick="addExpCat()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="ec-list" class="space-y-2">' + D.expCats.map(function(c){return '<div class="flex justify-between p-2 border rounded"><span>' + c.name + '</span><button onclick="delExpCat(\'' + c.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';}).join('') + '</div>';
+  openModal('管理收支類別', html, function(){return Promise.resolve();}, true);
+}
+async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
+async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
+
+async function openSubModal(id) {
+  editingId = id || null;
+  const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="s-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="s-name" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">供應商</label><input type="text" id="s-provider" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.provider : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">金額</label><input type="number" id="s-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.amount : '') + '"></div><div><label class="block text-sm font-bold mb-1">結束日期</label><input type="date" id="s-end" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.end_date : '') + '"></div></div>';
+  openModal(id ? '編輯訂閱' : '新增訂閱', html, saveSub);
+}
+
+async function saveSub() {
+  const id = document.getElementById('s-id').value;
+  const d = { name: document.getElementById('s-name').value, provider: document.getElementById('s-provider').value, amount: parseFloat(document.getElementById('s-amt').value) || 0, end_date: document.getElementById('s-end').value };
+  if(!d.name) return showAlert('名稱必填！');
+  try {
+    if(id) await sb.from('system_subscriptions').update(d).eq('id', id);
+    else await sb.from('system_subscriptions').insert([d]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delSub(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('system_subscriptions').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+  // ==================== 銀行帳戶 ====================
+function renderBanks(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 0)">帳戶名稱 <span class="sort-icon"></span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 3)">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  let html = '';
+  for(let i=0; i<D.banks.length; i++) {
+    const b = D.banks[i];
+    const statusHtml = b.is_active ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">啟用</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">停用</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + b.account_name + '</td><td class="px-4 py-3">' + (b.bank_name || '-') + '</td><td class="px-4 py-3">' + (b.account_number || '-') + '</td><td class="px-4 py-3 font-bold text-green-600">' + (b.balance || 0).toLocaleString() + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openBankModal(\'' + b.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delBank(\'' + b.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('bank-tbody').innerHTML = html;
+}
+
+async function openBankModal(id) {
+  editingId = id || null;
+  const b = id ? D.banks.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="b-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-1">帳戶名稱 *</label><input type="text" id="b-name" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.account_name : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">銀行名稱</label><input type="text" id="b-bank" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.bank_name : '') + '"></div><div><label class="block text-sm font-bold mb-1">帳號</label><input type="text" id="b-number" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.account_number : '') + '"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">餘額</label><input type="number" id="b-balance" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.balance : 0) + '"></div><div><label class="block text-sm font-bold mb-1">狀態</label><select id="b-active" class="w-full px-3 py-2 border rounded input-field"><option value="true" ' + (b && b.is_active !== false ? 'selected' : '') + '>啟用</option><option value="false" ' + (b && b.is_active === false ? 'selected' : '') + '>停用</option></select></div></div>';
+  openModal(id ? '編輯帳戶' : '新增帳戶', html, saveBank);
+}
+
+async function saveBank() {
+  const id = document.getElementById('b-id').value;
+  const d = { account_name: document.getElementById('b-name').value, bank_name: document.getElementById('b-bank').value, account_number: document.getElementById('b-number').value, balance: parseFloat(document.getElementById('b-balance').value) || 0, is_active: document.getElementById('b-active').value === 'true' };
+  if(!d.account_name) return showAlert('帳戶名稱必填！');
+  try {
+    if(id) await sb.from('bank_accounts').update(d).eq('id', id);
+    else await sb.from('bank_accounts').insert([d]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delBank(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('bank_accounts').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+// ==================== 通路與員工 ====================
+function renderSettings(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">️ 通路與員工</h1></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">🛒 銷售通路</h3><button onclick="openChannelModal()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="channel-list" class="space-y-2"></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-purple-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">💳 付款方式</h3><button onclick="openPaymentModal()" class="bg-purple-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="payment-list" class="space-y-2"></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">👷 員工管理</h3><button onclick="openEmpModal()" class="bg-green-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="emp-list" class="space-y-2"></div></div></div></div>';
+  renderChannelList();
+  renderPaymentList();
+  renderEmpList();
+}
+
+function renderChannelList() {
+  let html = '';
+  for(let i=0; i<D.channels.length; i++) {
+    const ch = D.channels[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + ch.name + '</span><span class="text-sm text-gray-500 ml-2">(' + ch.commission_rate + '%)</span></div><button onclick="delChannel(\'' + ch.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('channel-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+function renderPaymentList() {
+  let html = '';
+  for(let i=0; i<D.payments.length; i++) {
+    const pm = D.payments[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + pm.name + '</span><span class="text-sm text-gray-500 ml-2">(' + pm.commission_rate + '%)</span></div><button onclick="delPayment(\'' + pm.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('payment-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+function renderEmpList() {
+  let html = '';
+  for(let i=0; i<D.emps.length; i++) {
+    const emp = D.emps[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + emp.name + '</span><span class="text-sm text-gray-500 ml-2">(' + (emp.position || '-') + ')</span></div><button onclick="delEmp(\'' + emp.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('emp-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+async function openChannelModal() {
+  const name = prompt('請輸入通路名稱：');
+  if(!name) return;
+  const rate = parseFloat(prompt('請輸入抽成比例 (%)：')) || 0;
+  try {
+    await sb.from('sales_channels').insert([{name: name, commission_rate: rate}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delChannel(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('sales_channels').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function openPaymentModal() {
+  const name = prompt('請輸入付款方式名稱：');
+  if(!name) return;
+  const rate = parseFloat(prompt('請輸入手續費比例 (%)：')) || 0;
+  try {
+    await sb.from('payment_methods').insert([{name: name, commission_rate: rate}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delPayment(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function openEmpModal() {
+  const name = prompt('請輸入員工姓名：');
+  if(!name) return;
+  const position = prompt('請輸入職位：') || '';
+  try {
+    await sb.from('employees').insert([{name: name, position: position}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delEmp(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+</script>
+</body>
+</html>
 </script>
 </body>
 </html>
