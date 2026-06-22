@@ -57,7 +57,7 @@
       opacity: 0; transition: opacity 0.25s;
     }
     .sidebar-overlay.show { opacity: 1; }
-    .main-content { padding: 0.75rem; padding-top: 4rem; margin-left: 0; }
+    .main-content { padding: 0.75rem; padding-top: 4rem; margin-left: 0 !important; }
     .mobile-menu-btn { display: flex !important; }
     .table-container { 
       overflow-x: auto; 
@@ -68,10 +68,16 @@
     .content-card { padding: 0.75rem; }
     .card-grid { grid-template-columns: 1fr; gap: 0.75rem; }
     .modal-content { max-height: 90vh; }
+    /* 移动端表格优化 */
+    table { min-width: 800px; }
+    td, th { white-space: nowrap; font-size: 0.875rem; }
+    .btn-touch { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+    /* 移动端操作按钮优化 */
+    .action-btns button { display: inline-block; margin: 0.125rem; padding: 0.375rem 0.625rem; font-size: 0.8125rem; }
   }
   
   @media (min-width: 769px) and (max-width: 1024px) {
-    .main-content { padding: 1.25rem; padding-top: 4rem; margin-left: 0; }
+    .main-content { padding: 1.25rem; padding-top: 4rem; margin-left: 0 !important; }
     .content-card { padding: 1.5rem; }
     .card-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     .sidebar { width: 0; min-width: 0; overflow: hidden; transition: all 0.3s ease; }
@@ -362,7 +368,7 @@ document.getElementById('password').addEventListener('keypress', (e) => {
 
 document.getElementById('logout-btn').addEventListener('click', () => sb.auth.signOut().then(() => location.reload()));
 
-document.querySelectorAll('nav a').forEach(a => {
+document.querySelectorAll('.sidebar nav a').forEach(a => {
   a.addEventListener('click', e => { 
     e.preventDefault(); 
     switchView(a.dataset.view); 
@@ -387,7 +393,7 @@ async function loadAll() {
 
 function switchView(v) {
   currentView = v;
-  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('nav-active', a.dataset.view === v));
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.toggle('nav-active', a.dataset.view === v));
   render();
 }
 
@@ -905,7 +911,7 @@ function renderCustTable() {
       <td class="px-4 py-3 text-sm">${c.invoice_title||'-'}<br><span class="text-gray-500">${c.tax_id||'-'}</span></td>
       <td class="px-4 py-3 text-sm">${win?.name || '-'}</td>
       <td class="px-4 py-3">${custTags || '<span class="text-gray-400">無</span>'}</td>
-      <td class="px-4 py-3 whitespace-nowrap space-x-2">
+      <td class="px-4 py-3 whitespace-nowrap space-x-2 action-btns">
         <button onclick="viewCustDetail('${c.id}')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>
         <button onclick="openCustModal('${c.id}')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>
         <button onclick="delCust('${c.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>
