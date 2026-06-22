@@ -374,6 +374,60 @@ function openModal(title, html, onSave, hideSave=false) {
   document.addEventListener('keydown', handleEnter, { once: true });
 }
 
+// 側邊欄初始化函數
+function initSidebar() {
+  const menuToggleBtn = document.getElementById('menu-toggle-btn');
+  const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const sidebar = document.getElementById('sidebar');
+  
+  function toggleSidebar() {
+    if (!sidebar || !sidebarOverlay) return;
+    
+    const isOpen = sidebar.classList.contains('open');
+    
+    if (isOpen) {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('show');
+      setTimeout(() => sidebarOverlay.classList.add('hidden'), 300);
+    } else {
+      sidebarOverlay.classList.remove('hidden');
+      void sidebarOverlay.offsetWidth;
+      sidebar.classList.add('open');
+      sidebarOverlay.classList.add('show');
+    }
+  }
+  
+  // 綁定事件（只綁定一次）
+  if (menuToggleBtn && !menuToggleBtn.dataset.bound) {
+    menuToggleBtn.addEventListener('click', toggleSidebar);
+    menuToggleBtn.dataset.bound = 'true';
+  }
+  if (sidebarCloseBtn && !sidebarCloseBtn.dataset.bound) {
+    sidebarCloseBtn.addEventListener('click', toggleSidebar);
+    sidebarCloseBtn.dataset.bound = 'true';
+  }
+  if (sidebarOverlay && !sidebarOverlay.dataset.bound) {
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+    sidebarOverlay.dataset.bound = 'true';
+  }
+  
+  // 導航點擊後收合
+  document.querySelectorAll('nav a').forEach(a => {
+    if (!a.dataset.bound) {
+      a.addEventListener('click', e => { 
+        e.preventDefault(); 
+        switchView(a.dataset.view); 
+        if(window.innerWidth <= 1024 && sidebar.classList.contains('open')) {
+          toggleSidebar();
+        }
+      });
+      a.dataset.bound = 'true';
+    }
+  });
+}
+
+// 登入按鈕事件
 document.getElementById('login-btn').addEventListener('click', async () => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
@@ -390,7 +444,10 @@ document.getElementById('login-btn').addEventListener('click', async () => {
       document.getElementById('login-view').classList.add('hidden'); 
       document.getElementById('main-system').classList.remove('hidden'); 
       await loadAll();
-      switchView('boss'); 
+      switchView('boss');
+      
+      // ✅ 登入成功後初始化側邊欄
+      initSidebar();
     }
   } catch(err) {
     showAlert('登入發生錯誤：' + err.message);
