@@ -59,13 +59,11 @@
       background: rgba(0,0,0,0.5); 
       z-index: 40; 
       opacity: 0; 
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
+      transition: opacity 0.3s;
       pointer-events: none;
     }
     .sidebar-overlay.show { 
       opacity: 1; 
-      visibility: visible;
       pointer-events: auto;
     }
     .main-content { 
@@ -87,6 +85,7 @@
       width: 36px;
       height: 36px;
       border-radius: 0.5rem;
+      cursor: pointer;
     }
     .mobile-menu-btn:hover {
       background: rgba(59, 130, 246, 0.9);
@@ -153,18 +152,18 @@
 </div>
 
 <div id="main-system" class="hidden min-h-screen flex">
-  <!-- 左上角三條線按鈕（手機/平板）- 半透明、小尺寸 -->
-  <button onclick="toggleSidebar()" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
+  <!-- 左上角三條線按鈕（手機/平板） -->
+  <button id="menu-toggle-btn" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
-  <div id="sidebar-overlay" onclick="toggleSidebar(event)" class="sidebar-overlay"></div>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
   <aside id="sidebar" class="sidebar w-64 bg-gray-800 text-white flex flex-col flex-shrink-0 transition-transform transform">
     <div class="p-4 md:p-6 text-xl md:text-2xl font-bold border-b border-gray-700 text-center bg-gradient-to-r from-blue-600 to-purple-600 flex justify-between items-center">
       <span class="flex-1">養芯健康</span>
       <!-- 側邊欄內的 X 按鈕（手機/平板） -->
-      <button onclick="toggleSidebar(event)" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
+      <button id="sidebar-close-btn" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -247,13 +246,8 @@ const PRODUCT_TYPE_MAP = {
   'outer_box': '外箱子'
 };
 
-// 側邊欄切換功能（修復收合問題）
-window.toggleSidebar = function(event) {
-  // 如果有事件對象，阻止事件冒泡
-  if (event) {
-    event.stopPropagation();
-  }
-  
+// ==================== 側邊欄開關邏輯 (已修復) ====================
+function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   
@@ -262,15 +256,42 @@ window.toggleSidebar = function(event) {
   const isOpen = sidebar.classList.contains('open');
   
   if (isOpen) {
-    // 收合側邊欄
+    // 關閉
     sidebar.classList.remove('open');
     overlay.classList.remove('show');
+    setTimeout(() => overlay.classList.add('hidden'), 300);
   } else {
-    // 展開側邊欄
+    // 打開
+    overlay.classList.remove('hidden');
+    void overlay.offsetWidth; // 強制重繪
     sidebar.classList.add('open');
     overlay.classList.add('show');
   }
-};
+}
+
+// 確保 DOM 加載完成後綁定事件
+document.addEventListener('DOMContentLoaded', function() {
+  const menuBtn = document.getElementById('menu-toggle-btn');
+  const closeBtn = document.getElementById('sidebar-close-btn');
+  const overlay = document.getElementById('sidebar-overlay');
+  
+  if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
+  if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+  if (overlay) overlay.addEventListener('click', toggleSidebar);
+  
+  // 導航點擊後自動收合
+  document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      switchView(this.dataset.view);
+      const sidebar = document.getElementById('sidebar');
+      if (window.innerWidth <= 1024 && sidebar && sidebar.classList.contains('open')) {
+        toggleSidebar();
+      }
+    });
+  });
+});
+// ================================================================
 
 function showAlert(msg) {
   document.getElementById('alert-message').textContent = msg;
@@ -288,11 +309,6 @@ document.addEventListener('keydown', (e) => {
     }
     if (!document.getElementById('alert-modal').classList.contains('hidden')) {
       document.getElementById('alert-modal').classList.add('hidden');
-    }
-    // ESC 也可以收合側邊欄
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && sidebar.classList.contains('open')) {
-      window.toggleSidebar();
     }
   }
 });
@@ -394,21 +410,6 @@ document.getElementById('password').addEventListener('keypress', (e) => {
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => sb.auth.signOut().then(() => location.reload()));
-
-// 導航點擊事件（點擊後自動收合側邊欄）
-document.querySelectorAll('nav a').forEach(a => {
-  a.addEventListener('click', e => { 
-    e.preventDefault(); 
-    switchView(a.dataset.view); 
-    // 手機/平板點擊後立即收合（不使用 setTimeout）
-    if(window.innerWidth <= 1024) {
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar && sidebar.classList.contains('open')) {
-        window.toggleSidebar();
-      }
-    }
-  });
-});
 
 async function loadAll() {
   const map = {
@@ -593,7 +594,7 @@ function renderBoss(c) {
           <input type="month" value="${bossDateRange.start}" onchange="bossDateRange.start=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">
           <span class="flex items-center text-gray-500">至</span>
           <input type="month" value="${bossDateRange.end}" onchange="bossDateRange.end=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">
-          <button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch">📥 下載 Excel</button>
+          <button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch"> 下載 Excel</button>
         </div>
       </div>
       
@@ -859,7 +860,7 @@ function renderCRM(c) {
   c.innerHTML = `
     <div class="content-card">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 class="text-3xl font-bold">👥 客戶管理</h1>
+        <h1 class="text-3xl font-bold"> 客戶管理</h1>
         <div class="flex flex-wrap gap-2 w-full md:w-auto">
           <button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button>
           <button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button>
@@ -1177,7 +1178,7 @@ function renderProducts(c) { c.innerHTML = '<div class="content-card"><h1 class=
 function renderWarehouses(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderInventory(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">📊 庫存盤點</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderPurchases(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🛒 採購入庫</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
-function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
+function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold"> 廠商管理</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderFinance(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderBanks(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">⚙️ 通路與員工</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
