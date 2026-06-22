@@ -6,7 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>養芯健康 ERP</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- 使用稳定的 Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com/3.3.3"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -159,16 +160,16 @@
       </button>
     </div>
     <nav class="flex-1 p-3 md:p-4 space-y-1 overflow-y-auto text-sm">
-      <a href="#" data-view="boss" class="block py-3 px-4 rounded-lg hover:bg-gray-700 nav-active transition-colors btn-touch"> 老闆查閱</a>
+      <a href="#" data-view="boss" class="block py-3 px-4 rounded-lg hover:bg-gray-700 nav-active transition-colors btn-touch">👑 老闆查閱</a>
       <div class="text-gray-400 text-xs mt-4 mb-2 px-4 font-semibold">業務前端</div>
       <a href="#" data-view="crm" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">👥 客戶管理</a>
-      <a href="#" data-view="orders" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch"> 訂單出貨</a>
+      <a href="#" data-view="orders" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">📦 訂單出貨</a>
       <div class="text-gray-400 text-xs mt-4 mb-2 px-4 font-semibold">商品後勤</div>
-      <a href="#" data-view="products" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🏭 商品與 BOM</a>
+      <a href="#" data-view="products" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🏭 商品與BOM</a>
       <a href="#" data-view="warehouses" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🏢 倉庫管理</a>
       <a href="#" data-view="inventory" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">📊 庫存盤點</a>
       <a href="#" data-view="purchases" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🛒 採購入庫</a>
-      <a href="#" data-view="vendors" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch"> 廠商管理</a>
+      <a href="#" data-view="vendors" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🏢 廠商管理</a>
       <div class="text-gray-400 text-xs mt-4 mb-2 px-4 font-semibold">財務金流</div>
       <a href="#" data-view="finance" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">💰 收支與訂閱</a>
       <a href="#" data-view="banks" class="block py-3 px-4 rounded-lg hover:bg-gray-700 transition-colors btn-touch">🏦 銀行帳戶</a>
@@ -223,11 +224,10 @@ let bossDateRange = { start: bossMonth, end: bossMonth };
 let isSaving = false;
 
 const COLOR_NAMES = {
-  '1': '紅色', '2': '粉色', '3': '紫色', '4': '藍', '5': '藍色',
+  '1': '紅色', '2': '粉色', '3': '紫色', '4': '靛藍', '5': '藍色',
   '6': '青色', '7': '綠色', '8': '黃綠', '9': '黃色', '10': '橘色'
 };
 
-// 商品类型映射
 const PRODUCT_TYPE_MAP = {
   'finished': '成品',
   'semi': '半成品',
@@ -307,7 +307,9 @@ function openModal(title, html, onSave, hideSave=false) {
       saveBtn.textContent = '儲存中...';
       try { 
         await onSave(); 
-      } catch(e) {} finally {
+      } catch(e) {
+        console.error('Save error:', e);
+      } finally {
         isSaving = false;
         saveBtn.disabled = false;
         saveBtn.textContent = '儲存 (Enter)';
@@ -347,6 +349,8 @@ document.getElementById('login-btn').addEventListener('click', () => {
       document.getElementById('main-system').classList.remove('hidden'); 
       loadAll().then(() => switchView('boss')); 
     }
+  }).catch(err => {
+    showAlert('登入失敗：' + err.message);
   });
 });
 
@@ -408,7 +412,6 @@ function render() {
 
 // ==================== 老闆查閱（完整功能：代墊款明細 + 日期範圍 + 庫存資產 + Excel 下載）====================
 function renderBoss(c) {
-  // 计算日期范围内的数据
   const [startY, startM] = bossDateRange.start.split('-').map(Number);
   const [endY, endM] = bossDateRange.end.split('-').map(Number);
   
@@ -540,7 +543,7 @@ function renderBoss(c) {
           <input type="month" value="${bossDateRange.start}" onchange="bossDateRange.start=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">
           <span class="flex items-center text-gray-500">至</span>
           <input type="month" value="${bossDateRange.end}" onchange="bossDateRange.end=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">
-          <button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch"> 下載 Excel</button>
+          <button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch">📥 下載 Excel</button>
         </div>
       </div>
       
@@ -623,7 +626,7 @@ function renderBoss(c) {
       </div>
 
       <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500">
-        <h3 class="text-lg font-bold mb-4 text-gray-800"> 期間出貨支出明細</h3>
+        <h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4>
@@ -737,7 +740,7 @@ function renderCRM(c) {
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('cust-tbody', 0)">類型 <span class="sort-icon"></span></th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('cust-tbody', 0)">類型 <span class="sort-icon">↕</span></th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('cust-tbody', 1)">公司/姓名 <span class="sort-icon">↕</span></th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('cust-tbody', 2)">聯絡人/電話 <span class="sort-icon">↕</span></th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">抬頭/統編</th>
@@ -1027,4 +1030,3 @@ function manageTags() {
 }
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
-  
