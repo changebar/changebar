@@ -85,6 +85,7 @@
       width: 36px;
       height: 36px;
       border-radius: 0.5rem;
+      cursor: pointer;
     }
     .mobile-menu-btn:hover {
       background: rgba(59, 130, 246, 0.9);
@@ -152,17 +153,17 @@
 
 <div id="main-system" class="hidden min-h-screen flex">
   <!-- 左上角三條線按鈕（手機/平板）- 半透明、小尺寸 -->
-  <button onclick="toggleSidebar()" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
+  <button id="menu-toggle-btn" class="mobile-menu-btn items-center justify-center hidden" aria-label="開啟選單">
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
-  <div id="sidebar-overlay" onclick="toggleSidebar()" class="sidebar-overlay hidden"></div>
+  <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
 
   <aside id="sidebar" class="sidebar w-64 bg-gray-800 text-white flex flex-col flex-shrink-0 transition-transform transform">
     <div class="p-4 md:p-6 text-xl md:text-2xl font-bold border-b border-gray-700 text-center bg-gradient-to-r from-blue-600 to-purple-600 flex justify-between items-center">
       <span class="flex-1">養芯健康</span>
       <!-- 側邊欄內的 X 按鈕（手機/平板） -->
-      <button onclick="toggleSidebar()" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
+      <button id="sidebar-close-btn" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
     </div>
@@ -246,13 +247,17 @@ const PRODUCT_TYPE_MAP = {
 };
 
 // 側邊欄切換功能（修復收合問題）
-window.toggleSidebar = function() {
+function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
   
-  if (!sidebar || !overlay) return;
+  if (!sidebar || !overlay) {
+    console.log('Sidebar or overlay not found');
+    return;
+  }
   
   const isOpen = sidebar.classList.contains('open');
+  console.log('Sidebar isOpen:', isOpen);
   
   if (isOpen) {
     // 收合側邊欄
@@ -261,6 +266,7 @@ window.toggleSidebar = function() {
     setTimeout(() => {
       overlay.classList.add('hidden');
     }, 300);
+    console.log('Sidebar closed');
   } else {
     // 展開側邊欄
     overlay.classList.remove('hidden');
@@ -268,8 +274,28 @@ window.toggleSidebar = function() {
     void overlay.offsetWidth;
     sidebar.classList.add('open');
     overlay.classList.add('show');
+    console.log('Sidebar opened');
   }
-};
+}
+
+// 綁定按鈕事件
+document.addEventListener('DOMContentLoaded', function() {
+  const menuToggleBtn = document.getElementById('menu-toggle-btn');
+  const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  
+  if (menuToggleBtn) {
+    menuToggleBtn.addEventListener('click', toggleSidebar);
+  }
+  
+  if (sidebarCloseBtn) {
+    sidebarCloseBtn.addEventListener('click', toggleSidebar);
+  }
+  
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', toggleSidebar);
+  }
+});
 
 function showAlert(msg) {
   document.getElementById('alert-message').textContent = msg;
@@ -291,7 +317,7 @@ document.addEventListener('keydown', (e) => {
     // ESC 也可以收合側邊欄
     const sidebar = document.getElementById('sidebar');
     if (sidebar && sidebar.classList.contains('open')) {
-      window.toggleSidebar();
+      toggleSidebar();
     }
   }
 });
@@ -399,11 +425,11 @@ document.querySelectorAll('nav a').forEach(a => {
   a.addEventListener('click', e => { 
     e.preventDefault(); 
     switchView(a.dataset.view); 
-    // 手機/平板點擊後立即收合（不使用 setTimeout）
+    // 手機/平板點擊後立即收合
     if(window.innerWidth <= 1024) {
       const sidebar = document.getElementById('sidebar');
       if (sidebar && sidebar.classList.contains('open')) {
-        window.toggleSidebar();
+        toggleSidebar();
       }
     }
   });
