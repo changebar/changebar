@@ -478,6 +478,7 @@ function renderBoss(c) {
     if(totalQty > 0) {
       if(!inventoryByType[p.type]) inventoryByType[p.type] = [];
       inventoryByType[p.type].push({
+        type: p.type,
         name: p.name,
         sku: p.sku,
         quantity: totalQty,
@@ -495,8 +496,10 @@ function renderBoss(c) {
   };
   
   Object.values(inventoryByType).flat().forEach(item => {
-    inventoryAssets[item.type].count += item.quantity;
-    inventoryAssets[item.type].value += item.value;
+    if (item && item.type && inventoryAssets[item.type]) {
+      inventoryAssets[item.type].count += item.quantity || 0;
+      inventoryAssets[item.type].value += item.value || 0;
+    }
   });
   
   const totalInventoryValue = Object.values(inventoryAssets).reduce((sum, x) => sum + x.value, 0);
@@ -672,23 +675,23 @@ function renderBoss(c) {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div class="p-4 bg-blue-50 rounded-lg">
             <p class="text-sm text-gray-600">成品</p>
-            <p class="text-2xl font-bold text-blue-600">${inventoryAssets.finished.count} 件</p>
-            <p class="text-sm text-gray-500">價值：${inventoryAssets.finished.value.toLocaleString()}</p>
+            <p class="text-2xl font-bold text-blue-600">${(inventoryAssets.finished?.count || 0)} 件</p>
+            <p class="text-sm text-gray-500">價值：${(inventoryAssets.finished?.value || 0).toLocaleString()}</p>
           </div>
           <div class="p-4 bg-purple-50 rounded-lg">
             <p class="text-sm text-gray-600">半成品</p>
-            <p class="text-2xl font-bold text-purple-600">${inventoryAssets.semi.count} 件</p>
-            <p class="text-sm text-gray-500">價值：${inventoryAssets.semi.value.toLocaleString()}</p>
+            <p class="text-2xl font-bold text-purple-600">${(inventoryAssets.semi?.count || 0)} 件</p>
+            <p class="text-sm text-gray-500">價值：${(inventoryAssets.semi?.value || 0).toLocaleString()}</p>
           </div>
           <div class="p-4 bg-pink-50 rounded-lg">
             <p class="text-sm text-gray-600">禮盒</p>
-            <p class="text-2xl font-bold text-pink-600">${inventoryAssets.gift_box.count} 件</p>
-            <p class="text-sm text-gray-500">價值：${inventoryAssets.gift_box.value.toLocaleString()}</p>
+            <p class="text-2xl font-bold text-pink-600">${(inventoryAssets.gift_box?.count || 0)} 件</p>
+            <p class="text-sm text-gray-500">價值：${(inventoryAssets.gift_box?.value || 0).toLocaleString()}</p>
           </div>
           <div class="p-4 bg-gray-50 rounded-lg">
             <p class="text-sm text-gray-600">外箱子</p>
-            <p class="text-2xl font-bold text-gray-600">${inventoryAssets.outer_box.count} 件</p>
-            <p class="text-sm text-gray-500">價值：${inventoryAssets.outer_box.value.toLocaleString()}</p>
+            <p class="text-2xl font-bold text-gray-600">${(inventoryAssets.outer_box?.count || 0)} 件</p>
+            <p class="text-sm text-gray-500">價值：${(inventoryAssets.outer_box?.value || 0).toLocaleString()}</p>
           </div>
         </div>
         
@@ -733,7 +736,7 @@ function renderBoss(c) {
         <div class="mt-4 p-4 bg-indigo-100 rounded-lg">
           <div class="flex justify-between items-center">
             <span class="font-bold text-lg">庫存總價值</span>
-            <span class="text-3xl font-bold text-indigo-600">${totalInventoryValue.toLocaleString()}</span>
+            <span class="text-3xl font-bold text-indigo-600">${(totalInventoryValue || 0).toLocaleString()}</span>
           </div>
         </div>
       </div>
