@@ -223,6 +223,18 @@ document.getElementById('alert-ok-btn').addEventListener('click', () => {
   document.getElementById('alert-modal').classList.add('hidden');
 });
 
+// ESC键关闭弹窗
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!document.getElementById('modal-overlay').classList.contains('hidden')) {
+      window.closeModal();
+    }
+    if (!document.getElementById('alert-modal').classList.contains('hidden')) {
+      document.getElementById('alert-modal').classList.add('hidden');
+    }
+  }
+});
+
 window.closeModal = function() {
   document.getElementById('modal-overlay').classList.add('hidden');
   editingId = null;
@@ -271,6 +283,18 @@ function openModal(title, html, onSave, hideSave=false) {
   
   cancelBtn.onclick = window.closeModal;
   closeBtn.onclick = window.closeModal;
+  
+  // Enter键保存（排除输入框）
+  const handleEnter = (e) => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+      e.preventDefault();
+      if (!hideSave && saveBtn.onclick) {
+        saveBtn.click();
+      }
+    }
+  };
+  
+  document.addEventListener('keydown', handleEnter, { once: true });
 }
 
 // 登入功能
@@ -402,7 +426,7 @@ function renderBoss(c) {
   const totalCash = D.banks.reduce((s,b)=>s+(b.balance||0),0);
   const monthlyProfit = rev - pur - exp - sub;
   
-  // 代垫款明细
+  // 代垫款明细（不随日期变化，显示所有待结帐）
   const unreimbursedExpenses = D.expenses.filter(e => e.employee_id && !e.is_reimbursed);
   const unreimbursedByEmp = {};
   unreimbursedExpenses.forEach(e => {
@@ -414,7 +438,7 @@ function renderBoss(c) {
     }
   });
   
-  // 库存资产计算（含明细）
+  // 库存资产计算（含明细，不随日期变化，显示当前库存）
   const inventoryByType = {};
   D.products.forEach(p => {
     const totalQty = D.warehouseInv.filter(i => i.product_id === p.id).reduce((sum, i) => sum + (i.quantity || 0), 0);
@@ -527,7 +551,7 @@ function renderBoss(c) {
         </div>
       </div>
 
-      <!-- 代垫款明细 -->
+      <!-- 代垫款明细（不随日期变化） -->
       <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500">
         <h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3>
         ${Object.keys(unreimbursedByEmp).length > 0 ? `
@@ -552,10 +576,69 @@ function renderBoss(c) {
         ` : '<p class="text-gray-500">目前無待結帳代墊款項</p>'}
       </div>
 
-      <!-- 库存资产（含明细） -->
-      <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-indigo-500">
+      <!-- 本月出货支出明细（随日期范围变化） -->
+      <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500">
+        <h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4>
+            <div class="space-y-1 text-sm">
+              ${Object.entries(channelStats).map(([name, stat]) => `
+                <div class="flex justify-between"><span>${name}</span><span class="font-bold text-red-600">${stat.commission.toLocaleString()}</span></div>
+              `).join('') || '<div class="text-gray-400">無數據</div>'}
+            </div>
+            <div class="border-t mt-2 pt-2 font-bold">合計：${totalChannelCommission.toLocaleString()}</div>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4>
+            <div class="space-y-1 text-sm">
+              ${Object.entries(paymentStats).map(([name, stat]) => `
+                <div class="flex justify-between"><span>${name}</span><span class="font-bold text-red-600">${stat.commission.toLocaleString()}</span></div>
+              `).join('') || '<div class="text-gray-400">無數據</div>'}
+            </div>
+            <div class="border-t mt-2 pt-2 font-bold">合計：${totalPaymentCommission.toLocaleString()}</div>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4>
+            <div class="space-y-1 text-sm">
+              <div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">${companyShipping.toLocaleString()}</span></div>
+              <div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">${customerShipping.toLocaleString()}</span></div>
+            </div>
+            <div class="border-t mt-2 pt-2 font-bold">公司支出：${totalShippingCost.toLocaleString()}</div>
+          </div>
+        </div>
+        <div class="mt-4 p-4 bg-red-50 rounded-lg">
+          <div class="flex justify-between items-center">
+            <span class="font-bold text-lg">期間出貨總支出</span>
+            <span class="text-2xl font-bold text-red-600">${totalOrderExpenses.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 营运指标和公司总资金（不随日期变化） -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">${totalCustomers} 位</span></div>
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">期間訂單數</span><span class="text-2xl font-bold text-indigo-600">${monthOrderCount} 單</span></div>
+            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">${subCustomerCount} 位</span></div>
+            <div class="flex justify-between items-center"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">${Math.round(subMonthlyRevenue).toLocaleString()}</span></div>
+          </div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500">
+          <h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3>
+          <p class="text-4xl font-bold text-orange-600 mb-6">現金總額：${totalCash.toLocaleString()}</p>
+          <div class="space-y-2">
+            ${D.banks.map(b=>`<div class="flex justify-between items-center p-3 bg-gray-50 rounded"><span class="font-medium">${b.account_name}</span><span class="font-bold text-green-600">${(b.balance||0).toLocaleString()}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- 库存资产总览（放在最下面，不随日期变化） -->
+      <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
         <h3 class="text-lg font-bold mb-4 text-gray-800">📦 庫存資產總覽</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           <div class="p-4 bg-blue-50 rounded-lg">
             <p class="text-sm text-gray-600">成品</p>
             <p class="text-2xl font-bold text-blue-600">${inventoryAssets.finished.count} 件</p>
@@ -620,65 +703,6 @@ function renderBoss(c) {
           <div class="flex justify-between items-center">
             <span class="font-bold text-lg">庫存總價值</span>
             <span class="text-3xl font-bold text-indigo-600">${totalInventoryValue.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 本月出货支出明细（修复回来） -->
-      <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500">
-        <h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4>
-            <div class="space-y-1 text-sm">
-              ${Object.entries(channelStats).map(([name, stat]) => `
-                <div class="flex justify-between"><span>${name}</span><span class="font-bold text-red-600">${stat.commission.toLocaleString()}</span></div>
-              `).join('') || '<div class="text-gray-400">無數據</div>'}
-            </div>
-            <div class="border-t mt-2 pt-2 font-bold">合計：${totalChannelCommission.toLocaleString()}</div>
-          </div>
-          <div>
-            <h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4>
-            <div class="space-y-1 text-sm">
-              ${Object.entries(paymentStats).map(([name, stat]) => `
-                <div class="flex justify-between"><span>${name}</span><span class="font-bold text-red-600">${stat.commission.toLocaleString()}</span></div>
-              `).join('') || '<div class="text-gray-400">無數據</div>'}
-            </div>
-            <div class="border-t mt-2 pt-2 font-bold">合計：${totalPaymentCommission.toLocaleString()}</div>
-          </div>
-          <div>
-            <h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4>
-            <div class="space-y-1 text-sm">
-              <div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">${companyShipping.toLocaleString()}</span></div>
-              <div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">${customerShipping.toLocaleString()}</span></div>
-            </div>
-            <div class="border-t mt-2 pt-2 font-bold">公司支出：${totalShippingCost.toLocaleString()}</div>
-          </div>
-        </div>
-        <div class="mt-4 p-4 bg-red-50 rounded-lg">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-lg">期間出貨總支出</span>
-            <span class="text-2xl font-bold text-red-600">${totalOrderExpenses.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 营运指标（修复回来） -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
-          <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
-          <div class="space-y-4">
-            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">${totalCustomers} 位</span></div>
-            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">期間訂單數</span><span class="text-2xl font-bold text-indigo-600">${monthOrderCount} 單</span></div>
-            <div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">${subCustomerCount} 位</span></div>
-            <div class="flex justify-between items-center"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">${Math.round(subMonthlyRevenue).toLocaleString()}</span></div>
-          </div>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500">
-          <h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3>
-          <p class="text-4xl font-bold text-orange-600 mb-6">現金總額：${totalCash.toLocaleString()}</p>
-          <div class="space-y-2">
-            ${D.banks.map(b=>`<div class="flex justify-between items-center p-3 bg-gray-50 rounded"><span class="font-medium">${b.account_name}</span><span class="font-bold text-green-600">${(b.balance||0).toLocaleString()}</span></div>`).join('')}
           </div>
         </div>
       </div>
@@ -789,7 +813,7 @@ function renderCRM(c) {
           <button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button>
         </div>
       </div>
-      <div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div>
+      <div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div>
       <div class="bg-white rounded-lg shadow overflow-hidden table-container">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -827,7 +851,19 @@ function sortTable(tbodyId, colIndex) {
 
 function renderCustTable() {
   const kw = (document.getElementById('cust-search')?.value || '').toLowerCase();
-  const list = D.customers.filter(c => ((c.company_name||'')+(c.contact_person||'')+(c.phone||'')).toLowerCase().includes(kw));
+  const list = D.customers.filter(c => {
+    // 搜索客户基本信息
+    const basicMatch = ((c.company_name||'')+(c.contact_person||'')+(c.phone||'')).toLowerCase().includes(kw);
+    
+    // 搜索标签
+    const custTags = (D.customerTags || []).filter(ct => ct.customer_id === c.id);
+    const tagMatch = custTags.some(ct => {
+      const tag = D.tags.find(t => t.id === ct.tag_id);
+      return tag && tag.name.toLowerCase().includes(kw);
+    });
+    
+    return basicMatch || tagMatch;
+  });
   
   document.getElementById('cust-tbody').innerHTML = list.map(c => {
     const win = D.windows.find(w=>w.id===c.primary_contact_window_id);
