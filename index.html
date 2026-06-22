@@ -39,22 +39,41 @@
     width: 100%;
   }
 
+  /* 手機/平板側邊欄優化 */
   @media (max-width: 768px) { 
     .sidebar { 
-      position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      z-index: 50; 
+      height: 100vh; 
       transform: translateX(-100%); 
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      width: 85%; max-width: 300px; 
+      transition: transform 0.3s ease-in-out;
+      width: 280px; 
       will-change: transform;
     }
     .sidebar.open { transform: translateX(0); }
     .sidebar-overlay { 
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; 
-      opacity: 0; transition: opacity 0.25s;
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,0.5); 
+      z-index: 40; 
+      opacity: 0; 
+      transition: opacity 0.3s;
     }
     .sidebar-overlay.show { opacity: 1; }
-    .main-content { padding: 0.75rem; padding-top: 4rem; }
-    .mobile-menu-btn { display: flex !important; }
+    .main-content { 
+      padding: 0.75rem; 
+      padding-top: 4rem; 
+      width: 100%;
+    }
+    .mobile-menu-btn { 
+      display: flex !important; 
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 60;
+    }
     .table-container { 
       overflow-x: auto; 
       -webkit-overflow-scrolling: touch; 
@@ -67,7 +86,38 @@
   }
   
   @media (min-width: 769px) and (max-width: 1024px) {
-    .main-content { padding: 1.25rem; padding-top: 4rem; }
+    .sidebar { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      z-index: 50; 
+      height: 100vh; 
+      transform: translateX(-100%); 
+      transition: transform 0.3s ease-in-out;
+      width: 280px;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-overlay { 
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,0.5); 
+      z-index: 40; 
+      opacity: 0; 
+      transition: opacity 0.3s;
+    }
+    .sidebar-overlay.show { opacity: 1; }
+    .main-content { 
+      padding: 1.25rem; 
+      padding-top: 4rem; 
+      width: 100%;
+    }
+    .mobile-menu-btn { 
+      display: flex !important; 
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 60;
+    }
     .content-card { padding: 1.5rem; }
     .card-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   }
@@ -75,6 +125,15 @@
   @media (min-width: 1025px) {
     .mobile-menu-btn { display: none !important; }
     .sidebar-overlay { display: none !important; }
+    .sidebar { 
+      position: static; 
+      transform: none !important;
+      width: 16rem;
+    }
+    .main-content { 
+      width: calc(100% - 16rem);
+      padding: 2rem;
+    }
     .content-card { padding: 2rem; }
     .card-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
   }
@@ -108,7 +167,8 @@
 </div>
 
 <div id="main-system" class="hidden min-h-screen flex">
-  <button onclick="toggleSidebar()" class="mobile-menu-btn fixed top-4 left-4 z-50 bg-blue-600 text-white p-3 rounded-lg shadow-lg items-center justify-center btn-touch">
+  <!-- 左上角三條線按鈕（手機/平板） -->
+  <button onclick="toggleSidebar()" class="mobile-menu-btn bg-blue-600 text-white p-3 rounded-lg shadow-lg items-center justify-center btn-touch hidden">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
@@ -205,7 +265,7 @@ window.toggleSidebar = function() {
   if (isOpen) {
     sidebar.classList.remove('open');
     overlay.classList.remove('show');
-    setTimeout(() => overlay.classList.add('hidden'), 250);
+    setTimeout(() => overlay.classList.add('hidden'), 300);
   } else {
     overlay.classList.remove('hidden');
     void overlay.offsetWidth; 
@@ -223,7 +283,6 @@ document.getElementById('alert-ok-btn').addEventListener('click', () => {
   document.getElementById('alert-modal').classList.add('hidden');
 });
 
-// ESC键关闭弹窗
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     if (!document.getElementById('modal-overlay').classList.contains('hidden')) {
@@ -284,7 +343,6 @@ function openModal(title, html, onSave, hideSave=false) {
   cancelBtn.onclick = window.closeModal;
   closeBtn.onclick = window.closeModal;
   
-  // Enter键保存（排除输入框）
   const handleEnter = (e) => {
     if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
       e.preventDefault();
@@ -297,7 +355,6 @@ function openModal(title, html, onSave, hideSave=false) {
   document.addEventListener('keydown', handleEnter, { once: true });
 }
 
-// 登入功能
 document.getElementById('login-btn').addEventListener('click', async () => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
@@ -339,7 +396,7 @@ document.querySelectorAll('nav a').forEach(a => {
   a.addEventListener('click', e => { 
     e.preventDefault(); 
     switchView(a.dataset.view); 
-    if(window.innerWidth <= 768) toggleSidebar();
+    if(window.innerWidth <= 1024) toggleSidebar();
   });
 });
 
@@ -426,7 +483,6 @@ function renderBoss(c) {
   const totalCash = D.banks.reduce((s,b)=>s+(b.balance||0),0);
   const monthlyProfit = rev - pur - exp - sub;
   
-  // 代垫款明细（不随日期变化，显示所有待结帐）
   const unreimbursedExpenses = D.expenses.filter(e => e.employee_id && !e.is_reimbursed);
   const unreimbursedByEmp = {};
   unreimbursedExpenses.forEach(e => {
@@ -445,6 +501,7 @@ function renderBoss(c) {
     if(totalQty > 0) {
       if(!inventoryByType[p.type]) inventoryByType[p.type] = [];
       inventoryByType[p.type].push({
+        type: p.type,
         name: p.name,
         sku: p.sku,
         quantity: totalQty,
@@ -461,6 +518,7 @@ function renderBoss(c) {
     outer_box: { count: 0, value: 0 }
   };
   
+  // 计算各类别库存
   Object.values(inventoryByType).flat().forEach(item => {
     if(inventoryAssets[item.type]) {
       inventoryAssets[item.type].count += item.quantity;
@@ -468,7 +526,8 @@ function renderBoss(c) {
     }
   });
   
-  const totalInventoryValue = Object.values(inventoryAssets).reduce((s, x) => s + x.value, 0);
+  // 计算总库存价值
+  const totalInventoryValue = Object.values(inventoryAssets).reduce((sum, x) => sum + x.value, 0);
   
   const channelStats = {};
   monthOrders.forEach(o => {
@@ -551,7 +610,6 @@ function renderBoss(c) {
         </div>
       </div>
 
-      <!-- 代垫款明细（不随日期变化） -->
       <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500">
         <h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3>
         ${Object.keys(unreimbursedByEmp).length > 0 ? `
@@ -576,7 +634,6 @@ function renderBoss(c) {
         ` : '<p class="text-gray-500">目前無待結帳代墊款項</p>'}
       </div>
 
-      <!-- 本月出货支出明细（随日期范围变化） -->
       <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500">
         <h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -615,7 +672,6 @@ function renderBoss(c) {
         </div>
       </div>
 
-      <!-- 营运指标和公司总资金（不随日期变化） -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
           <h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3>
@@ -635,7 +691,6 @@ function renderBoss(c) {
         </div>
       </div>
 
-      <!-- 库存资产总览（放在最下面，不随日期变化） -->
       <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500">
         <h3 class="text-lg font-bold mb-4 text-gray-800">📦 庫存資產總覽</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -661,7 +716,6 @@ function renderBoss(c) {
           </div>
         </div>
         
-        <!-- 库存明细 -->
         ${Object.keys(inventoryByType).length > 0 ? `
           <div class="mt-4 border-t pt-4">
             <h4 class="font-bold mb-3">庫存明細</h4>
@@ -710,12 +764,10 @@ function renderBoss(c) {
   `;
 }
 
-// Excel 下载功能（增强版：订单出货、采购入库、客户管理）
 function downloadBossReport() {
   const [startY, startM] = bossDateRange.start.split('-').map(Number);
   const [endY, endM] = bossDateRange.end.split('-').map(Number);
   
-  // 过滤订单
   const filteredOrders = D.orders.filter(o => { 
     const d = new Date(o.created_at); 
     const y = d.getFullYear();
@@ -724,7 +776,6 @@ function downloadBossReport() {
            (y < endY || (y === endY && m <= endM));
   });
   
-  // 过滤采购
   const filteredPurchases = D.purchases.filter(p => { 
     const d = new Date(p.created_at);
     const y = d.getFullYear();
@@ -735,7 +786,6 @@ function downloadBossReport() {
   
   const wb = XLSX.utils.book_new();
   
-  // 订单出货数据
   const orderData = filteredOrders.map(o => {
     const c = D.customers.find(x=>x.id===o.customer_id);
     const ch = D.channels.find(x=>x.id===o.sales_channel_id);
@@ -756,7 +806,6 @@ function downloadBossReport() {
   const ws1 = XLSX.utils.json_to_sheet(orderData);
   XLSX.utils.book_append_sheet(wb, ws1, '訂單出貨');
   
-  // 采购入库数据
   const purchaseData = filteredPurchases.map(p => {
     const v = D.vendors.find(x=>x.id===p.vendor_id);
     const w = D.warehouses.find(x=>x.id===p.warehouse_id);
@@ -775,7 +824,6 @@ function downloadBossReport() {
   const ws2 = XLSX.utils.json_to_sheet(purchaseData);
   XLSX.utils.book_append_sheet(wb, ws2, '採購入庫');
   
-  // 客户管理数据
   const customerData = D.customers.map(c => {
     const win = D.windows.find(x=>x.id===c.primary_contact_window_id);
     return {
@@ -795,13 +843,11 @@ function downloadBossReport() {
   const ws3 = XLSX.utils.json_to_sheet(customerData);
   XLSX.utils.book_append_sheet(wb, ws3, '客戶管理');
   
-  // 下载，档案名称增加日期
   const today = new Date().toISOString().split('T')[0];
   XLSX.writeFile(wb, `老闆查閱報表_${bossDateRange.start}_${bossDateRange.end}_${today}.xlsx`);
   showAlert('Excel 報表已下載！');
 }
 
-// ==================== 客戶管理（完整功能）====================
 function renderCRM(c) {
   c.innerHTML = `
     <div class="content-card">
@@ -835,7 +881,6 @@ function renderCRM(c) {
   renderCustTable();
 }
 
-// 表格排序功能
 function sortTable(tbodyId, colIndex) {
   const tbody = document.getElementById(tbodyId);
   const rows = Array.from(tbody.querySelectorAll('tr'));
@@ -852,16 +897,12 @@ function sortTable(tbodyId, colIndex) {
 function renderCustTable() {
   const kw = (document.getElementById('cust-search')?.value || '').toLowerCase();
   const list = D.customers.filter(c => {
-    // 搜索客户基本信息
     const basicMatch = ((c.company_name||'')+(c.contact_person||'')+(c.phone||'')).toLowerCase().includes(kw);
-    
-    // 搜索标签
     const custTags = (D.customerTags || []).filter(ct => ct.customer_id === c.id);
     const tagMatch = custTags.some(ct => {
       const tag = D.tags.find(t => t.id === ct.tag_id);
       return tag && tag.name.toLowerCase().includes(kw);
     });
-    
     return basicMatch || tagMatch;
   });
   
@@ -983,7 +1024,6 @@ async function openCustModal(id) {
   `;
   openModal(id?'編輯客戶':'新增客戶', html, saveCust);
   
-  // 编辑模式下正确带入地址
   if(id) {
     const {data:addrs} = await sb.from('customer_addresses').select('*').eq('customer_id', id);
     document.getElementById('addr-box').innerHTML = '';
@@ -997,7 +1037,6 @@ async function openCustModal(id) {
   }
 }
 
-// 即時同步地址收件人和电话
 function syncAddrContact() {
   const contact = document.getElementById('c-contact')?.value || '';
   const phone = document.getElementById('c-phone')?.value || '';
@@ -1019,7 +1058,6 @@ function addAddr(addrData = null, isDefault = false) {
   const div = document.createElement('div');
   div.className = 'border rounded-lg p-4 bg-gray-50';
   
-  // 编辑模式下使用已有数据，新增模式下使用联系人信息
   const recipientName = addrData?.recipient_name || contact;
   const recipientPhone = addrData?.recipient_phone || phone;
   const addressType = addrData?.address_type || 'home';
@@ -1127,7 +1165,6 @@ function manageTags() {
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
 
-// 其他功能保持原样...
 function renderOrders(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">📦 訂單出貨</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderProducts(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
 function renderWarehouses(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
