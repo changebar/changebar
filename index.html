@@ -1220,712 +1220,468 @@ function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class=
 </script>
 </body>
 </html>
-// ==================== 訂單出貨（完整功能：搜尋/BOM連動/銀行連動/折扣/包材）====================
+// ==================== 訂單出貨 ====================
 function renderOrders(c) {
-  c.innerHTML = `
-    <div class="content-card">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 class="text-3xl font-bold">📦 訂單出貨</h1>
-        <button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button>
-      </div>
-      <div class="bg-white rounded-lg shadow overflow-hidden table-container">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('ord-tbody', 0)">日期 <span class="sort-icon">↕</span></th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('ord-tbody', 1)">客戶 <span class="sort-icon">↕</span></th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">出貨倉庫</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('ord-tbody', 3)">金額 <span class="sort-icon">↕</span></th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
-            </tr>
-          </thead>
-          <tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">📦 訂單出貨</h1><button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">客戶</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">出貨倉庫</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   renderOrdTable();
 }
 
 function renderOrdTable() {
-  const list = D.orders.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  document.getElementById('ord-tbody').innerHTML = list.map(o => {
-    const c = D.customers.find(x=>x.id===o.customer_id);
-    const w = D.warehouses.find(x=>x.id===o.warehouse_id);
-    return `<tr class="hover:bg-gray-50">
-      <td class="px-4 py-3 whitespace-nowrap">${new Date(o.created_at).toLocaleDateString()}</td>
-      <td class="px-4 py-3">${c?.company_name||c?.contact_person||'-'}</td>
-      <td class="px-4 py-3 text-sm">${w?.name || '未指定'}</td>
-      <td class="px-4 py-3 font-bold">${(o.total_amount||0).toLocaleString()}</td>
-      <td class="px-4 py-3 whitespace-nowrap space-x-2">
-        <button onclick="openOrdModal('${o.id}')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>
-        <button onclick="delOrd('${o.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// 客戶搜尋過濾
-window.filterOrdCust = function(kw) {
-  const dd = document.getElementById('o-cust-dropdown');
-  const list = D.customers.filter(c => ((c.company_name||'')+(c.contact_person||'')+(c.phone||'')).toLowerCase().includes(kw.toLowerCase()));
-  dd.innerHTML = list.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectOrdCust('${c.id}', '${(c.company_name||c.contact_person).replace(/'/g, "\\'")}')">${c.company_name||c.contact_person} (${c.phone})</div>`).join('');
-  dd.classList.toggle('hidden', list.length === 0);
-}
-window.selectOrdCust = function(id, name) {
-  document.getElementById('o-cust').value = id;
-  document.getElementById('o-cust-search').value = name;
-  document.getElementById('o-cust-dropdown').classList.add('hidden');
-}
-
-// 產品搜尋過濾
-window.filterOrdProd = function(input) {
-  const dd = input.parentElement.querySelector('.o-prod-dropdown');
-  const hiddenInput = input.parentElement.querySelector('.o-prod');
-  const kw = input.value.toLowerCase();
-  // 過濾掉半成品 (semi)
-  const list = D.products.filter(p => p.type !== 'semi' && (p.name||'').toLowerCase().includes(kw));
-  dd.innerHTML = list.map(p => `<div class="p-2 hover:bg-gray-100 cursor-pointer" onclick="selectOrdProd(this, '${p.id}', '${p.name.replace(/'/g, "\\'")}', ${p.sell_price||0}, ${p.cost_price||0})">${p.name} (${p.type==='finished'?'成品':p.type==='gift_box'?'禮盒':'外箱'})</div>`).join('');
-  dd.classList.toggle('hidden', list.length === 0);
-}
-window.selectOrdProd = function(el, id, name, price, cost) {
-  const parent = el.closest('.relative');
-  parent.querySelector('.o-prod').value = id;
-  parent.querySelector('.o-prod').dataset.price = price;
-  parent.querySelector('.o-prod').dataset.cost = cost;
-  parent.querySelector('input[type="text"]').value = name;
-  parent.querySelector('.o-prod-dropdown').classList.add('hidden');
-  // 自動帶入單價
-  const row = el.closest('.flex.flex-wrap') || el.closest('[class*="flex"]');
-  if(row) {
-    const priceInput = row.querySelector('.o-price');
-    if(priceInput && priceInput.value == 0) priceInput.value = price;
+  var list = D.orders.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+  var html = '';
+  for(var i=0; i<list.length; i++) {
+    var o = list[i];
+    var c = D.customers.find(function(x){return x.id===o.customer_id;});
+    var w = D.warehouses.find(function(x){return x.id===o.warehouse_id;});
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">'+new Date(o.created_at).toLocaleDateString()+'</td><td class="px-4 py-3">'+(c?c.company_name||c.contact_person:'-')+'</td><td class="px-4 py-3 text-sm">'+(w?w.name:'未指定')+'</td><td class="px-4 py-3 font-bold">'+(o.total_amount||0).toLocaleString()+'</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openOrdModal(\''+o.id+'\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delOrd(\''+o.id+'\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
   }
-  calcOrd();
+  document.getElementById('ord-tbody').innerHTML = html;
 }
 
 async function openOrdModal(id) {
   editingId = id || null;
-  const o = id ? D.orders.find(x=>x.id===id) : null;
-  const activeWarehouses = D.warehouses.filter(w => w.is_active);
-
-  const html = `
-    <input type="hidden" id="o-id" value="${id||''}">
-    
-    <!-- 1. 客戶與倉庫 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div>
-        <label class="block text-sm font-bold mb-1">選擇客戶 *</label>
-        <div class="relative">
-          <input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field" placeholder="搜尋或選擇客戶" oninput="filterOrdCust(this.value)" value="${o ? (D.customers.find(c=>c.id===o.customer_id)?.company_name || D.customers.find(c=>c.id===o.customer_id)?.contact_person || '') : ''}">
-          <input type="hidden" id="o-cust" value="${o?.customer_id||''}">
-          <div id="o-cust-dropdown" class="hidden absolute z-10 w-full bg-white border rounded shadow max-h-40 overflow-y-auto"></div>
-        </div>
-      </div>
-      <div>
-        <label class="block text-sm font-bold mb-1">出貨倉庫 *</label>
-        <select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">
-          <option value="">請選擇倉庫</option>
-          ${activeWarehouses.map(w=>`<option value="${w.id}" ${o?.warehouse_id===w.id?'selected':''}>${w.name}</option>`).join('')}
-        </select>
-      </div>
-    </div>
-
-    <!-- 2. 發票資訊 -->
-    <div class="bg-yellow-50 p-4 rounded border mb-4">
-      <h4 class="font-bold mb-2">發票資訊</h4>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div><label class="block text-xs font-bold mb-1">發票</label><select id="o-inv-type" class="w-full px-3 py-2 border rounded input-field" onchange="toggleInv()"><option value="no" ${o?.tax_handling==='no'?'selected':''}>沒發票</option><option value="has" ${o?.tax_handling==='has'?'selected':''}>有發票</option><option value="tax" ${o?.tax_handling==='tax'?'selected':''}>稅外加</option></select></div>
-        <div id="o-inv-fmt-box" style="display:${o?.tax_handling==='no'?'none':'block'}"><label class="block text-xs font-bold mb-1">類型</label><select id="o-inv-fmt" class="w-full px-3 py-2 border rounded input-field"><option value="3" ${o?.invoice_type==='3'?'selected':''}>三聯</option><option value="2" ${o?.invoice_type==='2'?'selected':''}>二聯</option></select></div>
-        <div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-inv-no" class="w-full px-3 py-2 border rounded input-field" value="${o?.invoice_no||''}"></div>
-        <div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-inv-title" class="w-full px-3 py-2 border rounded input-field" value="${o?.invoice_title||''}"></div>
-        <div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-inv-tax" class="w-full px-3 py-2 border rounded input-field" value="${o?.invoice_tax_id||''}"></div>
-      </div>
-    </div>
-
-    <!-- 3. 產品明細 (支援搜尋，不含半成品) -->
-    <div class="mb-4">
-      <label class="block text-sm font-bold mb-1">產品明細 (成品/禮盒/外箱，將根據 BOM 自動扣減庫存)</label>
-      <div id="o-items" class="space-y-3"></div>
-      <button type="button" onclick="addOrdItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增產品</button>
-    </div>
-
-    <!-- 4. 運費與金流 -->
-    <div class="bg-blue-50 p-4 rounded border mb-4">
-      <h4 class="font-bold mb-2">運費與金流</h4>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div><label class="block text-xs font-bold mb-1">總運費</label><input type="number" id="o-ship" class="w-full px-3 py-2 border rounded input-field" value="${o?.shipping_fee||0}" oninput="calcOrd()"></div>
-        <div><label class="block text-xs font-bold mb-1">運費支付</label><select id="o-ship-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="free" ${o?.absorbed_shipping_fee > 0 ?'selected':''}>免運(公司吸收)</option><option value="pay" ${o?.customer_paid_shipping > 0?'selected':''}>客人自付</option></select></div>
-        <div><label class="block text-xs font-bold mb-1">入帳帳戶</label><select id="o-bank" class="w-full px-3 py-2 border rounded input-field"><option value="">請選擇</option>${D.banks.map(b=>`<option value="${b.id}" ${o?.bank_account_id===b.id?'selected':''}>${b.account_name}</option>`).join('')}</select></div>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div><label class="block text-xs font-bold mb-1">銷售通路</label><select id="o-channel" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="">請選擇</option>${D.channels.map(ch=>`<option value="${ch.id}" data-rate="${ch.commission_rate}" ${o?.sales_channel_id===ch.id?'selected':''}>${ch.name} (${ch.commission_rate}%)</option>`).join('')}</select></div>
-        <div><label class="block text-xs font-bold mb-1">付款方式</label><select id="o-payment" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="">請選擇</option>${D.payments.map(pm=>`<option value="${pm.id}" data-rate="${pm.commission_rate}" ${o?.payment_method_id===pm.id?'selected':''}>${pm.name} (${pm.commission_rate}%)</option>`).join('')}</select></div>
-      </div>
-    </div>
-
-    <!-- 5. 訂閱單 -->
-    <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">
-      <h4 class="font-bold mb-2 text-indigo-800">🔄 訂閱單設定</h4>
-      <label class="flex items-center gap-2 cursor-pointer mb-2">
-        <input type="checkbox" id="o-is-sub" class="w-5 h-5 text-indigo-600 rounded" ${o?.is_subscription?'checked':''} onchange="document.getElementById('o-sub-days-box').style.display = this.checked ? 'block' : 'none'">
-        <span class="font-medium">此訂單為訂閱單</span>
-      </label>
-      <div id="o-sub-days-box" style="display:${o?.is_subscription?'block':'none'}">
-        <label class="block text-sm font-bold mb-1">訂閱週期 (天數)</label>
-        <select id="o-sub-days" class="w-full px-3 py-2 border rounded input-field">
-          <option value="30" ${o?.subscription_days===30?'selected':''}>30 天</option>
-          <option value="45" ${o?.subscription_days===45?'selected':''}>45 天</option>
-          <option value="60" ${o?.subscription_days===60?'selected':''}>60 天</option>
-        </select>
-      </div>
-    </div>
-    
-    <!-- 金額計算區 -->
-    <div class="bg-gray-50 p-4 rounded">
-      <div class="text-sm text-gray-600">商品小計：<span id="o-subtotal">0</span></div>
-      <div class="text-sm text-gray-600" id="o-tax-row" style="display:${o?.tax_handling!=='no'?'block':'none'}">稅金：<span id="o-tax">0</span></div>
-      <div class="text-sm text-gray-600" id="o-ship-row" style="display:${o?.shipping_fee>0?'block':'none'}">運費：<span id="o-ship-display">0</span></div>
-      <div class="text-sm text-gray-600" id="o-commission-row">抽成/手續費：<span id="o-commission">0</span></div>
-      <div class="text-xl font-bold mt-2">總金額 (四捨五入)：<span id="o-total">0</span></div>
-      <div class="text-sm text-green-600 mt-2 font-bold">預估淨利：<span id="o-profit">0</span> (毛利率：<span id="o-margin">0</span>%)</div>
-    </div>
-  `;
+  var o = id ? D.orders.find(function(x){return x.id===id;}) : null;
+  var activeWarehouses = D.warehouses.filter(function(w){return w.is_active;});
+  
+  var whOptions = '<option value="">請選擇倉庫</option>';
+  for(var i=0; i<activeWarehouses.length; i++) {
+    var w = activeWarehouses[i];
+    whOptions += '<option value="'+w.id+'"'+(o && o.warehouse_id===w.id?' selected':'')+'>'+w.name+'</option>';
+  }
+  
+  var custOptions = '<option value="">請選擇客戶</option>';
+  for(var i=0; i<D.customers.length; i++) {
+    var c = D.customers[i];
+    custOptions += '<option value="'+c.id+'"'+(o && o.customer_id===c.id?' selected':'')+'>'+(c.company_name||c.contact_person)+'</option>';
+  }
+  
+  var html = '<input type="hidden" id="o-id" value="'+(id||'')+'"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">選擇客戶 *</label><select id="o-cust" class="w-full px-3 py-2 border rounded input-field">'+custOptions+'</select></div><div><label class="block text-sm font-bold mb-1">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">'+whOptions+'</select></div></div><div class="mb-4"><label class="block text-sm font-bold mb-1">產品明細</label><div id="o-items" class="space-y-3"></div><button type="button" onclick="addOrdItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增產品</button></div><div class="bg-gray-50 p-4 rounded"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div></div>';
+  
   openModal(id?'編輯出貨單':'新增出貨單', html, saveOrd);
   
   if(id && o) {
-    const {data: items} = await sb.from('order_items').select('*').eq('order_id', id);
-    if(items && items.length > 0) {
-      items.forEach(item => {
-        const p = D.products.find(x=>x.id===item.product_id);
+    var itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    var items = itemsResp.data || [];
+    if(items.length > 0) {
+      for(var i=0; i<items.length; i++) {
+        var item = items[i];
+        var p = D.products.find(function(x){return x.id===item.product_id;});
         addOrdItem(p, item.quantity, item.unit_price);
-      });
+      }
     }
   } else {
     addOrdItem();
   }
-  toggleInv(); calcOrd();
+  calcOrd();
 }
 
-function toggleInv() { 
-  const v = document.getElementById('o-inv-type').value; 
-  document.getElementById('o-inv-fmt-box').style.display = v==='no'?'none':'block'; 
-  calcOrd(); 
-}
-
-function addOrdItem(prod = null, qty = 1, price = 0) {
-  const box = document.getElementById('o-items');
-  const div = document.createElement('div');
-  div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap relative';
-  div.innerHTML = `
-    <div class="relative flex-1 min-w-[150px]">
-      <input type="text" class="o-prod-search w-full px-3 py-2 border rounded input-field" placeholder="搜尋產品" oninput="filterOrdProd(this)" value="${prod?.name||''}">
-      <input type="hidden" class="o-prod" value="${prod?.id||''}" data-price="${prod?.sell_price||0}" data-cost="${prod?.cost_price||0}">
-      <div class="o-prod-dropdown hidden absolute z-10 w-full bg-white border rounded shadow max-h-40 overflow-y-auto"></div>
-    </div>
-    <div class="w-20">
-      <input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="${qty}" min="1" oninput="calcOrd()">
-    </div>
-    <div class="w-28">
-      <input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="${price}" step="0.01" oninput="calcOrd()">
-    </div>
-    <button type="button" onclick="this.parentElement.remove();calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>
-  `;
+function addOrdItem(prod, qty, price) {
+  var box = document.getElementById('o-items');
+  var div = document.createElement('div');
+  div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
+  
+  var prodOptions = '<option value="">選擇產品</option>';
+  for(var i=0; i<D.products.length; i++) {
+    var p = D.products[i];
+    if(p.type !== 'semi') {
+      prodOptions += '<option value="'+p.id+'" data-price="'+(p.sell_price||0)+'" data-cost="'+(p.cost_price||0)+'"'+(prod && prod.id===p.id?' selected':'')+'>'+p.name+'</option>';
+    }
+  }
+  
+  div.innerHTML = '<div class="flex-1 min-w-[150px]"><select class="o-prod w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">'+prodOptions+'</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="'+(qty||1)+'" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="'+(price||0)+'" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove();calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
   box.appendChild(div);
 }
 
 function calcOrd() {
-  let sub = 0, totalCost = 0;
-  document.querySelectorAll('#o-items > div').forEach(r => {
-    const price = parseFloat(r.querySelector('.o-price').value)||0;
-    const qty = parseInt(r.querySelector('.o-qty').value)||0;
-    const prodInput = r.querySelector('.o-prod');
+  var sub = 0;
+  var rows = document.querySelectorAll('#o-items > div');
+  for(var i=0; i<rows.length; i++) {
+    var r = rows[i];
+    var price = parseFloat(r.querySelector('.o-price').value)||0;
+    var qty = parseInt(r.querySelector('.o-qty').value)||0;
     sub += price * qty;
-    if(prodInput && prodInput.dataset.cost) totalCost += (parseFloat(prodInput.dataset.cost)||0) * qty;
-  });
-  document.getElementById('o-subtotal').textContent = sub.toLocaleString();
-  const ship = parseFloat(document.getElementById('o-ship').value)||0;
-  const shipType = document.getElementById('o-ship-type').value;
-  const invType = document.getElementById('o-inv-type').value;
-  let tax = 0;
-  if(invType==='tax') { tax = Math.round(sub * 0.05); document.getElementById('o-tax-row').style.display = 'block'; } 
-  else if(invType==='has') { tax = 0; document.getElementById('o-tax-row').style.display = 'block'; } 
-  else { document.getElementById('o-tax-row').style.display = 'none'; }
-  document.getElementById('o-tax').textContent = tax.toLocaleString();
-  const shipDisplay = shipType==='pay' ? ship : 0;
-  document.getElementById('o-ship-display').textContent = shipDisplay.toLocaleString();
-  document.getElementById('o-ship-row').style.display = ship > 0 ? 'block' : 'none';
-  const channelSelect = document.getElementById('o-channel');
-  const paymentSelect = document.getElementById('o-payment');
-  const channelRate = parseFloat(channelSelect.options[channelSelect.selectedIndex]?.dataset.rate || 0);
-  const paymentRate = parseFloat(paymentSelect.options[paymentSelect.selectedIndex]?.dataset.rate || 0);
-  const totalCommission = (sub * (channelRate / 100)) + (sub * (paymentRate / 100));
-  document.getElementById('o-commission').textContent = totalCommission.toLocaleString();
-  document.getElementById('o-commission-row').style.display = totalCommission > 0 ? 'block' : 'none';
-  const total = Math.round(sub + tax + shipDisplay);
-  document.getElementById('o-total').textContent = total.toLocaleString();
-  const profit = total - totalCost - (shipType==='free'?ship:0) - totalCommission;
-  const margin = total > 0 ? ((profit/total)*100).toFixed(1) : 0;
-  document.getElementById('o-profit').textContent = profit.toLocaleString();
-  document.getElementById('o-margin').textContent = margin;
+  }
+  document.getElementById('o-total').textContent = sub.toLocaleString();
 }
 
 async function saveOrd() {
-  const cid = document.getElementById('o-cust').value;
-  const wid = document.getElementById('o-warehouse').value;
+  var cid = document.getElementById('o-cust').value;
+  var wid = document.getElementById('o-warehouse').value;
   if(!cid) return showAlert('請選擇客戶！');
   if(!wid) return showAlert('請選擇出貨倉庫！');
   
-  const items = []; 
-  let sub = 0;
-  document.querySelectorAll('#o-items > div').forEach(r => {
-    const pid = r.querySelector('.o-prod').value;
-    const q = parseInt(r.querySelector('.o-qty').value)||0;
-    const p = parseFloat(r.querySelector('.o-price').value)||0;
-    if(pid && q>0) { items.push({product_id:pid,quantity:q,unit_price:p}); sub+=p*q; }
-  });
+  var items = [];
+  var sub = 0;
+  var rows = document.querySelectorAll('#o-items > div');
+  for(var i=0; i<rows.length; i++) {
+    var r = rows[i];
+    var pid = r.querySelector('.o-prod').value;
+    var q = parseInt(r.querySelector('.o-qty').value)||0;
+    var p = parseFloat(r.querySelector('.o-price').value)||0;
+    if(pid && q>0) {
+      items.push({product_id:pid, quantity:q, unit_price:p});
+      sub += p*q;
+    }
+  }
   if(!items.length) return showAlert('請加入產品！');
   
-  const ship = parseFloat(document.getElementById('o-ship').value)||0;
-  const shipType = document.getElementById('o-ship-type').value;
-  const invType = document.getElementById('o-inv-type').value;
-  let tax = 0; if(invType==='tax') tax = Math.round(sub*0.05);
-  const shipCharge = shipType==='pay'?ship:0;
-  const total = Math.round(sub + tax + shipCharge);
-  const channelSelect = document.getElementById('o-channel');
-  const paymentSelect = document.getElementById('o-payment');
-  const channelRate = parseFloat(channelSelect.options[channelSelect.selectedIndex]?.dataset.rate || 0);
-  const paymentRate = parseFloat(paymentSelect.options[paymentSelect.selectedIndex]?.dataset.rate || 0);
-  const isSub = document.getElementById('o-is-sub').checked;
-  const subDays = isSub ? parseInt(document.getElementById('o-sub-days').value) : null;
-  const bankId = document.getElementById('o-bank').value;
-
-  const data = {
-    customer_id:cid, warehouse_id: wid, total_amount:total, status:'shipped', 
-    order_no: editingId ? D.orders.find(x=>x.id===editingId)?.order_no : 'ORD-'+Date.now(),
-    invoice_title:document.getElementById('o-inv-title').value||null, invoice_tax_id:document.getElementById('o-inv-tax').value||null,
-    invoice_type:document.getElementById('o-inv-fmt').value, invoice_no:document.getElementById('o-inv-no').value||null,
-    tax_handling:invType, tax_amount:tax, shipping_fee:ship, 
-    absorbed_shipping_fee: shipType==='free' ? ship : 0, customer_paid_shipping: shipType==='pay' ? ship : 0,
-    bank_account_id:bankId||null, sales_channel_id:document.getElementById('o-channel').value||null,
-    payment_method_id:document.getElementById('o-payment').value||null,
-    channel_commission:sub*(channelRate/100), payment_commission:sub*(paymentRate/100),
-    is_subscription: isSub, subscription_days: subDays
+  var data = {
+    customer_id: cid,
+    warehouse_id: wid,
+    total_amount: Math.round(sub),
+    status: 'shipped',
+    order_no: editingId ? D.orders.find(function(x){return x.id===editingId;}).order_no : 'ORD-'+Date.now()
   };
   
   try {
-    // 如果是編輯，先恢復舊庫存和舊銀行餘額
     if(editingId) {
-      const oldOrder = D.orders.find(x=>x.id===editingId);
-      const {data: oldItems} = await sb.from('order_items').select('*').eq('order_id', editingId);
-      
-      // 恢復舊銀行餘額
-      if(oldOrder.bank_account_id && oldOrder.total_amount > 0) {
-        const ob = D.banks.find(x=>x.id===oldOrder.bank_account_id);
-        if(ob) await sb.from('bank_accounts').update({balance: (ob.balance||0) - oldOrder.total_amount}).eq('id', oldOrder.bank_account_id);
-      }
-      
-      // 恢復舊庫存 (包含 BOM)
-      if(oldItems) {
-        for(const item of oldItems) {
-          const product = D.products.find(p => p.id === item.product_id);
-          if(!product) continue;
-          const bomItems = D.bom.filter(b => b.parent_product_id === product.id);
-          if (bomItems.length > 0) {
-            for(const bom of bomItems) {
-              const reqQty = bom.quantity * item.quantity;
-              const invRec = D.warehouseInv.find(inv => inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === bom.child_product_id);
-              if(invRec) await sb.from('warehouse_inventory').update({quantity: (invRec.quantity || 0) + reqQty}).eq('id', invRec.id);
-              const cp = D.products.find(p => p.id === bom.child_product_id);
-              if(cp) await sb.from('products').update({current_stock: (cp.current_stock || 0) + reqQty}).eq('id', bom.child_product_id);
-            }
-          } else {
-            const invRec = D.warehouseInv.find(inv => inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === product.id);
-            if(invRec) await sb.from('warehouse_inventory').update({quantity: (invRec.quantity || 0) + item.quantity}).eq('id', invRec.id);
-            await sb.from('products').update({current_stock: (product.current_stock || 0) + item.quantity}).eq('id', product.id);
-          }
-        }
-      }
-      
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
     } else {
-      const {data:r, error} = await sb.from('orders').insert([data]).select().single();
-      if(error) throw error;
-      editingId = r.id;
+      var r = await sb.from('orders').insert([data]).select().single();
+      editingId = r.data.id;
     }
-    
-    // 新增新銀行餘額
-    if(bankId && total > 0) {
-      const b = D.banks.find(x=>x.id===bankId);
-      if(b) await sb.from('bank_accounts').update({balance: (b.balance||0) + total}).eq('id', bankId);
-    }
-    
-    await sb.from('order_items').insert(items.map(i=>({...i, order_id:editingId})));
-    
-    // 扣減新庫存 (包含 BOM)
-    for(const item of items) {
-      const product = D.products.find(p => p.id === item.product_id);
-      if(!product) continue;
-      const bomItems = D.bom.filter(b => b.parent_product_id === product.id);
-      if (bomItems.length > 0) {
-        for(const bom of bomItems) {
-          const reqQty = bom.quantity * item.quantity;
-          const invRec = D.warehouseInv.find(inv => inv.warehouse_id === wid && inv.product_id === bom.child_product_id);
-          if(invRec) await sb.from('warehouse_inventory').update({quantity: Math.max(0, (invRec.quantity || 0) - reqQty)}).eq('id', invRec.id);
-          const cp = D.products.find(p => p.id === bom.child_product_id);
-          if(cp) await sb.from('products').update({current_stock: Math.max(0, (cp.current_stock || 0) - reqQty)}).eq('id', bom.child_product_id);
-        }
-      } else {
-        const invRec = D.warehouseInv.find(inv => inv.warehouse_id === wid && inv.product_id === product.id);
-        if(invRec) await sb.from('warehouse_inventory').update({quantity: Math.max(0, (invRec.quantity || 0) - item.quantity)}).eq('id', invRec.id);
-        await sb.from('products').update({current_stock: Math.max(0, (product.current_stock || 0) - item.quantity)}).eq('id', product.id);
-      }
-    }
-    
-    showAlert('出貨單已儲存，庫存與銀行已同步！'); 
-    window.closeModal(); 
-    await loadAll(); 
-    render();
-  } catch(e) { showAlert('失敗：'+e.message); }
-}
-
-async function delOrd(id) { 
-  if(!confirm('確定刪除？(庫存與銀行餘額將同步恢復)')) return; 
-  try {
-    const oldOrder = D.orders.find(x=>x.id===id);
-    const {data: oldItems} = await sb.from('order_items').select('*').eq('order_id', id);
-    
-    // 恢復銀行餘額
-    if(oldOrder.bank_account_id && oldOrder.total_amount > 0) {
-      const ob = D.banks.find(x=>x.id===oldOrder.bank_account_id);
-      if(ob) await sb.from('bank_accounts').update({balance: (ob.balance||0) - oldOrder.total_amount}).eq('id', oldOrder.bank_account_id);
-    }
-    
-    // 恢復庫存 (包含 BOM)
-    if(oldItems) {
-      for(const item of oldItems) {
-        const product = D.products.find(p => p.id === item.product_id);
-        if(!product) continue;
-        const bomItems = D.bom.filter(b => b.parent_product_id === product.id);
-        if (bomItems.length > 0) {
-          for(const bom of bomItems) {
-            const reqQty = bom.quantity * item.quantity;
-            const invRec = D.warehouseInv.find(inv => inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === bom.child_product_id);
-            if(invRec) await sb.from('warehouse_inventory').update({quantity: (invRec.quantity || 0) + reqQty}).eq('id', invRec.id);
-            const cp = D.products.find(p => p.id === bom.child_product_id);
-            if(cp) await sb.from('products').update({current_stock: (cp.current_stock || 0) + reqQty}).eq('id', bom.child_product_id);
-          }
-        } else {
-          const invRec = D.warehouseInv.find(inv => inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === product.id);
-          if(invRec) await sb.from('warehouse_inventory').update({quantity: (invRec.quantity || 0) + item.quantity}).eq('id', invRec.id);
-          await sb.from('products').update({current_stock: (product.current_stock || 0) + item.quantity}).eq('id', product.id);
-        }
-      }
-    }
-    
-    await sb.from('order_items').delete().eq('order_id',id);
-    await sb.from('orders').delete().eq('id',id);
+    await sb.from('order_items').insert(items.map(function(i){return Object.assign({}, i, {order_id:editingId});}));
+    showAlert('出貨單已儲存！');
+    window.closeModal();
     await loadAll();
     render();
-    showAlert('已刪除並恢復庫存與銀行餘額！');
-  } catch(e) { showAlert('失敗：'+e.message); } 
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
 }
 
-// ==================== 商品與 BOM (類型更新：成品/半成品/禮盒/外箱子) ====================
+async function delOrd(id) {
+  if(!confirm('確定刪除？')) return;
+  try {
+    await sb.from('order_items').delete().eq('order_id', id);
+    await sb.from('orders').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
+}
+
+// ==================== 商品與 BOM ====================
 function renderProducts(c) {
-  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('prod-tbody', 0)">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('prod-tbody', 1)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
-  const tm = {finished:'成品', semi:'半成品', gift_box:'禮盒', outer_box:'外箱子'};
-  document.getElementById('prod-tbody').innerHTML = D.products.map(p=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${tm[p.type]||p.type}</td><td class="px-4 py-3">${p.sell_price||0}</td><td class="px-4 py-3 text-gray-500">${p.cost_price||0}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal('${p.id}')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delProd('${p.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>`).join('');
-  document.getElementById('bom-tbody').innerHTML = D.bom.map(b=>{const p1=D.products.find(x=>x.id===b.parent_product_id);const p2=D.products.find(x=>x.id===b.child_product_id);return `<tr class="hover:bg-gray-50"><td class="px-4 py-3">${p1?.name||'-'}</td><td class="px-4 py-3">${p2?.name||'-'}</td><td class="px-4 py-3 font-bold">${b.quantity}</td><td class="px-4 py-3"><button onclick="delBom('${b.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>`;}).join('');
+  var tm = {finished:'成品', semi:'半成品', gift_box:'禮盒', outer_box:'外箱子'};
+  var html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與 BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = html;
+  
+  var prodHtml = '';
+  for(var i=0; i<D.products.length; i++) {
+    var p = D.products[i];
+    prodHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3">'+(p.sku||'-')+'</td><td class="px-4 py-3 font-medium">'+p.name+'</td><td class="px-4 py-3">'+(tm[p.type]||p.type)+'</td><td class="px-4 py-3">'+(p.sell_price||0)+'</td><td class="px-4 py-3 text-gray-500">'+(p.cost_price||0)+'</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal(\''+p.id+'\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delProd(\''+p.id+'\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('prod-tbody').innerHTML = prodHtml;
 }
 
 function openProdModal(id) {
-  editingId = id||null; 
-  const p = id?D.products.find(x=>x.id===id):null;
-  const html = `<input type="hidden" id="p-id" value="${id||''}"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">SKU *</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded input-field" value="${p?.sku||''}"></div><div><label class="block text-sm font-bold mb-1">類型</label><select id="p-type" class="w-full px-3 py-2 border rounded input-field"><option value="finished" ${p?.type==='finished'?'selected':''}>成品</option><option value="semi" ${p?.type==='semi'?'selected':''}>半成品</option><option value="gift_box" ${p?.type==='gift_box'?'selected':''}>禮盒</option><option value="outer_box" ${p?.type==='outer_box'?'selected':''}>外箱子</option></select></div></div><div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="p-name" class="w-full px-3 py-2 border rounded input-field" value="${p?.name||''}"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">售價</label><input type="number" id="p-sell" class="w-full px-3 py-2 border rounded input-field" value="${p?.sell_price||0}"></div><div><label class="block text-sm font-bold mb-1">成本(進價)</label><input type="number" id="p-cost" class="w-full px-3 py-2 border rounded input-field" value="${p?.cost_price||0}"></div></div>`;
+  editingId = id||null;
+  var p = id ? D.products.find(function(x){return x.id===id;}) : null;
+  var html = '<input type="hidden" id="p-id" value="'+(id||'')+'"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">SKU *</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded input-field" value="'+(p?p.sku:'')+'"></div><div><label class="block text-sm font-bold mb-1">類型</label><select id="p-type" class="w-full px-3 py-2 border rounded input-field"><option value="finished"'+(p&&p.type==='finished'?' selected':'')+' >成品</option><option value="semi"'+(p&&p.type==='semi'?' selected':'')+' >半成品</option><option value="gift_box"'+(p&&p.type==='gift_box'?' selected':'')+' >禮盒</option><option value="outer_box"'+(p&&p.type==='outer_box'?' selected':'')+' >外箱子</option></select></div></div><div class="mb-4"><label class="block text-sm font-bold mb-1">名稱 *</label><input type="text" id="p-name" class="w-full px-3 py-2 border rounded input-field" value="'+(p?p.name:'')+'"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">售價</label><input type="number" id="p-sell" class="w-full px-3 py-2 border rounded input-field" value="'+(p?p.sell_price:0)+'"></div><div><label class="block text-sm font-bold mb-1">成本(進價)</label><input type="number" id="p-cost" class="w-full px-3 py-2 border rounded input-field" value="'+(p?p.cost_price:0)+'"></div></div>';
   openModal(id?'編輯產品':'新增產品', html, saveProd);
 }
 
 async function saveProd() {
-  const id = document.getElementById('p-id').value;
-  const d = { sku: document.getElementById('p-sku').value, name: document.getElementById('p-name').value, type: document.getElementById('p-type').value, sell_price: parseFloat(document.getElementById('p-sell').value)||0, cost_price: parseFloat(document.getElementById('p-cost').value)||0 };
+  var id = document.getElementById('p-id').value;
+  var d = {
+    sku: document.getElementById('p-sku').value,
+    name: document.getElementById('p-name').value,
+    type: document.getElementById('p-type').value,
+    sell_price: parseFloat(document.getElementById('p-sell').value)||0,
+    cost_price: parseFloat(document.getElementById('p-cost').value)||0
+  };
   if(!d.sku||!d.name) return showAlert('SKU與名稱為必填！');
   try {
     if(id) await sb.from('products').update(d).eq('id', id);
-    else await sb.from('products').insert([{...d, current_stock:0}]);
-    showAlert('已儲存！'); window.closeModal(); await loadAll(); render();
-  } catch(e) { showAlert('失敗：'+e.message); }
+    else await sb.from('products').insert([Object.assign({}, d, {current_stock:0})]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
 }
 
-async function delProd(id) { 
-  if(!confirm('確定刪除?')) return; 
+async function delProd(id) {
+  if(!confirm('確定刪除?')) return;
   try {
-    await sb.from('bom_list').delete().or(`parent_product_id.eq.${id},child_product_id.eq.${id}`);
+    await sb.from('bom_list').delete().or('parent_product_id.eq.'+id+',child_product_id.eq.'+id);
     await sb.from('warehouse_inventory').delete().eq('product_id', id);
     await sb.from('products').delete().eq('id', id);
-    await loadAll(); render();
-  } catch(e) { showAlert('刪除失敗：'+e.message); }
-}
-
-function openBomModal() {
-  const html = `<div class="mb-4"><label class="block text-sm font-bold mb-1">成品</label><select id="b-p" class="w-full px-3 py-2 border rounded input-field">${D.products.filter(p=>p.type==='finished').map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div><div class="mb-4"><label class="block text-sm font-bold mb-1">物料 (半成品/原料)</label><select id="b-c" class="w-full px-3 py-2 border rounded input-field">${D.products.filter(p=>p.type==='semi').map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div><div class="mb-4"><label class="block text-sm font-bold mb-1">用量</label><input type="number" id="b-q" class="w-full px-3 py-2 border rounded input-field" value="1"></div>`;
-  openModal('新增 BOM', html, async()=>{
-    try {
-      await sb.from('bom_list').insert([{parent_product_id:document.getElementById('b-p').value, child_product_id:document.getElementById('b-c').value, quantity:parseFloat(document.getElementById('b-q').value)}]); 
-      showAlert('已儲存！'); window.closeModal(); await loadAll(); render();
-    } catch(e) { showAlert('失敗：'+e.message); }
-  });
-}
-
-async function delBom(id) { 
-  if(!confirm('確定刪除?')) return; 
-  try { await sb.from('bom_list').delete().eq('id',id); await loadAll(); render(); } catch(e) { showAlert('失敗：'+e.message); }
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('刪除失敗：'+e.message);
+  }
 }
 
 // ==================== 倉庫管理 ====================
 function renderWarehouses(c) {
-  c.innerHTML = `<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('wh-tbody', 0)">倉庫名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>`;
-  document.getElementById('wh-tbody').innerHTML = D.warehouses.map(w=>`<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">${w.name}</td><td class="px-4 py-3 text-sm">${w.location||'-'}</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ${w.is_active?'bg-green-100 text-green-800':'bg-gray-100 text-gray-800'}">${w.is_active?'啟用':'停用'}</span></td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openWarehouseModal('${w.id}')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delWarehouse('${w.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>`).join('');
+  var html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">倉庫名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = html;
+  
+  var whHtml = '';
+  for(var i=0; i<D.warehouses.length; i++) {
+    var w = D.warehouses[i];
+    whHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">'+w.name+'</td><td class="px-4 py-3 text-sm">'+(w.location||'-')+'</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full '+(w.is_active?'bg-green-100 text-green-800':'bg-gray-100 text-gray-800')+'">'+(w.is_active?'啟用':'停用')+'</span></td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openWarehouseModal(\''+w.id+'\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delWarehouse(\''+w.id+'\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('wh-tbody').innerHTML = whHtml;
 }
 
 function openWarehouseModal(id) {
-  editingId = id||null; const w = id ? D.warehouses.find(x=>x.id===id) : null;
-  const html = `<input type="hidden" id="wh-id" value="${id||''}"><div class="mb-4"><label class="block text-sm font-bold mb-1">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded input-field" value="${w?.name||''}"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded input-field" value="${w?.location||''}"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded input-field"><option value="true" ${w?.is_active!==false?'selected':''}>啟用</option><option value="false" ${w?.is_active===false?'selected':''}>停用</option></select></div>`;
+  editingId = id||null;
+  var w = id ? D.warehouses.find(function(x){return x.id===id;}) : null;
+  var html = '<input type="hidden" id="wh-id" value="'+(id||'')+'"><div class="mb-4"><label class="block text-sm font-bold mb-1">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded input-field" value="'+(w?w.name:'')+'"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded input-field" value="'+(w?w.location:'')+'"></div><div class="mb-4"><label class="block text-sm font-bold mb-1">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded input-field"><option value="true"'+(w&&w.is_active!==false?' selected':'')+' >啟用</option><option value="false"'+(w&&w.is_active===false?' selected':'')+' >停用</option></select></div>';
   openModal(id?'編輯倉庫':'新增倉庫', html, saveWarehouse);
 }
 
 async function saveWarehouse() {
-  const name = document.getElementById('wh-name').value.trim();
+  var name = document.getElementById('wh-name').value.trim();
   if(!name) return showAlert('倉庫名稱必填！');
-  const data = { name: name, location: document.getElementById('wh-loc').value, is_active: document.getElementById('wh-active').value === 'true' };
+  var data = {
+    name: name,
+    location: document.getElementById('wh-loc').value,
+    is_active: document.getElementById('wh-active').value === 'true'
+  };
   try {
     if(editingId) await sb.from('warehouses').update(data).eq('id', editingId);
     else await sb.from('warehouses').insert([data]);
-    showAlert('倉庫已儲存！'); window.closeModal(); await loadAll(); render();
-  } catch(e) { showAlert('失敗：'+e.message); }
+    showAlert('倉庫已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
 }
 
-async function delWarehouse(id) { 
-  if(!confirm('確定刪除？')) return; 
+async function delWarehouse(id) {
+  if(!confirm('確定刪除？')) return;
   try {
     await sb.from('warehouse_inventory').delete().eq('warehouse_id', id);
-    await sb.from('warehouses').delete().eq('id',id);
-    await loadAll(); render();
-  } catch(e) { showAlert('刪除失敗：'+e.message); }
+    await sb.from('warehouses').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('刪除失敗：'+e.message);
+  }
 }
 
 // ==================== 庫存盤點 ====================
 function renderInventory(c) {
-  let tabsHtml = `<button onclick="showWhTab('all')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="all">📦 全部庫存總覽</button>`;
-  tabsHtml += D.warehouses.filter(w=>w.is_active).map((w)=>`<button onclick="showWhTab('${w.id}')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="${w.id}">${w.name}</button>`).join('');
-  c.innerHTML = `<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">${tabsHtml}</div><div id="inv-content"></div></div>`;
+  var tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="all">📦 全部庫存總覽</button>';
+  var activeWh = D.warehouses.filter(function(w){return w.is_active;});
+  for(var i=0; i<activeWh.length; i++) {
+    var w = activeWh[i];
+    tabsHtml += '<button onclick="showWhTab(\''+w.id+'\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="'+w.id+'">'+w.name+'</button>';
+  }
+  c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">'+tabsHtml+'</div><div id="inv-content"></div></div>';
   showWhTab('all');
 }
 
 function showWhTab(whId) {
-  document.querySelectorAll('.wh-tab').forEach(t => { 
-    t.className = t.className.replace('bg-blue-600 text-white','bg-gray-200 text-gray-700'); 
-    if(t.dataset.wh===whId) t.className = t.className.replace('bg-gray-200 text-gray-700','bg-blue-600 text-white'); 
-  });
-  const container = document.getElementById('inv-content');
-  let rows = '';
+  var tabs = document.querySelectorAll('.wh-tab');
+  for(var i=0; i<tabs.length; i++) {
+    var t = tabs[i];
+    t.className = t.className.replace('bg-blue-600 text-white','bg-gray-200 text-gray-700');
+    if(t.dataset.wh===whId) t.className = t.className.replace('bg-gray-200 text-gray-700','bg-blue-600 text-white');
+  }
+  
+  var container = document.getElementById('inv-content');
+  var rows = '';
+  
   if(whId === 'all') {
-    rows = D.products.map(p => {
-      const totalQty = D.warehouseInv.filter(i=>i.product_id===p.id).reduce((sum, i) => sum + (i.quantity||0), 0);
-      return `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3">${p.sku||'-'}</td><td class="px-4 py-3 font-bold text-lg">${totalQty}</td></tr>`;
-    }).join('');
-    container.innerHTML = `<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">總庫存</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    for(var i=0; i<D.products.length; i++) {
+      var p = D.products[i];
+      var totalQty = 0;
+      var invs = D.warehouseInv.filter(function(inv){return inv.product_id===p.id;});
+      for(var j=0; j<invs.length; j++) {
+        totalQty += invs[j].quantity||0;
+      }
+      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">'+p.name+'</td><td class="px-4 py-3">'+(p.sku||'-')+'</td><td class="px-4 py-3 font-bold text-lg">'+totalQty+'</td></tr>';
+    }
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">總庫存</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   } else {
-    const wh = D.warehouses.find(w=>w.id===whId);
-    const inv = D.warehouseInv.filter(i=>i.warehouse_id===whId);
-    rows = D.products.map(p => {
-      const wInv = inv.find(i=>i.product_id===p.id);
-      const qty = wInv?.quantity || 0;
-      return `<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">${p.name}</td><td class="px-4 py-3 font-bold">${qty}</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="${qty}"><button onclick="saveInvItem(this, '${p.id}', '${whId}')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>`;
-    }).join('');
-    container.innerHTML = `<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">${wh?.name||''} - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    var wh = D.warehouses.find(function(w){return w.id===whId;});
+    var inv = D.warehouseInv.filter(function(i){return i.warehouse_id===whId;});
+    for(var i=0; i<D.products.length; i++) {
+      var p = D.products[i];
+      var wInv = inv.find(function(x){return x.product_id===p.id;});
+      var qty = wInv ? wInv.quantity : 0;
+      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">'+p.name+'</td><td class="px-4 py-3 font-bold">'+qty+'</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="'+qty+'"><button onclick="saveInvItem(this, \''+p.id+'\', \''+whId+'\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
+    }
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">'+(wh?wh.name:'')+' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
 }
 
 function saveInvItem(btn, pid, wid) {
-  const tr = btn.closest('tr');
-  const qty = parseInt(tr.querySelector('.inv-qty').value)||0;
-  const existing = D.warehouseInv.find(i=>i.warehouse_id===wid && i.product_id===pid);
-  const data = {quantity:qty};
-  let promise = existing ? sb.from('warehouse_inventory').update(data).eq('id', existing.id) : sb.from('warehouse_inventory').insert([{warehouse_id:wid, product_id:pid, ...data}]);
-  promise.then(() => { loadAll().then(() => { showWhTab(wid); showAlert('庫存已更新！'); }); }).catch(e => showAlert('失敗：'+e.message));
+  var tr = btn.closest('tr');
+  var qty = parseInt(tr.querySelector('.inv-qty').value)||0;
+  var existing = D.warehouseInv.find(function(i){return i.warehouse_id===wid && i.product_id===pid;});
+  var data = {quantity:qty};
+  var promise = existing ? sb.from('warehouse_inventory').update(data).eq('id', existing.id) : sb.from('warehouse_inventory').insert([{warehouse_id:wid, product_id:pid}].concat(data));
+  promise.then(function(){loadAll().then(function(){showWhTab(wid); showAlert('庫存已更新！');});}).catch(function(e){showAlert('失敗：'+e.message);});
 }
 
-// ==================== 採購入庫 (銀行連動/庫存連動) ====================
+// ==================== 採購入庫 ====================
 function renderPurchases(c) {
-  c.innerHTML = `
-    <div class="content-card">
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒 採購入庫</h1>
-        <div class="flex flex-wrap gap-2 w-full md:w-auto">
-          <button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button>
-          <button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('pur-tbody', 0)">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable('pur-tbody', 3)">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div>
-    </div>
-  `;
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒 採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   renderPurTable();
 }
 
 function renderPurTable() {
-  const list = D.purchases.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  document.getElementById('pur-tbody').innerHTML = list.map(p=>{
-    const v=D.vendors.find(x=>x.id===p.vendor_id);
-    const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
-    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">${new Date(p.created_at).toLocaleDateString()}</td><td class="px-4 py-3">${v?.name||'-'}</td><td class="px-4 py-3">${typeLabel}</td><td class="px-4 py-3 font-bold">${(p.total_amount||0).toLocaleString()}</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openPurModal(p.is_invoice_purchase, '${p.id}')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delPur('${p.id}')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>`;
-  }).join('');
+  var list = D.purchases.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+  var html = '';
+  for(var i=0; i<list.length; i++) {
+    var p = list[i];
+    var v = D.vendors.find(function(x){return x.id===p.vendor_id;});
+    var typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">'+new Date(p.created_at).toLocaleDateString()+'</td><td class="px-4 py-3">'+(v?v.name:'-')+'</td><td class="px-4 py-3">'+typeLabel+'</td><td class="px-4 py-3 font-bold">'+(p.total_amount||0).toLocaleString()+'</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openPurModal(p.is_invoice_purchase, \''+p.id+'\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delPur(\''+p.id+'\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('pur-tbody').innerHTML = html;
 }
 
-async function openPurModal(isInvoicePurchase, editId = null) {
+async function openPurModal(isInvoicePurchase, editId) {
   editingId = editId || null;
-  const existingData = editId ? D.purchases.find(x=>x.id===editId) : null;
-  const html = `
-    <input type="hidden" id="pu-invoice-mode" value="${isInvoicePurchase}">
-    <input type="hidden" id="pu-edit-id" value="${editId||''}">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-      <div><label class="block text-sm font-bold mb-1">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">${D.vendors.map(v=>`<option value="${v.id}" ${existingData?.vendor_id===v.id?'selected':''}>${v.name}</option>`).join('')}</select></div>
-      ${!isInvoicePurchase ? `<div><label class="block text-sm font-bold mb-1">入庫倉庫</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">${D.warehouses.filter(w=>w.is_active).map(w=>`<option value="${w.id}" ${existingData?.warehouse_id===w.id?'selected':''}>${w.name}</option>`).join('')}</select></div>` : ''}
-    </div>
-    <div class="mb-4"><label class="block text-sm font-bold mb-1">採購商品明細</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>
-    <div class="bg-gray-50 p-4 rounded mb-4"><div class="text-xl font-bold">採購總金額：<span id="pu-total">0</span></div></div>
-    <div class="mb-4"><label class="block text-sm font-bold mb-1">出帳帳戶 (同步扣款)</label><select id="pu-bank" class="w-full px-3 py-2 border rounded input-field"><option value="">不扣款</option>${D.banks.map(b=>`<option value="${b.id}" ${existingData?.bank_account_id===b.id?'selected':''}>${b.account_name}</option>`).join('')}</select></div>
-  `;
+  var existingData = editId ? D.purchases.find(function(x){return x.id===editId;}) : null;
+  
+  var vendorOptions = '';
+  for(var i=0; i<D.vendors.length; i++) {
+    var v = D.vendors[i];
+    vendorOptions += '<option value="'+v.id+'"'+(existingData && existingData.vendor_id===v.id?' selected':'')+'>'+v.name+'</option>';
+  }
+  
+  var whOptions = '';
+  var activeWh = D.warehouses.filter(function(w){return w.is_active;});
+  for(var i=0; i<activeWh.length; i++) {
+    var w = activeWh[i];
+    whOptions += '<option value="'+w.id+'"'+(existingData && existingData.warehouse_id===w.id?' selected':'')+'>'+w.name+'</option>';
+  }
+  
+  var html = '<input type="hidden" id="pu-invoice-mode" value="'+(isInvoicePurchase?'true':'false')+'"><input type="hidden" id="pu-edit-id" value="'+(editId||'')+'"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-1">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">'+vendorOptions+'</select></div>'+(isInvoicePurchase?'':'<div><label class="block text-sm font-bold mb-1">入庫倉庫</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">'+whOptions+'</select></div>')+'</div><div class="mb-4"><label class="block text-sm font-bold mb-1">採購商品明細</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div><div class="bg-gray-50 p-4 rounded mb-4"><div class="text-xl font-bold">採購總金額：<span id="pu-total">0</span></div></div>';
+  
   openModal(isInvoicePurchase?'購買發票':'一般採購入庫', html, savePur);
   
   if(editId && existingData) {
-    const {data: items} = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
-    if(items && items.length > 0) {
-      items.forEach(item => {
-        const p = D.products.find(x=>x.id===item.product_id);
+    var itemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
+    var items = itemsResp.data || [];
+    if(items.length > 0) {
+      for(var i=0; i<items.length; i++) {
+        var item = items[i];
+        var p = D.products.find(function(x){return x.id===item.product_id;});
         addPurItem(p, item.quantity, item.unit_price);
-      });
+      }
     }
-  } else { addPurItem(); }
+  } else {
+    addPurItem();
+  }
   calcPur();
 }
 
-function addPurItem(prod = null, qty = 1, price = 0) {
-  const box = document.getElementById('pu-items');
-  const div = document.createElement('div');
+function addPurItem(prod, qty, price) {
+  var box = document.getElementById('pu-items');
+  var div = document.createElement('div');
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
-  div.innerHTML = `<div class="flex-1 min-w-[150px]"><select class="pu-prod w-full px-3 py-2 border rounded input-field" onchange="if(this.value){this.parentElement.parentElement.querySelector('.pu-price').value=this.options[this.selectedIndex].dataset.cost;}calcPur()"><option value="">選擇商品</option>${D.products.map(p=>`<option value="${p.id}" data-cost="${p.cost_price||0}" ${prod?.id===p.id?'selected':''}>${p.name}</option>`).join('')}</select></div><div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="${qty}" min="1" oninput="calcPur()"></div><div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="${price}" step="0.01" oninput="calcPur()"></div><button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>`;
+  
+  var prodOptions = '<option value="">選擇商品</option>';
+  for(var i=0; i<D.products.length; i++) {
+    var p = D.products[i];
+    prodOptions += '<option value="'+p.id+'" data-cost="'+(p.cost_price||0)+'"'+(prod && prod.id===p.id?' selected':'')+'>'+p.name+'</option>';
+  }
+  
+  div.innerHTML = '<div class="flex-1 min-w-[150px]"><select class="pu-prod w-full px-3 py-2 border rounded input-field" onchange="if(this.value){this.parentElement.parentElement.querySelector(\'.pu-price\').value=this.options[this.selectedIndex].dataset.cost;}calcPur()">'+prodOptions+'</select></div><div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="'+(qty||1)+'" min="1" oninput="calcPur()"></div><div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="'+(price||0)+'" step="0.01" oninput="calcPur()"></div><button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
   box.appendChild(div);
 }
 
 function calcPur() {
-  let subtotal = 0;
-  document.querySelectorAll('#pu-items > div').forEach(r => {
-    const price = parseFloat(r.querySelector('.pu-price').value)||0;
-    const qty = parseInt(r.querySelector('.pu-qty').value)||0;
+  var subtotal = 0;
+  var rows = document.querySelectorAll('#pu-items > div');
+  for(var i=0; i<rows.length; i++) {
+    var r = rows[i];
+    var price = parseFloat(r.querySelector('.pu-price').value)||0;
+    var qty = parseInt(r.querySelector('.pu-qty').value)||0;
     subtotal += price * qty;
-  });
+  }
   document.getElementById('pu-total').textContent = subtotal.toLocaleString();
 }
 
 async function savePur() {
-  const editId = document.getElementById('pu-edit-id')?.value;
-  const vendorId = document.getElementById('pu-v').value;
-  const isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
-  const bankId = document.getElementById('pu-bank').value;
-  const items = []; let subtotal = 0;
-  document.querySelectorAll('#pu-items > div').forEach(r => {
-    const pid = r.querySelector('.pu-prod').value;
-    const q = parseInt(r.querySelector('.pu-qty').value)||0;
-    const p = parseFloat(r.querySelector('.pu-price').value)||0;
-    if(pid && q>0) { items.push({product_id:pid,quantity:q,unit_price:p}); subtotal+=p*q; }
-  });
+  var editId = document.getElementById('pu-edit-id').value;
+  var vendorId = document.getElementById('pu-v').value;
+  var isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
+  
+  var items = [];
+  var subtotal = 0;
+  var rows = document.querySelectorAll('#pu-items > div');
+  for(var i=0; i<rows.length; i++) {
+    var r = rows[i];
+    var pid = r.querySelector('.pu-prod').value;
+    var q = parseInt(r.querySelector('.pu-qty').value)||0;
+    var p = parseFloat(r.querySelector('.pu-price').value)||0;
+    if(pid && q>0) {
+      items.push({product_id:pid, quantity:q, unit_price:p});
+      subtotal += p*q;
+    }
+  }
   if(!items.length) return showAlert('請加入採購商品！');
   
-  let d = { vendor_id: vendorId, bank_account_id: bankId||null, is_invoice_purchase: isInvoiceMode, total_amount: subtotal, warehouse_id: document.getElementById('pu-wh')?.value||null };
+  var d = {
+    vendor_id: vendorId,
+    is_invoice_purchase: isInvoiceMode,
+    total_amount: subtotal,
+    warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null
+  };
   
   try {
-    // 編輯時：先恢復舊銀行與舊庫存
     if(editId) {
-      const oldPur = D.purchases.find(x=>x.id===editId);
-      // 恢復銀行
-      if(oldPur.bank_account_id && oldPur.total_amount > 0) {
-        const ob = D.banks.find(x=>x.id===oldPur.bank_account_id);
-        if(ob) await sb.from('bank_accounts').update({balance: (ob.balance||0) + oldPur.total_amount}).eq('id', oldPur.bank_account_id);
-      }
-      // 恢復庫存
-      if(!oldPur.is_invoice_purchase && oldPur.warehouse_id) {
-        const {data: oldItems} = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
-        if(oldItems) {
-          for(const i of oldItems) {
-            const invRec = D.warehouseInv.find(w=>w.warehouse_id===oldPur.warehouse_id && w.product_id===i.product_id);
-            if(invRec) await sb.from('warehouse_inventory').update({quantity: Math.max(0, (invRec.quantity||0) - i.quantity)}).eq('id', invRec.id);
-            const pr = D.products.find(x=>x.id===i.product_id);
-            if(pr) await sb.from('products').update({current_stock: Math.max(0, (pr.current_stock||0) - i.quantity)}).eq('id', i.product_id);
-          }
-        }
-      }
       await sb.from('purchase_items').delete().eq('purchase_id', editId);
       await sb.from('purchases').update(d).eq('id', editId);
     } else {
-      d.purchase_no = 'PUR-'+Date.now(); d.status = 'completed';
-      const {data:r} = await sb.from('purchases').insert([d]).select().single();
-      editId = r.id;
+      d.purchase_no = 'PUR-'+Date.now();
+      d.status = 'completed';
+      var r = await sb.from('purchases').insert([d]).select().single();
+      editId = r.data.id;
     }
+    await sb.from('purchase_items').insert(items.map(function(i){return Object.assign({}, i, {purchase_id:editId});}));
     
-    // 新銀行扣款
-    if(bankId && d.total_amount > 0) {
-      const b = D.banks.find(x=>x.id===bankId);
-      if(b) await sb.from('bank_accounts').update({balance: (b.balance||0) - d.total_amount}).eq('id', bankId);
-    }
-    
-    await sb.from('purchase_items').insert(items.map(i=>({...i, purchase_id:editId})));
-    
-    // 新庫存增加
     if(!isInvoiceMode && d.warehouse_id) {
-      for(const i of items) {
-        const existing = D.warehouseInv.find(w=>w.warehouse_id===d.warehouse_id && w.product_id===i.product_id);
-        if(existing) await sb.from('warehouse_inventory').update({quantity: (existing.quantity||0) + i.quantity}).eq('id', existing.id);
-        else await sb.from('warehouse_inventory').insert([{warehouse_id:d.warehouse_id, product_id:i.product_id, quantity:i.quantity, safety_stock:0}]);
-        const p = D.products.find(x=>x.id===i.product_id);
-        if(p) await sb.from('products').update({current_stock: (p.current_stock||0) + i.quantity}).eq('id', i.product_id);
+      for(var i=0; i<items.length; i++) {
+        var item = items[i];
+        var existing = D.warehouseInv.find(function(w){return w.warehouse_id===d.warehouse_id && w.product_id===item.product_id;});
+        if(existing) await sb.from('warehouse_inventory').update({quantity: (existing.quantity||0) + item.quantity}).eq('id', existing.id);
+        else await sb.from('warehouse_inventory').insert([{warehouse_id:d.warehouse_id, product_id:item.product_id, quantity:item.quantity, safety_stock:0}]);
+        var prod = D.products.find(function(x){return x.id===item.product_id;});
+        if(prod) await sb.from('products').update({current_stock: (prod.current_stock||0) + item.quantity}).eq('id', item.product_id);
       }
     }
     
-    showAlert('採購已儲存，庫存與銀行已同步！'); window.closeModal(); await loadAll(); render();
-  } catch(e) { showAlert('失敗：'+e.message); }
+    showAlert('採購已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
 }
 
-async function delPur(id) { 
-  if(!confirm('確定刪除？(庫存與銀行將同步恢復)')) return; 
+async function delPur(id) {
+  if(!confirm('確定刪除?')) return;
   try {
-    const oldPur = D.purchases.find(x=>x.id===id);
-    // 恢復銀行
-    if(oldPur.bank_account_id && oldPur.total_amount > 0) {
-      const ob = D.banks.find(x=>x.id===oldPur.bank_account_id);
-      if(ob) await sb.from('bank_accounts').update({balance: (ob.balance||0) + oldPur.total_amount}).eq('id', oldPur.bank_account_id);
-    }
-    // 恢復庫存
-    if(!oldPur.is_invoice_purchase && oldPur.warehouse_id) {
-      const {data: oldItems} = await sb.from('purchase_items').select('*').eq('purchase_id', id);
-      if(oldItems) {
-        for(const i of oldItems) {
-          const invRec = D.warehouseInv.find(w=>w.warehouse_id===oldPur.warehouse_id && w.product_id===i.product_id);
-          if(invRec) await sb.from('warehouse_inventory').update({quantity: Math.max(0, (invRec.quantity||0) - i.quantity)}).eq('id', invRec.id);
-          const pr = D.products.find(x=>x.id===i.product_id);
-          if(pr) await sb.from('products').update({current_stock: Math.max(0, (pr.current_stock||0) - i.quantity)}).eq('id', i.product_id);
-        }
-      }
-    }
-    await sb.from('purchase_items').delete().eq('purchase_id',id);
-    await sb.from('purchases').delete().eq('id',id); 
-    await loadAll(); render();
-    showAlert('已刪除並恢復庫存與銀行！');
-  } catch(e) { showAlert('失敗：'+e.message); }
+    await sb.from('purchase_items').delete().eq('purchase_id', id);
+    await sb.from('purchases').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：'+e.message);
+  }
 }
 
-// 佔位函數 (保持原樣)
-function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
-function renderFinance(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
-function renderBanks(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
-function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">⚙️ 通路與員工</h1><p class="mt-4">此功能保持原樣，未修改</p></div>'; }
+// 佔位函數
+function renderVendors(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><p class="mt-4">此功能保持原樣</p></div>'; }
+function renderFinance(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><p class="mt-4">此功能保持原樣</p></div>'; }
+function renderBanks(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><p class="mt-4">此功能保持原樣</p></div>'; }
+function renderSettings(c) { c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold">⚙️ 通路與員工</h1><p class="mt-4">此功能保持原樣</p></div>'; }
