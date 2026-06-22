@@ -62,11 +62,26 @@
     .main-content { padding: 0.75rem; padding-top: 4rem; margin-left: 0 !important; overflow-x: hidden; }
     .mobile-menu-btn { display: flex !important; }
     .table-container { 
-      overflow-x: auto; 
-      -webkit-overflow-scrolling: touch; 
+      overflow-x: auto !important; 
+      -webkit-overflow-scrolling: touch !important;
       margin: 0 -0.75rem;
       padding: 0 0.75rem;
       width: calc(100% + 1.5rem);
+      position: relative;
+    }
+    .table-container::-webkit-scrollbar {
+      height: 6px;
+    }
+    .table-container::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    .table-container::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 3px;
+    }
+    .table-container::-webkit-scrollbar-thumb:hover {
+      background: #555;
     }
     .content-card { padding: 0.75rem; }
     .card-grid { grid-template-columns: 1fr; gap: 0.75rem; }
@@ -75,6 +90,10 @@
     table { min-width: 900px; font-size: 0.8125rem; }
     td, th { white-space: nowrap; font-size: 0.8125rem; padding: 0.5rem 0.375rem; }
     .btn-touch { padding: 0.5rem 0.75rem; font-size: 0.8125rem; }
+    /* 确保表格可以滚动 */
+    .bg-white.rounded-lg.shadow {
+      overflow: visible !important;
+    }
     /* 移动端操作按钮优化 */
     .action-btns button { display: inline-block; margin: 0.125rem; padding: 0.375rem 0.625rem; font-size: 0.75rem; }
     /* 移动端标题优化 */
@@ -134,18 +153,23 @@
       position: relative;
     }
     .table-scroll-hint::after {
-      content: '← 左右滑动查看 →';
+      content: '← 左右滑动 →';
       position: absolute;
-      right: 1rem;
+      right: 0.5rem;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 0.75rem;
-      color: #9ca3af;
+      font-size: 0.6875rem;
+      color: #6b7280;
       pointer-events: none;
       animation: pulse 2s infinite;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      z-index: 10;
     }
     @keyframes pulse {
-      0%, 100% { opacity: 0.5; }
+      0%, 100% { opacity: 0.4; }
       50% { opacity: 1; }
     }
   }
@@ -175,11 +199,11 @@
 </div>
 
 <div id="main-system" class="hidden min-h-screen flex">
-  <button onclick="toggleSidebar()" class="mobile-menu-btn fixed top-4 left-4 z-50 bg-blue-600 text-white p-3 rounded-lg shadow-lg items-center justify-center btn-touch">
+  <button onclick="toggleSidebar()" class="mobile-menu-btn fixed top-4 left-4 z-50 bg-blue-600 bg-opacity-70 text-white p-3 rounded-lg shadow-lg items-center justify-center btn-touch backdrop-blur-sm">
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
-  <button onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn fixed top-4 left-4 z-50 bg-blue-600 text-white p-2 rounded-lg shadow-lg items-center justify-center btn-touch" style="display:none;">
+  <button onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn fixed top-4 left-4 z-50 bg-blue-600 bg-opacity-70 text-white p-2 rounded-lg shadow-lg items-center justify-center btn-touch backdrop-blur-sm" style="display:none;">
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   
