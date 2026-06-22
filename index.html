@@ -1002,7 +1002,7 @@ function showWhTab(whId) {
     for(let i=0; i<D.products.length; i++) {
       const p = D.products[i];
       const wInv = inv.find(function(x) { return x.product_id === p.id; });
-      const qty = wInv ? wInv.quantity : 0;
+      const qty = wInv ? (wInv.quantity || 0) : 0;
       rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3 font-bold">' + qty + '</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
     }
     container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
