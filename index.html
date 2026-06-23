@@ -767,9 +767,14 @@ function renderOrders(c) {
 }
 
 function renderOrdTable() {
-  const searchTerm = document.getElementById('ord-search') ? document.getElementById('ord-search').value.toLowerCase() : '';
-  const startDate = document.getElementById('ord-start-date') ? document.getElementById('ord-start-date').value : '';
-  const endDate = document.getElementById('ord-end-date') ? document.getElementById('end-date').value : '';
+  // 安全地獲取搜尋欄位值
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
+  
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+  const startDate = startDateInput ? startDateInput.value : '';
+  const endDate = endDateInput ? endDateInput.value : '';
   
   let list = D.orders.slice();
   
@@ -850,7 +855,7 @@ function renderOrdTable() {
       '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
       '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
       '<td class="px-4 py-3 text-center font-mono text-sm">' + (o.order_no || '-') + '</td>' +
-      '<td class="px-4 py-3">' + advanceHtml + '</td>' +
+      '<td class="px-4 py-3 text-center">' + advanceHtml + '</td>' +
       '<td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td>' +
       '<td class="px-4 py-3 text-center">' + marginHtml + '</td>' +
       '<td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
@@ -870,7 +875,10 @@ function renderOrdTable() {
     '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
   '</tr>';
   
-  document.getElementById('ord-tbody').innerHTML = html;
+  const tbody = document.getElementById('ord-tbody');
+  if(tbody) {
+    tbody.innerHTML = html;
+  }
 }
 
 function sortOrders(field) {
@@ -884,9 +892,14 @@ function sortOrders(field) {
 }
 
 function clearOrdFilters() {
-  if(document.getElementById('ord-search')) document.getElementById('ord-search').value = '';
-  if(document.getElementById('ord-start-date')) document.getElementById('ord-start-date').value = '';
-  if(document.getElementById('ord-end-date')) document.getElementById('ord-end-date').value = '';
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
+  
+  if(searchInput) searchInput.value = '';
+  if(startDateInput) startDateInput.value = '';
+  if(endDateInput) endDateInput.value = '';
+  
   window.ordSortField = null;
   window.ordSortAsc = true;
   renderOrdTable();
