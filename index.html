@@ -1047,28 +1047,26 @@ async function saveOrd() {
   };
 
   try {
-    // ========== 關鍵修復：編輯模式 ==========
+    // ========== 編輯模式：使用原子操作 ==========
     if(editingId) {
-      // 1. 從資料庫重新獲取舊訂單資料（確保是最新的）
+      // 1. 獲取舊訂單（從資料庫）
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
       const oldOrder = oldOrderResp.data;
       
       if(oldOrder) {
-        // 2. 恢復銀行餘額
+        // 2. 恢復銀行餘額（使用原子操作）
         if(oldOrder.bank_account_id && oldOrder.total_amount) {
-          const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
-          if(oldBank) {
-            await sb.from('bank_accounts').update({
-              balance: (oldBank.balance || 0) - oldOrder.total_amount
-            }).eq('id', oldOrder.bank_account_id);
-          }
+          await sb.rpc('update_bank_balance', {
+            p_bank_id: oldOrder.bank_account_id,
+            p_amount: -oldOrder.total_amount
+          });
         }
         
-        // 3. 從資料庫獲取舊的order_items
+        // 3. 獲取舊訂單明細
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         
-        // 4. 恢復舊訂單的庫存
+        // 4. 恢復舊訂單的庫存（使用原子操作：quantity = quantity + X）
         for(let i=0; i<oldItems.length; i++) {
           const oldItem = oldItems[i];
           const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
@@ -1076,13 +1074,26 @@ async function saveOrd() {
           
           // 4.1 恢復成品庫存
           if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
-            const invRecord = D.warehouseInv.find(function(inv) { 
-              return inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === oldProduct.id; 
-            });
-            if(invRecord) {
+            // 使用 UPSERT 邏輯
+            const existingInv = await sb.from('warehouse_inventory')
+              .select('id, quantity')
+              .eq('warehouse_id', oldOrder.warehouse_id)
+              .eq('product_id', oldProduct.id)
+              .single();
+            
+            if(existingInv.data) {
+              // 更新：quantity = quantity + oldItem.quantity
               await sb.from('warehouse_inventory').update({
-                quantity: (invRecord.quantity || 0) + oldItem.quantity
-              }).eq('id', invRecord.id);
+                quantity: (existingInv.data.quantity || 0) + oldItem.quantity
+              }).eq('id', existingInv.data.id);
+            } else {
+              // 插入新記錄
+              await sb.from('warehouse_inventory').insert([{
+                warehouse_id: oldOrder.warehouse_id,
+                product_id: oldProduct.id,
+                quantity: oldItem.quantity,
+                safety_stock: 0
+              }]);
             }
           }
           
@@ -1092,23 +1103,32 @@ async function saveOrd() {
             for(let j=0; j<oldBomItems.length; j++) {
               const oldBom = oldBomItems[j];
               const restoreQty = oldBom.quantity * oldItem.quantity;
-              const materialInvs = D.warehouseInv.filter(function(inv) { 
-                return inv.product_id === oldBom.child_product_id; 
-              });
               
-              if(materialInvs.length === 1) {
-                await sb.from('warehouse_inventory').update({
-                  quantity: (materialInvs[0].quantity || 0) + restoreQty
-                }).eq('id', materialInvs[0].id);
-              } else if(materialInvs.length > 1) {
-                const invRecord = materialInvs.find(function(inv) { 
+              // 查找物料庫存
+              const materialInv = await sb.from('warehouse_inventory')
+                .select('id, quantity, warehouse_id')
+                .eq('product_id', oldBom.child_product_id);
+              
+              if(materialInv.data && materialInv.data.length > 0) {
+                // 優先從原訂單倉庫恢復
+                let targetInv = materialInv.data.find(function(inv) { 
                   return inv.warehouse_id === oldOrder.warehouse_id; 
                 });
-                if(invRecord) {
-                  await sb.from('warehouse_inventory').update({
-                    quantity: (invRecord.quantity || 0) + restoreQty
-                  }).eq('id', invRecord.id);
-                }
+                
+                // 如果原倉庫沒有，用第一個有庫存的
+                if(!targetInv) targetInv = materialInv.data[0];
+                
+                await sb.from('warehouse_inventory').update({
+                  quantity: (targetInv.quantity || 0) + restoreQty
+                }).eq('id', targetInv.id);
+              } else {
+                // 沒有庫存記錄，創建新記錄
+                await sb.from('warehouse_inventory').insert([{
+                  warehouse_id: oldOrder.warehouse_id,
+                  product_id: oldBom.child_product_id,
+                  quantity: restoreQty,
+                  safety_stock: 0
+                }]);
               }
             }
           }
@@ -1126,12 +1146,12 @@ async function saveOrd() {
     else {
       const r = await sb.from('orders').insert([data]).select().single();
       editingId = r.data.id;
-      const bank = D.banks.find(function(b) { return b.id === bankId; });
-      if(bank) {
-        await sb.from('bank_accounts').update({
-          balance: (bank.balance || 0) + totalAmount
-        }).eq('id', bankId);
-      }
+      
+      // 增加銀行餘額
+      await sb.rpc('update_bank_balance', {
+        p_bank_id: bankId,
+        p_amount: totalAmount
+      });
     }
     
     // 7. 插入新的order_items
@@ -1139,20 +1159,33 @@ async function saveOrd() {
       return Object.assign({}, i, {order_id: editingId}); 
     }));
     
-    // 8. 扣減新訂單的庫存
+    // 8. 扣減新訂單的庫存（使用原子操作）
     for(let i=0; i<items.length; i++) {
       const item = items[i];
       const product = D.products.find(function(p) { return p.id === item.product_id; });
       if(!product) continue;
       
-      // 8.1 扣減成品庫存（允許負數）
+      // 8.1 扣減成品庫存
       if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
-        const invRecord = D.warehouseInv.find(function(inv) { 
-          return inv.warehouse_id === wid && inv.product_id === product.id; 
-        });
-        if(invRecord) {
-          const newQty = (invRecord.quantity || 0) - item.quantity;
-          await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', invRecord.id);
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', wid)
+          .eq('product_id', product.id)
+          .single();
+        
+        if(existingInv.data) {
+          // 更新：quantity = quantity - item.quantity（允許負數）
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) - item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          // 插入負數記錄
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: wid,
+            product_id: product.id,
+            quantity: -item.quantity,
+            safety_stock: 0
+          }]);
         }
       }
       
@@ -1162,27 +1195,26 @@ async function saveOrd() {
         for(let j=0; j<bomItems.length; j++) {
           const bom = bomItems[j];
           const requiredQty = bom.quantity * item.quantity;
-          const materialProduct = D.products.find(function(p) { return p.id === bom.child_product_id; });
-          if(!materialProduct) continue;
           
-          const materialInvs = D.warehouseInv.filter(function(inv) { 
-            return inv.product_id === bom.child_product_id; 
-          });
+          // 查找物料庫存
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
           
-          if(materialInvs.length === 1) {
-            const newQty = (materialInvs[0].quantity || 0) - requiredQty;
-            await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', materialInvs[0].id);
-          } else if(materialInvs.length > 1) {
-            let targetInv = materialInvs.find(function(inv) { 
+          if(materialInv.data && materialInv.data.length > 0) {
+            // 優先從訂單倉庫扣減
+            let targetInv = materialInv.data.find(function(inv) { 
               return inv.warehouse_id === wid; 
             });
-            if(!targetInv) {
-              materialInvs.sort(function(a, b) { return (b.quantity || 0) - (a.quantity || 0); });
-              targetInv = materialInvs[0];
-            }
-            const newQty = (targetInv.quantity || 0) - requiredQty;
-            await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', targetInv.id);
+            
+            // 如果訂單倉庫沒有，用第一個
+            if(!targetInv) targetInv = materialInv.data[0];
+            
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) - requiredQty
+            }).eq('id', targetInv.id);
           } else {
+            // 沒有庫存記錄，創建新記錄（負數）
             await sb.from('warehouse_inventory').insert([{
               warehouse_id: wid,
               product_id: bom.child_product_id,
@@ -1218,7 +1250,7 @@ async function saveOrd() {
     console.error('saveOrd error:', e);
   }
 }
-
+  
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
