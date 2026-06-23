@@ -1655,7 +1655,7 @@ function calcPur() {
 }
 
 async function savePur() {
-  const editId = document.getElementById('pu-edit-id').value;
+  let editId = document.getElementById('pu-edit-id').value;
   const vendorId = document.getElementById('pu-v').value;
   const isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
   const items = [];
