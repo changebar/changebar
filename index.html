@@ -1056,11 +1056,12 @@ async function saveOrd() {
       if(oldOrder) {
         // 2. 恢復銀行餘額（使用原子操作）
         if(oldOrder.bank_account_id && oldOrder.total_amount) {
-          await sb.rpc('update_bank_balance', {
-            p_bank_id: oldOrder.bank_account_id,
-            p_amount: -oldOrder.total_amount
-          });
-        }
+        const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
+if(oldBank) {
+  await sb.from('bank_accounts').update({
+    balance: (oldBank.balance || 0) - oldOrder.total_amount
+  }).eq('id', oldOrder.bank_account_id);
+}
         
         // 3. 獲取舊訂單明細
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
@@ -1148,11 +1149,12 @@ async function saveOrd() {
       editingId = r.data.id;
       
       // 增加銀行餘額
-      await sb.rpc('update_bank_balance', {
-        p_bank_id: bankId,
-        p_amount: totalAmount
-      });
-    }
+    const bank = D.banks.find(function(b) { return b.id === bankId; });
+if(bank) {
+  await sb.from('bank_accounts').update({
+    balance: (bank.balance || 0) + totalAmount
+  }).eq('id', bankId);
+}
     
     // 7. 插入新的order_items
     await sb.from('order_items').insert(items.map(function(i) { 
