@@ -1240,7 +1240,7 @@ if(oldBankId !== newBankId) {
     window.closeModal();
     await loadAll();
     render();
-  } catch(e) { 
+  } catch(e) {
     showAlert('失敗：' + e.message); 
     console.error('saveOrd error:', e);
   }
