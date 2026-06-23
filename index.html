@@ -1125,6 +1125,20 @@ async function saveOrd() {
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
       
+      // 檢查銀行是否變更，如果變更要增加新銀行的餘額
+const oldBankId = oldOrder.bank_account_id;
+const newBankId = bankId;
+
+if(oldBankId !== newBankId) {
+  // 銀行變更了，增加新銀行的餘額
+  const newBank = D.banks.find(function(b) { return b.id === newBankId; });
+  if(newBank) {
+    await sb.from('bank_accounts').update({
+      balance: (newBank.balance || 0) + totalAmount
+    }).eq('id', newBankId);
+  }
+}
+
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
     } else {
@@ -1227,71 +1241,99 @@ async function saveOrd() {
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
-    const o = D.orders.find(function(x) { return x.id === id; });
+    const orderResp = await sb.from('orders').select('*').eq('id', id).single();
+    const o = orderResp.data;
     
-    // 1. 恢復銀行餘額
-    if(o && o.bank_account_id && o.total_amount) {
-      const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
-      if(bank) await sb.from('bank_accounts').update({balance: (bank.balance || 0) - o.total_amount}).eq('id', o.bank_account_id);
+    if(!o) {
+      showAlert('找不到訂單！');
+      return;
     }
     
-    // 2. 恢復庫存（成品 + BOM物料）
-    if(o) {
-      const items = (await sb.from('order_items').select('*').eq('order_id', id)).data || [];
-      for(let i=0; i<items.length; i++) {
-        const item = items[i];
-        const product = D.products.find(function(p) { return p.id === item.product_id; });
-        if(!product) continue;
+    // 恢復銀行餘額
+    if(o.bank_account_id && o.total_amount) {
+      const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) - o.total_amount
+        }).eq('id', o.bank_account_id);
+      }
+    }
+    
+    // 恢復庫存（成品 + BOM物料）
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+    
+    for(let i=0; i<items.length; i++) {
+      const item = items[i];
+      const product = D.products.find(function(p) { return p.id === item.product_id; });
+      if(!product) continue;
+      
+      // 恢復成品庫存
+      if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', o.warehouse_id)
+          .eq('product_id', product.id)
+          .single();
         
-        // 2.1 恢復成品庫存
-        if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
-          const invRecord = D.warehouseInv.find(function(inv) { 
-            return inv.warehouse_id === o.warehouse_id && inv.product_id === product.id; 
-          });
-          if(invRecord) {
-            await sb.from('warehouse_inventory').update({
-              quantity: (invRecord.quantity || 0) + item.quantity
-            }).eq('id', invRecord.id);
-          }
-        }
-        
-        // 2.2 恢復BOM物料庫存（智能查找倉庫）
-        const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
-        if(bomItems.length > 0) {
-          for(let j=0; j<bomItems.length; j++) {
-            const bom = bomItems[j];
-            const restoreQty = bom.quantity * item.quantity;
-            const materialInvs = D.warehouseInv.filter(function(inv) { 
-              return inv.product_id === bom.child_product_id; 
-            });
-            
-            if(materialInvs.length === 1) {
-              await sb.from('warehouse_inventory').update({
-                quantity: (materialInvs[0].quantity || 0) + restoreQty
-              }).eq('id', materialInvs[0].id);
-            } else if(materialInvs.length > 1) {
-              const invRecord = materialInvs.find(function(inv) { 
-                return inv.warehouse_id === o.warehouse_id; 
-              });
-              if(invRecord) {
-                await sb.from('warehouse_inventory').update({
-                  quantity: (invRecord.quantity || 0) + restoreQty
-                }).eq('id', invRecord.id);
-              }
-            }
-          }
+        if(existingInv.data) {
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) + item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: o.warehouse_id,
+            product_id: product.id,
+            quantity: item.quantity,
+            safety_stock: 0
+          }]);
         }
       }
       
-      // 3. 刪除關聯的代墊款收支記錄
-      await sb.from('expenses').delete().eq('related_order_id', id);
+      // 恢復BOM物料庫存
+      const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
+      if(bomItems.length > 0) {
+        for(let j=0; j<bomItems.length; j++) {
+          const bom = bomItems[j];
+          const restoreQty = bom.quantity * item.quantity;
+          
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
+          
+          if(materialInv.data && materialInv.data.length > 0) {
+            let targetInv = materialInv.data.find(function(inv) { 
+              return inv.warehouse_id === o.warehouse_id; 
+            });
+            if(!targetInv) targetInv = materialInv.data[0];
+            
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) + restoreQty
+            }).eq('id', targetInv.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: o.warehouse_id,
+              product_id: bom.child_product_id,
+              quantity: restoreQty,
+              safety_stock: 0
+            }]);
+          }
+        }
+      }
     }
     
+    // 刪除關聯的代墊款收支記錄
+    await sb.from('expenses').delete().eq('related_order_id', id);
     await sb.from('order_items').delete().eq('order_id', id);
     await sb.from('orders').delete().eq('id', id);
+    
+    showAlert('訂單已刪除！');
     await loadAll();
     render();
-  } catch(e) { showAlert('失敗：' + e.message); }
+  } catch(e) { 
+    showAlert('刪除失敗：' + e.message); 
+    console.error('delOrd error:', e);
+  }
 }
   
 // ==================== 商品與 BOM ====================
