@@ -1139,6 +1139,19 @@ if(oldBankId !== newBankId) {
   }
 }
 
+    // 檢查銀行是否變更
+const oldBankId = oldOrder.bank_account_id;
+const newBankId = bankId;
+
+if(oldBankId !== newBankId) {
+  // 銀行變更了，增加新銀行的餘額
+  const newBank = D.banks.find(function(b) { return b.id === newBankId; });
+  if(newBank) {
+    await sb.from('bank_accounts').update({
+      balance: (newBank.balance || 0) + totalAmount
+    }).eq('id', newBankId);
+  }
+}
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
     } else {
@@ -1241,6 +1254,7 @@ if(oldBankId !== newBankId) {
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
+    // 從資料庫獲取訂單
     const orderResp = await sb.from('orders').select('*').eq('id', id).single();
     const o = orderResp.data;
     
@@ -1249,7 +1263,7 @@ async function delOrd(id) {
       return;
     }
     
-    // 恢復銀行餘額
+    // 恢復銀行餘額（扣回）
     if(o.bank_account_id && o.total_amount) {
       const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
       if(bank) {
@@ -1259,7 +1273,7 @@ async function delOrd(id) {
       }
     }
     
-    // 恢復庫存（成品 + BOM物料）
+    // 恢復庫存（成品 + BOM 物料）
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
     
@@ -1290,7 +1304,7 @@ async function delOrd(id) {
         }
       }
       
-      // 恢復BOM物料庫存
+      // 恢復 BOM 物料庫存
       const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
       if(bomItems.length > 0) {
         for(let j=0; j<bomItems.length; j++) {
@@ -1322,7 +1336,7 @@ async function delOrd(id) {
       }
     }
     
-    // 刪除關聯的代墊款收支記錄
+    // 刪除關聯記錄
     await sb.from('expenses').delete().eq('related_order_id', id);
     await sb.from('order_items').delete().eq('order_id', id);
     await sb.from('orders').delete().eq('id', id);
