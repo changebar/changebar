@@ -1052,8 +1052,10 @@ async function saveOrd() {
       const oldOrder = oldOrderResp.data;
       
       if(oldOrder) {
+             const oldBankId = oldOrder.bank_account_id;
+        const bankChanged = (oldBankId !== bankId);
         // 恢復銀行餘額
-        if(oldOrder.bank_account_id && oldOrder.total_amount) {
+        if(bankChanged && oldOrder.bank_account_id && oldOrder.total_amount) {
           const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
           if(oldBank) {
             await sb.from('bank_accounts').update({
@@ -1139,13 +1141,6 @@ if(oldBankId !== newBankId) {
   }
 }
 
-  // 銀行變更了，增加新銀行的餘額
-  const newBank = D.banks.find(function(b) { return b.id === newBankId; });
-  if(newBank) {
-    await sb.from('bank_accounts').update({
-      balance: (newBank.balance || 0) + totalAmount
-    }).eq('id', newBankId);
-  }
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
     } else {
