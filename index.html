@@ -1022,7 +1022,6 @@ async function saveOrd() {
   const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
   const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
 
-  // 運費代墊
   const hasAdvance = document.getElementById('o-has-advance').checked;
   const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
   const advanceAmount = hasAdvance ? (parseFloat(document.getElementById('o-advance-amount').value) || 0) : 0;
@@ -1048,63 +1047,106 @@ async function saveOrd() {
   };
 
   try {
+    // ========== 編輯模式：先恢復舊訂單的庫存和銀行 ==========
     if(editingId) {
       const oldOrder = D.orders.find(function(x) { return x.id === editingId; });
       if(oldOrder) {
+        // 恢復銀行餘額
         if(oldOrder.bank_account_id && oldOrder.total_amount) {
           const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
           if(oldBank) await sb.from('bank_accounts').update({balance: (oldBank.balance || 0) - oldOrder.total_amount}).eq('id', oldOrder.bank_account_id);
         }
+        
+        // 恢復舊訂單的庫存（成品 + BOM物料）
         const oldItems = (await sb.from('order_items').select('*').eq('order_id', editingId)).data || [];
         for(let i=0; i<oldItems.length; i++) {
           const oldItem = oldItems[i];
           const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
           if(!oldProduct) continue;
+          
+          // 恢復成品庫存
+          if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
+            const invRecord = D.warehouseInv.find(function(inv) { 
+              return inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === oldProduct.id; 
+            });
+            if(invRecord) {
+              await sb.from('warehouse_inventory').update({
+                quantity: (invRecord.quantity || 0) + oldItem.quantity
+              }).eq('id', invRecord.id);
+            }
+          }
+          
+          // 恢復BOM物料庫存
           const oldBomItems = D.bom.filter(function(b) { return b.parent_product_id === oldProduct.id; });
           if(oldBomItems.length > 0) {
             for(let j=0; j<oldBomItems.length; j++) {
               const oldBom = oldBomItems[j];
               const restoreQty = oldBom.quantity * oldItem.quantity;
-              const invRecord = D.warehouseInv.find(function(inv) { return inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === oldBom.child_product_id; });
-              if(invRecord) await sb.from('warehouse_inventory').update({quantity: (invRecord.quantity || 0) + restoreQty}).eq('id', invRecord.id);
+              // 查找物料所在的倉庫（可能在不同倉庫）
+              const materialInvs = D.warehouseInv.filter(function(inv) { 
+                return inv.product_id === oldBom.child_product_id && inv.quantity > 0; 
+              });
+              if(materialInvs.length === 1) {
+                // 只有一個倉庫有庫存，自動恢復
+                await sb.from('warehouse_inventory').update({
+                  quantity: (materialInvs[0].quantity || 0) + restoreQty
+                }).eq('id', materialInvs[0].id);
+              } else if(materialInvs.length > 1) {
+                // 多個倉庫有庫存，從原訂單倉庫恢復
+                const invRecord = materialInvs.find(function(inv) { 
+                  return inv.warehouse_id === oldOrder.warehouse_id; 
+                });
+                if(invRecord) {
+                  await sb.from('warehouse_inventory').update({
+                    quantity: (invRecord.quantity || 0) + restoreQty
+                  }).eq('id', invRecord.id);
+                }
+              }
             }
-          } else {
-            const invRecord = D.warehouseInv.find(function(inv) { return inv.warehouse_id === oldOrder.warehouse_id && inv.product_id === oldProduct.id; });
-            if(invRecord) await sb.from('warehouse_inventory').update({quantity: (invRecord.quantity || 0) + oldItem.quantity}).eq('id', invRecord.id);
           }
         }
+        
+        // 刪除舊的代墊款收支記錄
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
+      
+      // 更新訂單並刪除舊的order_items
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
-    } else {
+    } 
+    // ========== 新增模式 ==========
+    else {
       const r = await sb.from('orders').insert([data]).select().single();
       editingId = r.data.id;
+      // 銀行餘額增加
       const bank = D.banks.find(function(b) { return b.id === bankId; });
       if(bank) {
         await sb.from('bank_accounts').update({balance: (bank.balance || 0) + totalAmount}).eq('id', bankId);
       }
     }
+    
+    // 插入新的order_items
     await sb.from('order_items').insert(items.map(function(i) { return Object.assign({}, i, {order_id: editingId}); }));
     
-    // 扣庫存邏輯（成品 + BOM 物料）
+    // ========== 扣減新訂單的庫存（成品 + BOM物料）==========
     for(let i=0; i<items.length; i++) {
       const item = items[i];
       const product = D.products.find(function(p) { return p.id === item.product_id; });
       if(!product) continue;
       
-      // 1. 先扣成品本身的庫存（如果是成品/禮盒/外箱）
+      // 1. 扣減成品庫存（允許負數）
       if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
         const invRecord = D.warehouseInv.find(function(inv) { 
           return inv.warehouse_id === wid && inv.product_id === product.id; 
         });
         if(invRecord) {
+          // 允許負數，移除 Math.max(0, ...)
           const newQty = (invRecord.quantity || 0) - item.quantity;
           await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', invRecord.id);
         }
       }
       
-      // 2. 如果有 BOM，扣減物料（半成品/原料）
+      // 2. 扣減BOM物料庫存（智能查找倉庫）
       const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
       if(bomItems.length > 0) {
         for(let j=0; j<bomItems.length; j++) {
@@ -1113,18 +1155,41 @@ async function saveOrd() {
           const materialProduct = D.products.find(function(p) { return p.id === bom.child_product_id; });
           if(!materialProduct) continue;
           
-          const invRecord = D.warehouseInv.find(function(inv) { 
-            return inv.warehouse_id === wid && inv.product_id === bom.child_product_id; 
+          // 查找物料所在的倉庫
+          const materialInvs = D.warehouseInv.filter(function(inv) { 
+            return inv.product_id === bom.child_product_id; 
           });
-          if(invRecord) {
-            const newQty = (invRecord.quantity || 0) - requiredQty;
-            await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', invRecord.id);
+          
+          if(materialInvs.length === 1) {
+            // 只有一個倉庫，自動扣減（允許負數）
+            const newQty = (materialInvs[0].quantity || 0) - requiredQty;
+            await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', materialInvs[0].id);
+          } else if(materialInvs.length > 1) {
+            // 多個倉庫有庫存，優先從訂單倉庫扣
+            let targetInv = materialInvs.find(function(inv) { 
+              return inv.warehouse_id === wid; 
+            });
+            if(!targetInv) {
+              // 訂單倉庫沒有，從有最多庫存的倉庫扣
+              materialInvs.sort(function(a, b) { return (b.quantity || 0) - (a.quantity || 0); });
+              targetInv = materialInvs[0];
+            }
+            const newQty = (targetInv.quantity || 0) - requiredQty;
+            await sb.from('warehouse_inventory').update({quantity: newQty}).eq('id', targetInv.id);
+          } else {
+            // 物料完全沒有庫存記錄，創建一條負數記錄
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: wid,
+              product_id: bom.child_product_id,
+              quantity: -requiredQty,
+              safety_stock: 0
+            }]);
           }
         }
       }
     }
     
-    // 如果有代墊款，自動新增一筆收支記錄
+    // 如果有代墊款，新增收支記錄
     if(hasAdvance && advanceEmpId && advanceAmount > 0) {
       await sb.from('expenses').insert([{
         category_id: (D.expCats.find(function(c) { return c.name === '運費'; }) || {}).id,
@@ -1157,7 +1222,7 @@ async function delOrd(id) {
       if(bank) await sb.from('bank_accounts').update({balance: (bank.balance || 0) - o.total_amount}).eq('id', o.bank_account_id);
     }
     
-    // 2. 恢復庫存（成品 + BOM 物料）
+    // 2. 恢復庫存（成品 + BOM物料）
     if(o) {
       const items = (await sb.from('order_items').select('*').eq('order_id', id)).data || [];
       for(let i=0; i<items.length; i++) {
@@ -1177,19 +1242,29 @@ async function delOrd(id) {
           }
         }
         
-        // 2.2 恢復 BOM 物料庫存
+        // 2.2 恢復BOM物料庫存（智能查找倉庫）
         const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
         if(bomItems.length > 0) {
           for(let j=0; j<bomItems.length; j++) {
             const bom = bomItems[j];
             const restoreQty = bom.quantity * item.quantity;
-            const invRecord = D.warehouseInv.find(function(inv) { 
-              return inv.warehouse_id === o.warehouse_id && inv.product_id === bom.child_product_id; 
+            const materialInvs = D.warehouseInv.filter(function(inv) { 
+              return inv.product_id === bom.child_product_id; 
             });
-            if(invRecord) {
+            
+            if(materialInvs.length === 1) {
               await sb.from('warehouse_inventory').update({
-                quantity: (invRecord.quantity || 0) + restoreQty
-              }).eq('id', invRecord.id);
+                quantity: (materialInvs[0].quantity || 0) + restoreQty
+              }).eq('id', materialInvs[0].id);
+            } else if(materialInvs.length > 1) {
+              const invRecord = materialInvs.find(function(inv) { 
+                return inv.warehouse_id === o.warehouse_id; 
+              });
+              if(invRecord) {
+                await sb.from('warehouse_inventory').update({
+                  quantity: (invRecord.quantity || 0) + restoreQty
+                }).eq('id', invRecord.id);
+              }
             }
           }
         }
