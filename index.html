@@ -722,12 +722,106 @@ async function addTag() { const n = document.getElementById('t-name').value.trim
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
   // ==================== 訂單出貨 (完整升級版) ====================
 function renderOrders(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">📦 訂單出貨</h1><button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">客戶</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">運費代墊</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">毛利率</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card">' +
+    '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
+      '<h1 class="text-3xl font-bold">📦 訂單出貨</h1>' +
+      '<button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button>' +
+    '</div>' +
+    '<div class="bg-white rounded-lg shadow p-4 mb-4">' +
+      '<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-1">🔍 搜尋</label>' +
+          '<input type="text" id="ord-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入客戶名稱、電話、訂單編號..." oninput="renderOrdTable()">' +
+        '</div>' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-1">📅 開始日期</label>' +
+          '<input type="month" id="ord-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderOrdTable()">' +
+        '</div>' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-1">📅 結束日期</label>' +
+          '<input type="month" id="ord-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderOrdTable()">' +
+        '</div>' +
+        '<div class="flex items-end">' +
+          '<button onclick="clearOrdFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="bg-white rounded-lg shadow overflow-hidden table-container">' +
+      '<table class="min-w-full divide-y divide-gray-200">' +
+        '<thead class="bg-gray-50">' +
+          '<tr>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'created_at\')">日期 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">客戶</th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'order_no\')">訂單編號 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">運費代墊</th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'gross_profit_margin\')">毛利率 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>' +
+      '</table>' +
+    '</div>' +
+  '</div>';
   renderOrdTable();
 }
 
 function renderOrdTable() {
-  const list = D.orders.sort(function(a,b) { return new Date(b.created_at) - new Date(a.created_at); });
+  const searchTerm = document.getElementById('ord-search') ? document.getElementById('ord-search').value.toLowerCase() : '';
+  const startDate = document.getElementById('ord-start-date') ? document.getElementById('ord-start-date').value : '';
+  const endDate = document.getElementById('ord-end-date') ? document.getElementById('end-date').value : '';
+  
+  let list = D.orders.slice();
+  
+  // 篩選：搜尋
+  if(searchTerm) {
+    list = list.filter(function(o) {
+      const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+      const customerName = c ? (c.company_name || c.contact_person || '').toLowerCase() : '';
+      const customerPhone = c ? (c.phone || '').toLowerCase() : '';
+      const orderNo = (o.order_no || '').toLowerCase();
+      return customerName.indexOf(searchTerm) !== -1 || 
+             customerPhone.indexOf(searchTerm) !== -1 || 
+             orderNo.indexOf(searchTerm) !== -1;
+    });
+  }
+  
+  // 篩選：日期範圍
+  if(startDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate >= startDate;
+    });
+  }
+  if(endDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate <= endDate;
+    });
+  }
+  
+  // 排序
+  if(window.ordSortField) {
+    list.sort(function(a, b) {
+      let aVal = a[window.ordSortField];
+      let bVal = b[window.ordSortField];
+      
+      if(window.ordSortField === 'created_at') {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+      
+      if(aVal < bVal) return window.ordSortAsc ? -1 : 1;
+      if(aVal > bVal) return window.ordSortAsc ? 1 : -1;
+      return 0;
+    });
+  } else {
+    // 預設按日期降序
+    list.sort(function(a, b) {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }
+  
   let html = '';
   let totalAmount = 0;
   let totalMargin = 0;
@@ -749,17 +843,53 @@ function renderOrdTable() {
     
     let advanceHtml = '<span class="text-gray-400">-</span>';
     if(o.shipping_advance_amount > 0 && emp) {
-      advanceHtml = '<div class="text-xs"><div class="text-orange-600">'+emp.name+'</div><div class="font-bold">'+o.shipping_advance_amount.toLocaleString()+'</div></div>';
+      advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">'+emp.name+'</div><div class="font-bold">'+o.shipping_advance_amount.toLocaleString()+'</div></div>';
     }
     
-    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td><td class="px-4 py-3">' + (c ? c.company_name || c.contact_person : '-') + '</td><td class="px-4 py-3">' + advanceHtml + '</td><td class="px-4 py-3 font-bold">' + (o.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3">' + marginHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button><button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+    html += '<tr class="hover:bg-gray-50">' +
+      '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
+      '<td class="px-4 py-3 text-center font-mono text-sm">' + (o.order_no || '-') + '</td>' +
+      '<td class="px-4 py-3">' + advanceHtml + '</td>' +
+      '<td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + marginHtml + '</td>' +
+      '<td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
+        '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
+        '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
+        '<button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>' +
+      '</td>' +
+    '</tr>';
   }
   
   // 底部統計列
   const avgMargin = count > 0 ? (totalMargin / count).toFixed(1) : 0;
-  html += '<tr class="bg-gray-100 font-bold"><td class="px-4 py-3" colspan="3">總計 ('+list.length+' 單)</td><td class="px-4 py-3 text-lg">'+totalAmount.toLocaleString()+'</td><td class="px-4 py-3 text-lg">'+avgMargin+'%</td><td class="px-4 py-3">平均毛利率</td></tr>';
+  html += '<tr class="bg-gray-100 font-bold">' +
+    '<td class="px-4 py-3 text-center" colspan="3">總計 ('+list.length+' 單)</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+totalAmount.toLocaleString()+'</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+avgMargin+'%</td>' +
+    '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
+  '</tr>';
   
   document.getElementById('ord-tbody').innerHTML = html;
+}
+
+function sortOrders(field) {
+  if(window.ordSortField === field) {
+    window.ordSortAsc = !window.ordSortAsc;
+  } else {
+    window.ordSortField = field;
+    window.ordSortAsc = true;
+  }
+  renderOrdTable();
+}
+
+function clearOrdFilters() {
+  if(document.getElementById('ord-search')) document.getElementById('ord-search').value = '';
+  if(document.getElementById('ord-start-date')) document.getElementById('ord-start-date').value = '';
+  if(document.getElementById('ord-end-date')) document.getElementById('ord-end-date').value = '';
+  window.ordSortField = null;
+  window.ordSortAsc = true;
+  renderOrdTable();
 }
 
 async function viewOrdDetail(id) {
