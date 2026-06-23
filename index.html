@@ -1047,35 +1047,30 @@ async function saveOrd() {
   };
 
   try {
-    // ========== 編輯模式：使用原子操作 ==========
     if(editingId) {
-      // 1. 獲取舊訂單（從資料庫）
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
       const oldOrder = oldOrderResp.data;
       
       if(oldOrder) {
-        // 2. 恢復銀行餘額（使用原子操作）
+        // 恢復銀行餘額
         if(oldOrder.bank_account_id && oldOrder.total_amount) {
-        const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
-if(oldBank) {
-  await sb.from('bank_accounts').update({
-    balance: (oldBank.balance || 0) - oldOrder.total_amount
-  }).eq('id', oldOrder.bank_account_id);
-}
+          const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
+          if(oldBank) {
+            await sb.from('bank_accounts').update({
+              balance: (oldBank.balance || 0) - oldOrder.total_amount
+            }).eq('id', oldOrder.bank_account_id);
+          }
+        }
         
-        // 3. 獲取舊訂單明細
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         
-        // 4. 恢復舊訂單的庫存（使用原子操作：quantity = quantity + X）
         for(let i=0; i<oldItems.length; i++) {
           const oldItem = oldItems[i];
           const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
           if(!oldProduct) continue;
           
-          // 4.1 恢復成品庫存
           if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
-            // 使用 UPSERT 邏輯
             const existingInv = await sb.from('warehouse_inventory')
               .select('id, quantity')
               .eq('warehouse_id', oldOrder.warehouse_id)
@@ -1083,12 +1078,10 @@ if(oldBank) {
               .single();
             
             if(existingInv.data) {
-              // 更新：quantity = quantity + oldItem.quantity
               await sb.from('warehouse_inventory').update({
                 quantity: (existingInv.data.quantity || 0) + oldItem.quantity
               }).eq('id', existingInv.data.id);
             } else {
-              // 插入新記錄
               await sb.from('warehouse_inventory').insert([{
                 warehouse_id: oldOrder.warehouse_id,
                 product_id: oldProduct.id,
@@ -1098,32 +1091,26 @@ if(oldBank) {
             }
           }
           
-          // 4.2 恢復BOM物料庫存
           const oldBomItems = D.bom.filter(function(b) { return b.parent_product_id === oldProduct.id; });
           if(oldBomItems.length > 0) {
             for(let j=0; j<oldBomItems.length; j++) {
               const oldBom = oldBomItems[j];
               const restoreQty = oldBom.quantity * oldItem.quantity;
               
-              // 查找物料庫存
               const materialInv = await sb.from('warehouse_inventory')
                 .select('id, quantity, warehouse_id')
                 .eq('product_id', oldBom.child_product_id);
               
               if(materialInv.data && materialInv.data.length > 0) {
-                // 優先從原訂單倉庫恢復
                 let targetInv = materialInv.data.find(function(inv) { 
                   return inv.warehouse_id === oldOrder.warehouse_id; 
                 });
-                
-                // 如果原倉庫沒有，用第一個有庫存的
                 if(!targetInv) targetInv = materialInv.data[0];
                 
                 await sb.from('warehouse_inventory').update({
                   quantity: (targetInv.quantity || 0) + restoreQty
                 }).eq('id', targetInv.id);
               } else {
-                // 沒有庫存記錄，創建新記錄
                 await sb.from('warehouse_inventory').insert([{
                   warehouse_id: oldOrder.warehouse_id,
                   product_id: oldBom.child_product_id,
@@ -1135,39 +1122,32 @@ if(oldBank) {
           }
         }
         
-        // 5. 刪除舊的代墊款收支記錄
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
       
-      // 6. 更新訂單並刪除舊的order_items
       await sb.from('orders').update(data).eq('id', editingId);
       await sb.from('order_items').delete().eq('order_id', editingId);
-    } 
-    // ========== 新增模式 ==========
-    else {
+    } else {
       const r = await sb.from('orders').insert([data]).select().single();
       editingId = r.data.id;
       
-      // 增加銀行餘額
-    const bank = D.banks.find(function(b) { return b.id === bankId; });
-if(bank) {
-  await sb.from('bank_accounts').update({
-    balance: (bank.balance || 0) + totalAmount
-  }).eq('id', bankId);
-}
+      const bank = D.banks.find(function(b) { return b.id === bankId; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) + totalAmount
+        }).eq('id', bankId);
+      }
+    }
     
-    // 7. 插入新的order_items
     await sb.from('order_items').insert(items.map(function(i) { 
       return Object.assign({}, i, {order_id: editingId}); 
     }));
     
-    // 8. 扣減新訂單的庫存（使用原子操作）
     for(let i=0; i<items.length; i++) {
       const item = items[i];
       const product = D.products.find(function(p) { return p.id === item.product_id; });
       if(!product) continue;
       
-      // 8.1 扣減成品庫存
       if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
         const existingInv = await sb.from('warehouse_inventory')
           .select('id, quantity')
@@ -1176,12 +1156,10 @@ if(bank) {
           .single();
         
         if(existingInv.data) {
-          // 更新：quantity = quantity - item.quantity（允許負數）
           await sb.from('warehouse_inventory').update({
             quantity: (existingInv.data.quantity || 0) - item.quantity
           }).eq('id', existingInv.data.id);
         } else {
-          // 插入負數記錄
           await sb.from('warehouse_inventory').insert([{
             warehouse_id: wid,
             product_id: product.id,
@@ -1191,32 +1169,26 @@ if(bank) {
         }
       }
       
-      // 8.2 扣減BOM物料庫存
       const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
       if(bomItems.length > 0) {
         for(let j=0; j<bomItems.length; j++) {
           const bom = bomItems[j];
           const requiredQty = bom.quantity * item.quantity;
           
-          // 查找物料庫存
           const materialInv = await sb.from('warehouse_inventory')
             .select('id, quantity, warehouse_id')
             .eq('product_id', bom.child_product_id);
           
           if(materialInv.data && materialInv.data.length > 0) {
-            // 優先從訂單倉庫扣減
             let targetInv = materialInv.data.find(function(inv) { 
               return inv.warehouse_id === wid; 
             });
-            
-            // 如果訂單倉庫沒有，用第一個
             if(!targetInv) targetInv = materialInv.data[0];
             
             await sb.from('warehouse_inventory').update({
               quantity: (targetInv.quantity || 0) - requiredQty
             }).eq('id', targetInv.id);
           } else {
-            // 沒有庫存記錄，創建新記錄（負數）
             await sb.from('warehouse_inventory').insert([{
               warehouse_id: wid,
               product_id: bom.child_product_id,
@@ -1228,7 +1200,6 @@ if(bank) {
       }
     }
     
-    // 9. 如果有代墊款，新增收支記錄
     if(hasAdvance && advanceEmpId && advanceAmount > 0) {
       await sb.from('expenses').insert([{
         category_id: (D.expCats.find(function(c) { return c.name === '運費'; }) || {}).id,
