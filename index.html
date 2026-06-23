@@ -1139,11 +1139,6 @@ if(oldBankId !== newBankId) {
   }
 }
 
-    // 檢查銀行是否變更
-const oldBankId = oldOrder.bank_account_id;
-const newBankId = bankId;
-
-if(oldBankId !== newBankId) {
   // 銀行變更了，增加新銀行的餘額
   const newBank = D.banks.find(function(b) { return b.id === newBankId; });
   if(newBank) {
