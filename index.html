@@ -249,6 +249,11 @@ function openModal(title, html, onSave, hideSave) {
   const body = document.getElementById('modal-content');
   const footer = document.getElementById('modal-buttons');
   
+  if(!overlay || !modal || !titleEl || !body) {
+    console.error('找不到必要的 modal 元素');
+    return;
+  }
+  
   // 居中樣式 + 更大視窗
   overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
   modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto';
@@ -257,98 +262,59 @@ function openModal(title, html, onSave, hideSave) {
   titleEl.textContent = title;
   body.innerHTML = html;
   
-  // 清空並重建按鈕
-  footer.innerHTML = '';
-  
-  // 取消按鈕
-  const cancelBtn = document.createElement('button');
-  cancelBtn.id = 'modal-cancel-btn';
-  cancelBtn.className = 'flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-colors mr-2 cursor-pointer btn-touch';
-  cancelBtn.textContent = '取消 (Esc)';
-  
-  // 儲存按鈕
-  const saveBtn = document.createElement('button');
-  saveBtn.id = 'modal-save-btn';
-  saveBtn.className = 'flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors ml-2 cursor-pointer btn-touch';
-  saveBtn.textContent = '儲存 (Enter)';
-  saveBtn.disabled = false;
-  
-  // 取消按鈕點擊事件
-  cancelBtn.onclick = function() {
-    closeModal();
-    document.removeEventListener('keydown', handleModalKey);
-  };
-  
-  // 儲存按鈕點擊事件
-  saveBtn.onclick = function() {
-    if(isSaving) return;
-    if(onSave) {
-      isSaving = true;
-      saveBtn.disabled = true;
-      saveBtn.textContent = '儲存中...';
-      onSave().then(function() {
-        isSaving = false;
-        saveBtn.disabled = false;
-        saveBtn.textContent = '儲存 (Enter)';
-      }).catch(function(e) {
-        console.error('Save error:', e);
-        isSaving = false;
-        saveBtn.disabled = false;
-        saveBtn.textContent = '儲存 (Enter)';
-      });
+  // 清空並重建按鈕（如果有 footer）
+  if(footer) {
+    footer.innerHTML = '';
+    
+    // 取消按鈕
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'modal-cancel-btn';
+    cancelBtn.className = 'flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-colors mr-2 cursor-pointer btn-touch';
+    cancelBtn.textContent = '取消 (Esc)';
+    cancelBtn.onclick = window.closeModal;
+    
+    // 儲存按鈕
+    const saveBtn = document.createElement('button');
+    saveBtn.id = 'modal-save-btn';
+    saveBtn.className = 'flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors ml-2 cursor-pointer btn-touch';
+    saveBtn.textContent = '儲存 (Enter)';
+    saveBtn.disabled = false;
+    
+    if(hideSave) {
+      saveBtn.classList.add('hidden');
+    } else {
+      saveBtn.classList.remove('hidden');
+      saveBtn.onclick = function() {
+        if(isSaving) return;
+        isSaving = true;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '儲存中...';
+        onSave().then(function() {
+          isSaving = false;
+          saveBtn.disabled = false;
+          saveBtn.textContent = '儲存 (Enter)';
+        }).catch(function(e) {
+          console.error('Save error:', e);
+          isSaving = false;
+          saveBtn.disabled = false;
+          saveBtn.textContent = '儲存 (Enter)';
+        });
+      };
     }
-  };
-  
-  // 鍵盤事件處理函數
-  function handleModalKey(e) {
-    if(e.key === 'Enter') {
-      // 如果焦點在輸入框，不觸發
-      if(e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
-        return;
-      }
-      e.preventDefault();
-      if(!hideSave && saveBtn.onclick && !saveBtn.disabled) {
-        saveBtn.click();
-      }
-    } else if(e.key === 'Escape') {
-      e.preventDefault();
-      closeModal();
-      document.removeEventListener('keydown', handleModalKey);
-    }
+    
+    footer.appendChild(cancelBtn);
+    footer.appendChild(saveBtn);
   }
   
-  footer.appendChild(cancelBtn);
-  footer.appendChild(saveBtn);
   overlay.classList.remove('hidden');
   modal.classList.remove('hidden');
   
-  // 自動聚焦到第一個輸入框或按鈕
-  setTimeout(function() {
-    const firstInput = modal.querySelector('input, select, textarea');
-    if(firstInput) {
-      firstInput.focus();
-    } else {
-      saveBtn.focus();
-    }
-    document.addEventListener('keydown', handleModalKey);
-  }, 100);
-}
-    
-  // 加入 ESC 快捷鍵
-  function handleKeydown(e) {
-    if(e.key === 'Escape') {
-      e.preventDefault();
-      window.closeModal();
-      document.removeEventListener('keydown', handleKeydown);
-    }
-  }
-  document.addEventListener('keydown', handleKeydown);
-  
   // 自動聚焦
   setTimeout(function() {
-    const firstInput = document.querySelector('#modal-content input, #modal-content select, #modal-content textarea');
+    const firstInput = modal.querySelector('input, select, textarea');
     if(firstInput) firstInput.focus();
   }, 100);
+}
 
 document.getElementById('login-btn').addEventListener('click', function() {
   const email = document.getElementById('email').value;
