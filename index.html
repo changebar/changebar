@@ -196,7 +196,7 @@ window.closeModal = function() {
 };
 function openModal(title, html, onSave, hideSave) {
   document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-content').innerHTML = html;
   document.getElementById('modal-overlay').classList.remove('hidden');
   
   // 必須定義這兩個變數，否則後面會報錯
@@ -242,7 +242,7 @@ function openModal(title, html, onSave, hideSave) {
   
   // 自動聚焦
   setTimeout(function() {
-    const firstInput = document.querySelector('#modal-body input, #modal-body select, #modal-body textarea');
+    const firstInput = document.querySelector('#modal-content input, #modal-content select, #modal-content textarea');
     if(firstInput) firstInput.focus();
   }, 100);
 }
