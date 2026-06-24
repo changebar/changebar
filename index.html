@@ -198,13 +198,18 @@ function openModal(title, html, onSave, hideSave) {
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('modal-overlay').classList.remove('hidden');
+  
+  // 必須定義這兩個變數，否則後面會報錯
   const saveBtn = document.getElementById('modal-save-btn');
   const cancelBtn = document.getElementById('modal-cancel-btn');
+  
   isSaving = false;
   saveBtn.disabled = false;
   saveBtn.textContent = '儲存 (Enter)';
-  if(hideSave) { saveBtn.classList.add('hidden'); } 
-  else { 
+  
+  if(hideSave) { 
+    saveBtn.classList.add('hidden'); 
+  } else { 
     saveBtn.classList.remove('hidden');
     saveBtn.onclick = function() {
       if(isSaving) return;
@@ -222,42 +227,25 @@ function openModal(title, html, onSave, hideSave) {
       });
     };
   }
+  
   cancelBtn.onclick = window.closeModal;
+  
+  // 加入 ESC 快捷鍵
   function handleKeydown(e) {
-    if(e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
-      e.preventDefault();
-      if(!hideSave && saveBtn.onclick && !saveBtn.disabled) saveBtn.click();
-    } else if(e.key === 'Escape') {
+    if(e.key === 'Escape') {
       e.preventDefault();
       window.closeModal();
+      document.removeEventListener('keydown', handleKeydown);
     }
   }
   document.addEventListener('keydown', handleKeydown);
-}
   
-  saveBtn.addEventListener('keydown', handleKeydown);
-  cancelBtn.addEventListener('keydown', handleKeydown);
-  
-  footer.appendChild(cancelBtn);
-  footer.appendChild(saveBtn);
-  
-  // 設定標題和內容
-  titleEl.textContent = title;
-  body.innerHTML = html;
-  
-  // 顯示彈窗
-  overlay.classList.remove('hidden');
-  modal.classList.remove('hidden');
-  
-  // 自動聚焦到第一個輸入框
+  // 自動聚焦
   setTimeout(function() {
-    const firstInput = modal.querySelector('input, select, textarea');
-    if(firstInput) {
-      firstInput.focus();
-    } else {
-      saveBtn.focus();
-    }
+    const firstInput = document.querySelector('#modal-body input, #modal-body select, #modal-body textarea');
+    if(firstInput) firstInput.focus();
   }, 100);
+}
 
 document.getElementById('login-btn').addEventListener('click', function() {
   const email = document.getElementById('email').value;
