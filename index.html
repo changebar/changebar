@@ -175,44 +175,113 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showAlert(msg) { 
-  document.getElementById('alert-message').textContent = msg; 
-  document.getElementById('alert-modal').classList.remove('hidden');
-  function handleKey(e) {
-    if(e.key === 'Enter' || e.key === 'Escape') {
+  const overlay = document.getElementById('modal-overlay');
+  const modal = document.getElementById('modal-content');
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-content');
+  const footer = document.getElementById('modal-footer');
+  
+  // 居中樣式
+  overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden';
+  
+  // 設定標題和內容
+  title.textContent = '訊息';
+  body.innerHTML = '<div class="p-6"><div class="flex flex-col items-center justify-center"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><div class="text-center text-lg">' + msg + '</div></div></div>';
+  
+  // 清空並重建按鈕
+  footer.innerHTML = '';
+  const confirmBtn = document.createElement('button');
+  confirmBtn.id = 'alert-ok-btn';
+  confirmBtn.className = 'w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors cursor-pointer btn-touch';
+  confirmBtn.textContent = '確定 (Enter)';
+  
+  // 點擊事件
+  confirmBtn.onclick = function() {
+    closeModal();
+    document.removeEventListener('keydown', handleAlertKey);
+  };
+  
+  // 鍵盤事件處理函數
+  function handleAlertKey(e) {
+    if(e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      document.getElementById('alert-modal').classList.add('hidden');
-      document.removeEventListener('keydown', handleKey);
+      closeModal();
+      document.removeEventListener('keydown', handleAlertKey);
+    } else if(e.key === 'Escape') {
+      e.preventDefault();
+      closeModal();
+      document.removeEventListener('keydown', handleAlertKey);
     }
   }
-  document.addEventListener('keydown', handleKey);
+  
+  footer.appendChild(confirmBtn);
+  overlay.classList.remove('hidden');
+  modal.classList.remove('hidden');
+  
+  // 聚焦並加入事件監聽
+  setTimeout(function() { 
+    confirmBtn.focus();
+    document.addEventListener('keydown', handleAlertKey);
+  }, 100);
 }
 
-window.closeModal = function() { 
-  document.getElementById('modal-overlay').classList.add('hidden'); 
-  editingId = null; 
-  isSaving = false; 
-  const saveBtn = document.getElementById('modal-save-btn'); 
-  if(saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '儲存 (Enter)'; saveBtn.onclick = null; } 
+window.closeModal = function() {
+  const overlay = document.getElementById('modal-overlay');
+  const modal = document.getElementById('modal-content');
+  overlay.classList.add('hidden');
+  modal.classList.add('hidden');
+  editingId = null;
+  isSaving = false;
+  
+  const saveBtn = document.getElementById('modal-save-btn');
+  if(saveBtn) { 
+    saveBtn.disabled = false; 
+    saveBtn.textContent = '儲存 (Enter)'; 
+    saveBtn.onclick = null; 
+  }
 };
 function openModal(title, html, onSave, hideSave) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-content').innerHTML = html;
-  document.getElementById('modal-overlay').classList.remove('hidden');
+  const overlay = document.getElementById('modal-overlay');
+  const modal = document.getElementById('modal-content');
+  const titleEl = document.getElementById('modal-title');
+  const body = document.getElementById('modal-content');
+  const footer = document.getElementById('modal-footer');
   
-  // 必須定義這兩個變數，否則後面會報錯
-  const saveBtn = document.getElementById('modal-save-btn');
-  const cancelBtn = document.getElementById('modal-cancel-btn');
+  // 居中樣式 + 更大視窗
+  overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+  modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto';
   
-  isSaving = false;
-  saveBtn.disabled = false;
+  // 設定標題和內容
+  titleEl.textContent = title;
+  body.innerHTML = html;
+  
+  // 清空並重建按鈕
+  footer.innerHTML = '';
+  
+  // 取消按鈕
+  const cancelBtn = document.createElement('button');
+  cancelBtn.id = 'modal-cancel-btn';
+  cancelBtn.className = 'flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-bold hover:bg-gray-400 transition-colors mr-2 cursor-pointer btn-touch';
+  cancelBtn.textContent = '取消 (Esc)';
+  
+  // 儲存按鈕
+  const saveBtn = document.createElement('button');
+  saveBtn.id = 'modal-save-btn';
+  saveBtn.className = 'flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors ml-2 cursor-pointer btn-touch';
   saveBtn.textContent = '儲存 (Enter)';
+  saveBtn.disabled = false;
   
-  if(hideSave) { 
-    saveBtn.classList.add('hidden'); 
-  } else { 
-    saveBtn.classList.remove('hidden');
-    saveBtn.onclick = function() {
-      if(isSaving) return;
+  // 取消按鈕點擊事件
+  cancelBtn.onclick = function() {
+    closeModal();
+    document.removeEventListener('keydown', handleModalKey);
+  };
+  
+  // 儲存按鈕點擊事件
+  saveBtn.onclick = function() {
+    if(isSaving) return;
+    if(onSave) {
       isSaving = true;
       saveBtn.disabled = true;
       saveBtn.textContent = '儲存中...';
@@ -221,12 +290,48 @@ function openModal(title, html, onSave, hideSave) {
         saveBtn.disabled = false;
         saveBtn.textContent = '儲存 (Enter)';
       }).catch(function(e) {
+        console.error('Save error:', e);
         isSaving = false;
         saveBtn.disabled = false;
         saveBtn.textContent = '儲存 (Enter)';
       });
-    };
+    }
+  };
+  
+  // 鍵盤事件處理函數
+  function handleModalKey(e) {
+    if(e.key === 'Enter') {
+      // 如果焦點在輸入框，不觸發
+      if(e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+        return;
+      }
+      e.preventDefault();
+      if(!hideSave && saveBtn.onclick && !saveBtn.disabled) {
+        saveBtn.click();
+      }
+    } else if(e.key === 'Escape') {
+      e.preventDefault();
+      closeModal();
+      document.removeEventListener('keydown', handleModalKey);
+    }
   }
+  
+  footer.appendChild(cancelBtn);
+  footer.appendChild(saveBtn);
+  overlay.classList.remove('hidden');
+  modal.classList.remove('hidden');
+  
+  // 自動聚焦到第一個輸入框或按鈕
+  setTimeout(function() {
+    const firstInput = modal.querySelector('input, select, textarea');
+    if(firstInput) {
+      firstInput.focus();
+    } else {
+      saveBtn.focus();
+    }
+    document.addEventListener('keydown', handleModalKey);
+  }, 100);
+}
   
   cancelBtn.onclick = window.closeModal;
   
