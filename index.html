@@ -18,7 +18,7 @@
   .tag-7{background:#10b981;color:#fff}.tag-8{background:#84cc16;color:#fff}.tag-9{background:#eab308;color:#000}
   .tag-10{background:#f97316;color:#fff}
   .btn-touch { padding: 0.75rem 1rem; font-size: 0.9375rem; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
-  .input-field { padding: 0.75rem 1rem; font-size: 1rem; min-height: 44px; }
+  .input-field { padding: 0.875rem 1rem; font-size: 1rem; min-height: 44px; }
   @media (max-width: 1024px) { 
     .sidebar { position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease-in-out; width: 280px; will-change: transform; }
     .sidebar.open { transform: translateX(0); }
@@ -28,7 +28,7 @@
     .mobile-menu-btn { display: flex !important; position: fixed; top: 0.75rem; left: 0.75rem; z-index: 60; background: rgba(59, 130, 246, 0.7); backdrop-filter: blur(4px); padding: 0.5rem; min-height: 36px; width: 36px; height: 36px; border-radius: 0.5rem; cursor: pointer; }
     .mobile-menu-btn:hover { background: rgba(59, 130, 246, 0.9); }
     .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.75rem; padding: 0 0.75rem; }
-    .content-card { padding: 1rem 1.25rem; }
+    .content-card { padding: 1.25rem 1.5rem; }
     .card-grid { grid-template-columns: 1fr; gap: 0.75rem; }
    .modal-content { max-height: 90vh; overflow-y: auto; position: relative; z-index: 60; }
   }
@@ -63,6 +63,22 @@
 
 #modal-content label {
   margin-bottom: 0.5rem !important;
+}
+  /* 增加表單元素間距 */
+#modal-content input,
+#modal-content select,
+#modal-content textarea {
+  padding: 0.875rem 1rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+#modal-content label {
+  margin-bottom: 0.75rem !important;
+  display: block;
+}
+
+#modal-content .grid > div {
+  padding: 0.5rem 0 !important;
 }
   
 </style>
@@ -204,7 +220,7 @@ function showAlert(msg) {
   
   // 設定標題和內容
   title.textContent = '訊息';
- body.innerHTML = '<div class="p-6"><div class="flex flex-col items-center justify-center"><div class="text-center text-lg text-gray-800">' + msg + '</div></div></div>';
+body.innerHTML = '<div class="p-6"><div class="flex flex-col items-center justify-center"><div class="text-center text-lg text-gray-800">' + msg + '</div></div></div>';
   
   // 清空並重建按鈕
   footer.innerHTML = '';
