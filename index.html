@@ -1104,32 +1104,46 @@ function calcOrd() {
     totalCost += costPrice * qty;
   }
 
+  // 運費
   const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
   const shipPayer = document.getElementById('o-ship-payer').value;
   let finalShipping = 0;
   if(shipPayer === 'customer') finalShipping = shippingFee;
 
+  // 發票稅金
   const invType = document.getElementById('o-invoice-type').value;
   let taxAmount = 0;
   if(invType === 'tax_plus') taxAmount = productSubtotal * 0.05;
 
+  // 折價券和紅利點數
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
+
+  // 計算實際收款金額（扣除折價券和紅利）
+  let amountAfterDiscount = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if(amountAfterDiscount < 0) amountAfterDiscount = 0;
+
+  // 通路和付款手續費（用扣除後的金額計算）
   const chSelect = document.getElementById('o-channel');
   const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
   const pmSelect = document.getElementById('o-payment');
   const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
   
-  const totalAmount = productSubtotal + finalShipping + taxAmount;
-  const chCommission = totalAmount * (chRate / 100);
-  const pmCommission = totalAmount * (pmRate / 100);
+  const chCommission = amountAfterDiscount * (chRate / 100);
+  const pmCommission = amountAfterDiscount * (pmRate / 100);
   const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
   
-  // 毛利率 = (售價 - 成本) / 售價
-  const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
-  const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+  // 毛利率 = (實際收款 - 成本 - 佣金 - 手續費 - 公司吸收運費) / 實際收款
+  const grossProfit = amountAfterDiscount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
 
-  document.getElementById('o-total').textContent = Math.round(totalAmount).toLocaleString();
+  // 顯示
+  document.getElementById('o-total').textContent = Math.round(amountAfterDiscount).toLocaleString();
   document.getElementById('o-cost').textContent = totalCost.toLocaleString();
   document.getElementById('o-tax').textContent = Math.round(taxAmount).toLocaleString();
+  document.getElementById('o-coupon-display').textContent = Math.round(couponAmount).toLocaleString();
+  document.getElementById('o-points-display').textContent = Math.round(pointsAmount).toLocaleString();
   document.getElementById('o-ch-commission').textContent = Math.round(chCommission).toLocaleString();
   document.getElementById('o-pm-commission').textContent = Math.round(pmCommission).toLocaleString();
   document.getElementById('o-margin').textContent = margin.toFixed(1) + '%';
