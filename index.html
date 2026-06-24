@@ -1184,26 +1184,39 @@ async function saveOrd() {
   const finalShipping = shipPayer === 'customer' ? shippingFee : 0;
   const invType = document.getElementById('o-invoice-type').value;
   const taxAmount = invType === 'tax_plus' ? productSubtotal * 0.05 : 0;
-  const totalAmountRaw = productSubtotal + finalShipping + taxAmount;
-  const totalAmount = Math.round(totalAmountRaw);
+  // 先計算折價券和紅利（需要在計算總金額前定義）
+const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+const totalDiscount = couponAmount + pointsAmount;
 
-  const chSelect = document.getElementById('o-channel');
-  const chId = chSelect.value || null;
-  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
-  const pmSelect = document.getElementById('o-payment');
-  const pmId = pmSelect.value || null;
-  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
-  const chCommission = totalAmount * (chRate / 100);
-  const pmCommission = totalAmount * (pmRate / 100);
-  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
-  const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
-  const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+// 計算實際收款金額（扣除折價券和紅利）
+let totalAmountRaw = productSubtotal + finalShipping + taxAmount - totalDiscount;
+if(totalAmountRaw < 0) totalAmountRaw = 0;
+const totalAmount = Math.round(totalAmountRaw);
 
+const chSelect = document.getElementById('o-channel');
+const chId = chSelect.value || null;
+const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+const pmSelect = document.getElementById('o-payment');
+const pmId = pmSelect.value || null;
+const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+
+// 佣金用扣除後的金額計算
+const chCommission = totalAmount * (chRate / 100);
+const pmCommission = totalAmount * (pmRate / 100);
+const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
+const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
   const hasAdvance = document.getElementById('o-has-advance').checked;
   const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
-  const advanceAmount = hasAdvance ? (parseFloat(document.getElementById('o-advance-amount').value) || 0) : 0;
-  const advanceStatus = document.getElementById('o-advance-status').value;
-  const advanceBankId = document.getElementById('o-advance-bank').value || null;
+  // 運費代墊（只記錄員工，不記錄金額和銀行，等收支那邊處理）
+const advanceAmount = 0;
+const advanceStatus = 'pending';
+const advanceBankId = null;
+
+// 讀取新欄位：訂閱
+const isSubscriptionOrder = document.getElementById('o-is-subscription').checked;
+const subscriptionDays = parseInt(document.getElementById('o-subscription-days').value) || 30;
 
   const data = {
     customer_id: cid, warehouse_id: wid, bank_account_id: bankId,
@@ -1217,6 +1230,10 @@ async function saveOrd() {
     shipping_recv_phone: document.getElementById('o-recv-phone').value,
     shipping_address: document.getElementById('o-recv-addr').value,
     shipping_advance_employee_id: advanceEmpId,
+        is_subscription_order: isSubscriptionOrder,
+    subscription_days: subscriptionDays,
+    coupon_amount: couponAmount,
+    points_amount: pointsAmount,
     shipping_advance_amount: advanceAmount,
     shipping_advance_reimbursed: advanceStatus === 'reimbursed',
     shipping_advance_bank_id: advanceBankId,
