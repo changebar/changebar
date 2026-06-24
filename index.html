@@ -235,6 +235,7 @@ window.closeModal = function() {
   isSaving = false;
   
   const saveBtn = document.getElementById('modal-save-btn');
+  const cancelBtn = document.getElementById('modal-cancel-btn');
   if(saveBtn) { 
     saveBtn.disabled = false; 
     saveBtn.textContent = '儲存 (Enter)'; 
@@ -332,9 +333,7 @@ function openModal(title, html, onSave, hideSave) {
     document.addEventListener('keydown', handleModalKey);
   }, 100);
 }
-  
-  cancelBtn.onclick = window.closeModal;
-  
+    
   // 加入 ESC 快捷鍵
   function handleKeydown(e) {
     if(e.key === 'Escape') {
