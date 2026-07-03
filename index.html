@@ -2425,7 +2425,6 @@ async function delEmp(id) {
   if(endDateInput) endDateInput.value = '';
   renderPurTable();
 }
-
 function viewPurchaseDetail(id) {
   const p = D.purchases.find(x => x.id === id);
   if(!p) return;
