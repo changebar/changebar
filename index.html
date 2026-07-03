@@ -2437,21 +2437,18 @@ function viewPurchaseDetail(id) {
     itemsHTML += '<div class="border-b pb-2"><div class="grid grid-cols-3 gap-2 text-sm"><div><span class="text-gray-600">商品：</span>' + (product?.p_name || '-') + '</div><div><span class="text-gray-600">數量：</span>' + item.quantity + '</div><div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div></div></div>';
   });
   itemsHTML += '</div>';
-   const html = '<div class="space-y-4">' +
-     '<div class="grid grid-cols-2 gap-4">' +
-       '<div><span class="text-gray-600">日期：</span>' + p.date + '</div>' +
-       '<div><span class="text-gray-600">廠商：</span>' + (vendor?.v_name || '-') + '</div>' +
-     '</div>' +
-     '<div class="border-t pt-4">' +
-       '<h3 class="font-bold mb-2">採購明細</h3>' +
-       itemsHTML +
-     '</div>' +
-     '<div class="border-t pt-4 text-lg font-bold">' +
-       '<span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() +
-     '</div>' +
-   '</div>';
-   openModal('採購詳情', html, null, true);
- }
- </script>
- </body>
- </html>
+  const html = '<div class="space-y-4">' +
+    '<div class="grid grid-cols-2 gap-4">' +
+      '<div><span class="text-gray-600">日期：</span>' + p.date + '</div>' +
+      '<div><span class="text-gray-600">廠商：</span>' + (vendor?.v_name || '-') + '</div>' +
+    '</div>' +
+    '<div class="border-t pt-4">' +
+      '<h3 class="font-bold mb-2">採購明細</h3>' +
+      itemsHTML +
+    '</div>' +
+    '<div class="border-t pt-4 text-lg font-bold">' +
+      '<span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() +
+    '</div>' +
+  '</div>';
+  openModal('採購詳情', html, null, true);
+}
