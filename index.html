@@ -2434,7 +2434,13 @@ function viewPurchaseDetail(id) {
   let itemsHTML = '<div class="space-y-2">';
   items.forEach(function(item) {
     const product = D.products.find(x => x.id === item.product_id);
-    itemsHTML += '<div class="border-b pb-2"><div class="grid grid-cols-3 gap-2 text-sm"><div><span class="text-gray-600">商品：</span>' + (product?.p_name || '-') + '</div><div><span class="text-gray-600">數量：</span>' + item.quantity + '</div><div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div></div></div>';
+    itemsHTML += '<div class="border-b pb-2">' +
+      '<div class="grid grid-cols-3 gap-2 text-sm">' +
+        '<div><span class="text-gray-600">商品：</span>' + (product?.p_name || '-') + '</div>' +
+        '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
+        '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
+      '</div>' +
+    '</div>';
   });
   itemsHTML += '</div>';
   const html = '<div class="space-y-4">' +
