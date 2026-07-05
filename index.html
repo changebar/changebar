@@ -380,52 +380,45 @@ setTimeout(function() {
   } 
 
 window.addEventListener('load', function() {
+  // 記住郵箱
   const rememberedEmail = localStorage.getItem('rememberedEmail');
   if(rememberedEmail) {
     document.getElementById('email').value = rememberedEmail;
     document.getElementById('remember').checked = true;
   }
-});
 
-document.getElementById('password').addEventListener('keypress', function(e) { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
-document.getElementById('logout-btn').addEventListener('click', function() { sb.auth.signOut().then(function() { location.reload(); }); });
- document.getElementById('login-btn').addEventListener('click', function() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const remember = document.getElementById('remember').checked;
-
-  if(remember) localStorage.setItem('rememberedEmail', email);
-  else localStorage.removeItem('rememberedEmail');
-
-  sb.auth.signInWithPassword({ email: email, password: password }).then(function(res) {
-    if(res.error) {
-      showAlert('登入失敗：' + res.error.message);
-    } else {
-      document.getElementById('login-view').classList.add('hidden');
-      document.getElementById('main-system').classList.remove('hidden');
-      loadAll().then(function() { switchView('boss'); });
-    }
-  }).catch(function(err) {
-    showAlert('登入發生錯誤：' + err.message);
+  // Enter 鍵登入
+  document.getElementById('password').addEventListener('keypress', function(e) {
+    if(e.key === 'Enter') document.getElementById('login-btn').click();
   });
-});
 
-async function loadAll() {
-  const map = { products:'products', windows:'contact_windows', customers:'customers', tags:'tags', warehouses:'warehouses', bom:'bom_list', vendors:'vendors', channels:'sales_channels', payments:'payment_methods', expenses:'expenses', subs:'system_subscriptions', banks:'bank_accounts', emps:'employees', expCats:'expense_categories', orders:'orders', purchases:'purchases', warehouseInv:'warehouse_inventory', customerTags:'customer_tags' };
-  for (const key in map) {
-    const res = await sb.from(map[key]).select('*');
-    D[key] = res.data || [];
-  }
-}
+  // 登出
+  document.getElementById('logout-btn').addEventListener('click', function() {
+    sb.auth.signOut().then(function() { location.reload(); });
+  });
 
-function switchView(v) {
-  currentView = v;
-  const navLinks = document.querySelectorAll('nav a');
-  for(let i=0; i<navLinks.length; i++) {
-    navLinks[i].classList.toggle('nav-active', navLinks[i].dataset.view === v);
-  }
-  render();
-}
+  // 登入按鈕
+  document.getElementById('login-btn').addEventListener('click', function() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const remember = document.getElementById('remember').checked;
+
+    if(remember) localStorage.setItem('rememberedEmail', email);
+    else localStorage.removeItem('rememberedEmail');
+
+    sb.auth.signInWithPassword({ email: email, password: password }).then(function(res) {
+      if(res.error) {
+        showAlert('登入失敗：' + res.error.message);
+      } else {
+        document.getElementById('login-view').classList.add('hidden');
+        document.getElementById('main-system').classList.remove('hidden');
+        loadAll().then(function() { switchView('boss'); });
+      }
+    }).catch(function(err) {
+      showAlert('登入發生錯誤：' + err.message);
+    });
+  });
+});  // ← 這裡結束 load 事件
 
 function render() {
   const m = document.getElementById('main-content');
