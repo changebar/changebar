@@ -389,14 +389,14 @@ window.addEventListener('load', function() {
 
 document.getElementById('password').addEventListener('keypress', function(e) { if(e.key === 'Enter') document.getElementById('login-btn').click(); });
 document.getElementById('logout-btn').addEventListener('click', function() { sb.auth.signOut().then(function() { location.reload(); }); });
-  document.getElementById('login-btn').addEventListener('click', function() {
+ document.getElementById('login-btn').addEventListener('click', function() {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   const remember = document.getElementById('remember').checked;
-  
+
   if(remember) localStorage.setItem('rememberedEmail', email);
   else localStorage.removeItem('rememberedEmail');
-  
+
   sb.auth.signInWithPassword({ email: email, password: password }).then(function(res) {
     if(res.error) {
       showAlert('登入失敗：' + res.error.message);
