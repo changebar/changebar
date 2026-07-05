@@ -161,7 +161,7 @@
 const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
 window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-console.log('✅ Supabase 初始化成功');
+console.log('✅ Supabase 初始化成功，sb 狀態：', typeof window.sb);
   
 let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[] };
 let editingId = null, currentView = 'boss', bossMonth = new Date().toISOString().slice(0,7);
