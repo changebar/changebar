@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>養芯健康 ERP</title>
 <script src="https://cdn.tailwindcss.com/3.3.3"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: contain; }
@@ -156,12 +156,19 @@
     <button id="alert-ok-btn" class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold transition-colors btn-touch">確定 (Enter)</button>
   </div>
 </div>
-
+// 等待 DOM 載入完成
+document.addEventListener('DOMContentLoaded', function() {
 <script>
- const SUPABASE_URL = 'https://flqdy1joxadhqsnbasax.supabase.co';
- const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
- const sb = window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
- console.log('✅ Supabase 初始化成功，sb 狀態：', typeof window.sb);
+ // 檢查 Supabase 是否載入
+if (typeof window.supabase === 'undefined') {
+  console.error('❌ Supabase 腳本未載入！請檢查網路或 CDN');
+  showAlert('系統初始化失敗，請重新整理頁面或檢查網路連線');
+} else {
+  const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
+  window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log('✅ Supabase 初始化成功，sb 狀態：', typeof window.sb);
+}
   
 let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[] };
 let editingId = null, currentView = 'boss', bossMonth = new Date().toISOString().slice(0,7);
