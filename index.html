@@ -159,13 +159,16 @@
 // 等待 DOM 載入完成
 document.addEventListener('DOMContentLoaded', function() {
 <script>
- // 檢查 Supabase 是否載入
+const SUPABASE_URL = 'https://flqdyjioxadhqsnbasax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
+
+// 检查 Supabase 是否载入
 if (typeof window.supabase !== 'undefined') {
     window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('✅ Supabase 初始化成功');
 } else {
-    console.error('❌ Supabase 腳本未載入，請檢查網路');
-    window.sb = null; // 設為 null 防止後續代碼完全崩潰
+    console.error('❌ Supabase 脚本未载入，请检查网络');
+    window.sb = null;
 }
   
 let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[] };
