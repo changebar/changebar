@@ -160,14 +160,12 @@
 document.addEventListener('DOMContentLoaded', function() {
 <script>
  // 檢查 Supabase 是否載入
-if (typeof window.supabase === 'undefined') {
-  console.error('❌ Supabase 腳本未載入！請檢查網路或 CDN');
-  showAlert('系統初始化失敗，請重新整理頁面或檢查網路連線');
+if (typeof window.supabase !== 'undefined') {
+    window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase 初始化成功');
 } else {
-  const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
-  window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log('✅ Supabase 初始化成功，sb 狀態：', typeof window.sb);
+    console.error('❌ Supabase 腳本未載入，請檢查網路');
+    window.sb = null; // 設為 null 防止後續代碼完全崩潰
 }
   
 let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[] };
@@ -420,8 +418,13 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         document.getElementById('login-view').classList.add('hidden');
         document.getElementById('main-system').classList.remove('hidden');
-        loadAll().then(function() { switchView('boss'); });
-      }
+        // 检查 loadAll 是否存在
+if(typeof loadAll === 'function') {
+  loadAll().then(function() { switchView('boss'); });
+} else {
+  console.log('loadAll 不存在，直接切换视图');
+  switchView('boss');
+}
     }).catch(function(err) {
       showAlert('登入發生錯誤：' + err.message);
     });
