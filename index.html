@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
       document.getElementById('login-view').classList.add('hidden');
       document.getElementById('main-system').classList.remove('hidden');
-      // 加载所有数据并切换到老板视图
+      // 加载数据并切换到老板视图
       if (typeof loadAll === 'function') {
         loadAll().then(function() { switchView('boss'); });
       } else {
