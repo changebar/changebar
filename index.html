@@ -19,41 +19,125 @@
   .tag-10{background:#f97316;color:#fff}
   .btn-touch { padding: 0.75rem 1rem; font-size: 0.9375rem; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
   .input-field { padding: 0.875rem 1rem; font-size: 1rem; min-height: 44px; }
-  @media (max-width: 1024px) { 
-    .sidebar { position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; transform: translateX(-100%); transition: transform 0.3s ease-in-out; width: 280px; will-change: transform; }
+
+  /* ===== 側邊欄摺疊 ===== */
+  .sidebar {
+    transition: width 0.3s ease, transform 0.3s ease;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .sidebar.collapsed {
+    width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: none;
+  }
+  .sidebar.collapsed * {
+    visibility: hidden;
+  }
+  .sidebar-toggle-btn {
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .sidebar-toggle-btn:hover { color: #ccc; }
+  @media (max-width: 1024px) {
+    .sidebar { position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; transform: translateX(-100%); width: 280px; }
     .sidebar.open { transform: translateX(0); }
+    .sidebar.collapsed { width: 0 !important; transform: translateX(-100%) !important; }
     .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
     .sidebar-overlay.show { opacity: 1; pointer-events: auto; }
-    .main-content { padding: 0.75rem; padding-top: 4rem; width: 100%; }
     .mobile-menu-btn { display: flex !important; position: fixed; top: 0.75rem; left: 0.75rem; z-index: 60; background: rgba(59, 130, 246, 0.7); backdrop-filter: blur(4px); padding: 0.5rem; min-height: 36px; width: 36px; height: 36px; border-radius: 0.5rem; cursor: pointer; }
     .mobile-menu-btn:hover { background: rgba(59, 130, 246, 0.9); }
-    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.75rem; padding: 0 0.75rem; }
-    .content-card { padding: 1.25rem 1.5rem; }
+    .main-content { padding: 0.75rem; padding-top: 4rem; width: 100%; }
+    .content-card { padding: 1rem; }
     .card-grid { grid-template-columns: 1fr; gap: 0.75rem; }
-   .modal-content { max-height: 90vh; overflow-y: auto; position: relative; z-index: 60; }
+    .modal-content { max-height: 90vh; overflow-y: auto; position: relative; z-index: 60; }
+    .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.5rem; padding: 0 0.5rem; }
   }
   @media (min-width: 769px) and (max-width: 1024px) {
-    .main-content { padding: 1.25rem; padding-top: 4rem; }
-    .content-card { padding: 1.5rem; }
+    .main-content { padding: 1rem; padding-top: 4.5rem; }
+    .content-card { padding: 1.25rem; }
     .card-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   }
   @media (min-width: 1025px) {
     .mobile-menu-btn { display: none !important; }
     .sidebar-overlay { display: none !important; }
     .sidebar { position: static; transform: none !important; width: 16rem; }
-    .main-content { width: calc(100% - 16rem); padding: 2rem; }
+    .sidebar.collapsed { width: 0 !important; }
+    .main-content { width: calc(100% - 16rem); padding: 1.5rem; }
+    .sidebar.collapsed ~ .main-content { width: 100%; }
     .content-card { padding: 2rem; }
     .card-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+    .table-container { margin: 0; padding: 0; }
   }
   .sortable-header { cursor: pointer; user-select: none; }
   .sortable-header:hover { background-color: #f3f4f6; }
   .sort-icon { display: inline-block; margin-left: 0.25rem; }
-  #modal-content .grid, #modal-content .space-y-3 { gap: 1.25rem !important; }
-  #modal-content input, #modal-content select, #modal-content textarea { padding: 0.75rem 1rem !important; }
-  #modal-content label { margin-bottom: 0.5rem !important; }
-  #modal-content input, #modal-content select, #modal-content textarea { padding: 0.875rem 1rem !important; margin-bottom: 0.5rem !important; }
-  #modal-content label { margin-bottom: 0.75rem !important; display: block; }
-  #modal-content .grid > div { padding: 0.5rem 0 !important; }
+
+  /* ===== 表格舒適邊距 ===== */
+  .table-container {
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+  .table-container table {
+    min-width: 600px;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .table-container th, .table-container td {
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 640px) {
+    .table-container th, .table-container td {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  /* ===== Modal 全螢幕模式 ===== */
+  .modal-fullscreen {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    height: 100vh !important;
+    width: 100vw !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+  .modal-fullscreen .modal-content {
+    height: 100%;
+  }
+  .modal-fullscreen-btn {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+  }
+  .modal-fullscreen-btn:hover { color: #1f2937; }
+
+  /* ===== 表單內間距 ===== */
+  #modal-content .grid { gap: 1.25rem !important; }
+  #modal-content input, #modal-content select, #modal-content textarea { padding: 0.75rem 1rem !important; margin-bottom: 0.5rem !important; }
+  #modal-content label { margin-bottom: 0.75rem !important; display: block; font-weight: 600; }
+  #modal-content .grid > div { padding: 0.25rem 0 !important; }
+
+  /* ===== 通用容器 ===== */
+  .content-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 640px) {
+    .content-card { padding: 1rem; }
+  }
 </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -77,9 +161,13 @@
     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
   </button>
   <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
+
   <aside id="sidebar" class="sidebar w-64 bg-gray-800 text-white flex flex-col flex-shrink-0 transition-transform transform">
     <div class="p-4 md:p-6 text-xl md:text-2xl font-bold border-b border-gray-700 text-center bg-gradient-to-r from-blue-600 to-purple-600 flex justify-between items-center">
       <span class="flex-1">養芯健康</span>
+      <button id="sidebar-toggle-btn" class="sidebar-toggle-btn" aria-label="摺疊側邊欄" title="摺疊/展開">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path></svg>
+      </button>
       <button id="sidebar-close-btn" class="md:hidden text-white hover:text-gray-300 ml-2 p-2" aria-label="關閉選單">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
@@ -103,6 +191,7 @@
       <button id="logout-btn" class="w-full py-2 md:py-3 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-semibold transition-colors btn-touch">登出</button>
     </div>
   </aside>
+
   <main class="main-content flex-1 overflow-y-auto" id="main-content"></main>
 </div>
 
@@ -111,7 +200,10 @@
   <div class="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all modal-content">
     <div class="p-4 md:p-6 border-b flex justify-between items-center flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50 rounded-t-xl">
       <h2 id="modal-title" class="text-lg md:text-2xl font-bold text-gray-800">標題</h2>
-      <button id="modal-close-btn" class="text-3xl text-gray-500 hover:text-gray-800 transition-colors w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 btn-touch">&times;</button>
+      <div>
+        <button id="modal-fullscreen-btn" class="modal-fullscreen-btn" title="全螢幕模式">⛶</button>
+        <button id="modal-close-btn" class="text-3xl text-gray-500 hover:text-gray-800 transition-colors w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 btn-touch">&times;</button>
+      </div>
     </div>
     <div class="p-4 md:p-6 overflow-y-auto flex-1" id="modal-content"></div>
     <div id="modal-buttons" class="p-4 border-t flex justify-end space-x-3 bg-gray-50 rounded-b-xl flex-shrink-0">
@@ -162,42 +254,60 @@ function toggleSidebar() {
   const overlay = document.getElementById('sidebar-overlay');
   if (!sidebar || !overlay) return;
   const isOpen = sidebar.classList.contains('open');
-  if (isOpen) {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-    setTimeout(() => overlay.classList.add('hidden'), 300);
+  if (window.innerWidth <= 1024) {
+    if (isOpen) {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+      setTimeout(() => overlay.classList.add('hidden'), 300);
+    } else {
+      overlay.classList.remove('hidden');
+      void overlay.offsetWidth;
+      sidebar.classList.add('open');
+      overlay.classList.add('show');
+    }
   } else {
-    overlay.classList.remove('hidden');
-    void overlay.offsetWidth;
-    sidebar.classList.add('open');
-    overlay.classList.add('show');
+    sidebar.classList.toggle('collapsed');
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
   }
 }
 
-function showAlert(msg) { 
+document.addEventListener('DOMContentLoaded', function() {
+  const sidebar = document.getElementById('sidebar');
+  if (window.innerWidth > 1024 && sidebar) {
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved === 'true') {
+      sidebar.classList.add('collapsed');
+    } else {
+      sidebar.classList.remove('collapsed');
+    }
+  }
+});
+
+function showAlert(msg) {
   const overlay = document.getElementById('modal-overlay');
   const modal = document.getElementById('modal-content');
   const title = document.getElementById('modal-title');
   const body = document.getElementById('modal-content');
   const footer = document.getElementById('modal-buttons');
-  
+
   overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
   modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden';
-  
+
   title.textContent = '訊息';
   body.innerHTML = '<div class="p-6"><div class="flex flex-col items-center justify-center"><div class="text-center text-lg text-gray-800">' + msg + '</div></div></div>';
-  
+
   footer.innerHTML = '';
   const confirmBtn = document.createElement('button');
   confirmBtn.id = 'alert-ok-btn';
   confirmBtn.className = 'w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors cursor-pointer btn-touch';
   confirmBtn.textContent = '確定 (Enter)';
-  
+
   confirmBtn.onclick = function() {
     closeModal();
     document.removeEventListener('keydown', handleAlertKey);
   };
-  
+
   function handleAlertKey(e) {
     if(e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -209,12 +319,12 @@ function showAlert(msg) {
       document.removeEventListener('keydown', handleAlertKey);
     }
   }
-  
+
   footer.appendChild(confirmBtn);
   overlay.classList.remove('hidden');
   modal.classList.remove('hidden');
-  
-  setTimeout(function() { 
+
+  setTimeout(function() {
     confirmBtn.focus();
     document.addEventListener('keydown', handleAlertKey);
   }, 100);
@@ -235,27 +345,39 @@ function openModal(title, html, onSave, hideSave) {
   const titleEl = document.getElementById('modal-title');
   const body = document.getElementById('modal-content');
   const footer = document.getElementById('modal-buttons');
-  
+
   if(!overlay || !modal || !titleEl || !body) {
     console.error('找不到必要的 modal 元素');
     return;
   }
-  
-  overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-  modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto';
-  
+
+  modal.classList.remove('modal-fullscreen');
+
+  overlay.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 md:p-4';
+  modal.className = 'bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all modal-content';
+
   titleEl.textContent = title;
   body.innerHTML = html;
+
+  const fullscreenBtn = document.getElementById('modal-fullscreen-btn');
+  if (fullscreenBtn) {
+    fullscreenBtn.onclick = function() {
+      modal.classList.toggle('modal-fullscreen');
+      const isFull = modal.classList.contains('modal-fullscreen');
+      fullscreenBtn.textContent = isFull ? '⤢' : '⛶';
+    };
+  }
+
   const closeBtn = document.getElementById('modal-close-btn');
   if(closeBtn) {
     closeBtn.onclick = function() {
       window.closeModal();
     };
   }
-  
+
   if(footer) {
     footer.innerHTML = '';
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'px-4 md:px-6 py-2 md:py-3 bg-gray-300 rounded-lg hover:bg-gray-400 font-semibold transition-colors btn-touch cursor-pointer';
@@ -264,14 +386,15 @@ function openModal(title, html, onSave, hideSave) {
     cancelBtn.onclick = function() {
       closeModal();
     };
-    
+
     const saveBtn = document.createElement('button');
     saveBtn.type = 'button';
     saveBtn.className = 'px-4 md:px-6 py-2 md:py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors shadow-lg btn-touch cursor-pointer';
     saveBtn.textContent = '儲存 (Enter)';
     saveBtn.disabled = false;
     saveBtn.style.zIndex = '100';
-    
+    saveBtn.id = 'modal-save-btn';
+
     if(hideSave) {
       saveBtn.classList.add('hidden');
     } else {
@@ -294,14 +417,14 @@ function openModal(title, html, onSave, hideSave) {
         });
       };
     }
-    
+
     footer.appendChild(cancelBtn);
     footer.appendChild(saveBtn);
   }
-  
+
   overlay.classList.remove('hidden');
   modal.classList.remove('hidden');
-  
+
   function handleModalKey(e) {
     if(e.key === 'Escape') {
       e.preventDefault();
@@ -315,9 +438,9 @@ function openModal(title, html, onSave, hideSave) {
       }
     }
   }
-  
+
   document.addEventListener('keydown', handleModalKey);
-  
+
   setTimeout(function() {
     const firstInput = modal.querySelector('input, select, textarea');
     if(firstInput) firstInput.focus();
@@ -332,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
   if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
   if (overlay) overlay.addEventListener('click', toggleSidebar);
-  
+
   const navLinks = document.querySelectorAll('nav a');
   for(let i=0; i<navLinks.length; i++) {
     navLinks[i].addEventListener('click', function(e) {
@@ -488,23 +611,23 @@ async function loadAll() {
     }
 }
 
-// ==================== 老闆查閱 ====================
+// ==================== 老闆查閱（完整功能）====================
 function renderBoss(c) {
   const startY = parseInt(bossDateRange.start.split('-')[0]);
   const startM = parseInt(bossDateRange.start.split('-')[1]);
   const endY = parseInt(bossDateRange.end.split('-')[0]);
   const endM = parseInt(bossDateRange.end.split('-')[1]);
-  
+
   const monthOrders = D.orders.filter(function(o) {
     const d = new Date(o.created_at);
     const y = d.getFullYear();
     const m = d.getMonth() + 1;
     return (y > startY || (y === startY && m >= startM)) && (y < endY || (y === endY && m <= endM));
   });
-  
+
   let rev = 0;
   for(let i=0; i<monthOrders.length; i++) rev += monthOrders[i].total_amount||0;
-  
+
   const monthPurchases = D.purchases.filter(function(p) {
     const d = new Date(p.created_at);
     const y = d.getFullYear();
@@ -513,7 +636,7 @@ function renderBoss(c) {
   });
   let pur = 0;
   for(let i=0; i<monthPurchases.length; i++) pur += monthPurchases[i].total_amount||0;
-  
+
   const monthExpenses = D.expenses.filter(function(e) {
     if(!e.payment_date) return false;
     const d = new Date(e.payment_date);
@@ -523,7 +646,7 @@ function renderBoss(c) {
   });
   let exp = 0;
   for(let i=0; i<monthExpenses.length; i++) exp += monthExpenses[i].amount||0;
-  
+
   const monthSubs = D.subs.filter(function(s) {
     if(!s.start_date) return false;
     const d = new Date(s.start_date);
@@ -533,12 +656,12 @@ function renderBoss(c) {
   });
   let sub = 0;
   for(let i=0; i<monthSubs.length; i++) sub += monthSubs[i].amount||0;
-  
+
   let totalCash = 0;
   for(let i=0; i<D.banks.length; i++) totalCash += D.banks[i].balance||0;
-  
+
   const monthlyProfit = rev - pur - exp - sub;
-  
+
   const unreimbursedExpenses = D.expenses.filter(function(e) { return e.employee_id && !e.is_reimbursed; });
   const unreimbursedByEmp = {};
   for(let i=0; i<unreimbursedExpenses.length; i++) {
@@ -550,7 +673,7 @@ function renderBoss(c) {
       unreimbursedByEmp[emp.name].items.push(e);
     }
   }
-  
+
   const inventoryByType = {};
   for(let i=0; i<D.products.length; i++) {
     const p = D.products[i];
@@ -562,7 +685,7 @@ function renderBoss(c) {
       inventoryByType[p.type].push({ type: p.type, name: p.name, sku: p.sku, quantity: totalQty, cost: p.cost_price || 0, value: totalQty * (p.cost_price || 0) });
     }
   }
-  
+
   const inventoryAssets = { finished: { count: 0, value: 0 }, semi: { count: 0, value: 0 }, gift_box: { count: 0, value: 0 }, outer_box: { count: 0, value: 0 } };
   let allItems = [];
   for(const type in inventoryByType) { allItems = allItems.concat(inventoryByType[type]); }
@@ -575,7 +698,7 @@ function renderBoss(c) {
   }
   let totalInventoryValue = 0;
   for(const type in inventoryAssets) { totalInventoryValue += inventoryAssets[type].value; }
-  
+
   const channelStats = {};
   for(let i=0; i<monthOrders.length; i++) {
     const o = monthOrders[i];
@@ -587,7 +710,7 @@ function renderBoss(c) {
       channelStats[ch.name].commission += o.channel_commission||0;
     }
   }
-  
+
   const paymentStats = {};
   for(let i=0; i<monthOrders.length; i++) {
     const o = monthOrders[i];
@@ -599,7 +722,7 @@ function renderBoss(c) {
       paymentStats[pm.name].commission += o.payment_commission||0;
     }
   }
-  
+
   let companyShipping = 0;
   let customerShipping = 0;
   for(let i=0; i<monthOrders.length; i++) {
@@ -612,7 +735,7 @@ function renderBoss(c) {
   for(const pm in paymentStats) totalPaymentCommission += paymentStats[pm].commission;
   const totalShippingCost = companyShipping;
   const totalOrderExpenses = totalChannelCommission + totalPaymentCommission + totalShippingCost;
-  
+
   const subTag = D.tags.find(function(t) { return t.name.indexOf('訂閱') !== -1; });
   let subCustomerCount = 0;
   if(subTag && D.customerTags) {
@@ -638,14 +761,14 @@ function renderBoss(c) {
     channelStatsHtml += '<div class="flex justify-between"><span>'+name+'</span><span class="font-bold text-red-600">'+stat.commission.toLocaleString()+'</span></div>';
   }
   if(!channelStatsHtml) channelStatsHtml = '<div class="text-gray-400">無數據</div>';
-  
+
   let paymentStatsHtml = '';
   for(const name in paymentStats) {
     const stat = paymentStats[name];
     paymentStatsHtml += '<div class="flex justify-between"><span>'+name+'</span><span class="font-bold text-red-600">'+stat.commission.toLocaleString()+'</span></div>';
   }
   if(!paymentStatsHtml) paymentStatsHtml = '<div class="text-gray-400">無數據</div>';
-  
+
   let unreimbursedHtml = '';
   for(const name in unreimbursedByEmp) {
     const data = unreimbursedByEmp[name];
@@ -657,7 +780,7 @@ function renderBoss(c) {
     unreimbursedHtml += '<div class="border rounded-lg p-4"><div class="flex justify-between items-center mb-2"><span class="font-bold text-lg">'+name+'</span><span class="text-2xl font-bold text-orange-600">'+data.total.toLocaleString()+'</span></div><div class="text-sm text-gray-600 space-y-1">'+itemsHtml+'</div></div>';
   }
   if(!unreimbursedHtml) unreimbursedHtml = '<p class="text-gray-500">目前無待結帳代墊款項</p>';
-  
+
   let inventoryDetailHtml = '';
   for(const type in inventoryByType) {
     const items = inventoryByType[type];
@@ -669,7 +792,7 @@ function renderBoss(c) {
     const typeName = PRODUCT_TYPE_MAP[type] || type;
     inventoryDetailHtml += '<div class="border rounded-lg p-3"><h5 class="font-bold text-sm mb-2">'+typeName+'</h5><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs">產品名稱</th><th class="px-3 py-2 text-left text-xs">SKU</th><th class="px-3 py-2 text-left text-xs">數量</th><th class="px-3 py-2 text-left text-xs">成本</th><th class="px-3 py-2 text-left text-xs">總價值</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div></div>';
   }
-  
+
   let banksHtml = '';
   for(let i=0; i<D.banks.length; i++) {
     const b = D.banks[i];
@@ -747,12 +870,12 @@ async function viewCustDetail(id) {
   const c = D.customers.find(function(x) { return x.id===id; });
   if(!c) return showAlert('找不到客戶');
   const win = D.windows.find(function(w) { return w.id===c.primary_contact_window_id; });
-  
+
   const custTags = (D.customerTags || []).filter(function(ct) { return ct.customer_id === id; }).map(function(ct) {
     const tag = D.tags.find(function(t) { return t.id === ct.tag_id; });
     return tag ? '<span class="tag-'+tag.color+' px-2 py-1 rounded text-xs mr-1">'+tag.name+'</span>' : '';
   }).join('');
-  
+
   const subInfo = c.is_subscription ? '<span class="text-green-600 font-bold">是 ('+c.subscription_days+' 天)</span>' : '<span class="text-gray-500">否</span>';
 
   const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
@@ -764,7 +887,7 @@ async function viewCustDetail(id) {
       addrHtml += '<div class="border p-3 rounded mb-2 bg-gray-50"><div class="font-bold text-sm mb-1">'+a.address_type+' '+(a.is_default?'(預設)':'')+'</div><div class="text-sm">收件人：'+a.recipient_name+' ('+a.recipient_phone+')</div><div class="text-sm text-gray-600">'+(a.street || a.cvs_store_name || '-')+'</div></div>';
     }
   } else { addrHtml = '<p class="text-gray-500">無地址</p>'; }
-  
+
   const html = '<div class="space-y-4">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">' +
       '<div><b>類型:</b> '+c.type+'</div>' +
@@ -801,7 +924,7 @@ async function openCustModal(id) {
     const t = D.tags[i];
     tagHtml += '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer"><input type="checkbox" value="'+t.id+'" class="c-tag-cb" '+(custTagIds.indexOf(t.id)!==-1?'checked':'')+'><span class="tag-'+t.color+' px-2 py-1 rounded text-xs">'+t.name+'</span></label>';
   }
-  
+
   const html = '<input type="hidden" id="c-id" value="'+(id||'')+'">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div>' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡窗口名</label><input type="text" id="c-winname" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_window_name||'':'')+'"></div></div>' +
@@ -825,7 +948,7 @@ async function openCustModal(id) {
     '</div>' +
     '<div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">'+tagHtml+'</div></div>' +
     '<div class="border-t pt-4"><div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">寄送地址</h3><button type="button" onclick="addAddr()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增地址</button></div><div id="addr-box" class="space-y-3"></div></div>';
-  
+
   openModal(id?'編輯客戶':'新增客戶', html, saveCust);
   if(id) {
     const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
@@ -952,25 +1075,25 @@ function renderOrdTable() {
   const searchInput = document.getElementById('ord-search');
   const startDateInput = document.getElementById('ord-start-date');
   const endDateInput = document.getElementById('ord-end-date');
-  
+
   const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
   const startDate = startDateInput ? startDateInput.value : '';
   const endDate = endDateInput ? endDateInput.value : '';
-  
+
   let list = D.orders.slice();
-  
+
   if(searchTerm) {
     list = list.filter(function(o) {
       const c = D.customers.find(function(x) { return x.id === o.customer_id; });
       const customerName = c ? (c.company_name || c.contact_person || '').toLowerCase() : '';
       const customerPhone = c ? (c.phone || '').toLowerCase() : '';
       const orderNo = (o.order_no || '').toLowerCase();
-      return customerName.indexOf(searchTerm) !== -1 || 
-             customerPhone.indexOf(searchTerm) !== -1 || 
+      return customerName.indexOf(searchTerm) !== -1 ||
+             customerPhone.indexOf(searchTerm) !== -1 ||
              orderNo.indexOf(searchTerm) !== -1;
     });
   }
-  
+
   if(startDate) {
     list = list.filter(function(o) {
       const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
@@ -983,7 +1106,7 @@ function renderOrdTable() {
       return orderDate <= endDate;
     });
   }
-  
+
   if(window.ordSortField) {
     list.sort(function(a, b) {
       let aVal = a[window.ordSortField];
@@ -1001,31 +1124,31 @@ function renderOrdTable() {
       return new Date(b.created_at) - new Date(a.created_at);
     });
   }
-  
+
   let html = '';
   let totalAmount = 0;
   let totalMargin = 0;
   let count = 0;
-  
+
   for(let i=0; i<list.length; i++) {
     const o = list[i];
     const c = D.customers.find(function(x) { return x.id === o.customer_id; });
     const emp = o.shipping_advance_employee_id ? D.emps.find(function(x) { return x.id === o.shipping_advance_employee_id; }) : null;
-    
+
     totalAmount += o.total_amount || 0;
     if(o.gross_profit_margin !== undefined) { totalMargin += o.gross_profit_margin || 0; count++; }
-    
+
     let marginHtml = '<span class="text-gray-400">-</span>';
     if(o.gross_profit_margin !== undefined && o.gross_profit_margin !== null) {
       const color = o.gross_profit_margin >= 0 ? 'text-green-600' : 'text-red-600';
       marginHtml = '<span class="'+color+' font-bold">'+o.gross_profit_margin.toFixed(1)+'%</span>';
     }
-    
+
     let advanceHtml = '<span class="text-gray-400">-</span>';
     if(o.shipping_advance_amount > 0 && emp) {
       advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">'+emp.name+'</div><div class="font-bold">'+o.shipping_advance_amount.toLocaleString()+'</div></div>';
     }
-    
+
     html += '<tr class="hover:bg-gray-50">' +
       '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
       '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
@@ -1040,7 +1163,7 @@ function renderOrdTable() {
       '</td>' +
     '</tr>';
   }
-  
+
   const avgMargin = count > 0 ? (totalMargin / count).toFixed(1) : 0;
   html += '<tr class="bg-gray-100 font-bold">' +
     '<td class="px-4 py-3 text-center" colspan="3">總計 ('+list.length+' 單)</td>' +
@@ -1048,7 +1171,7 @@ function renderOrdTable() {
     '<td class="px-4 py-3 text-center text-lg">'+avgMargin+'%</td>' +
     '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
   '</tr>';
-  
+
   const tbody = document.getElementById('ord-tbody');
   if(tbody) {
     tbody.innerHTML = html;
@@ -1069,11 +1192,11 @@ function clearOrdFilters() {
   const searchInput = document.getElementById('ord-search');
   const startDateInput = document.getElementById('ord-start-date');
   const endDateInput = document.getElementById('ord-end-date');
-  
+
   if(searchInput) searchInput.value = '';
   if(startDateInput) startDateInput.value = '';
   if(endDateInput) endDateInput.value = '';
-  
+
   window.ordSortField = null;
   window.ordSortAsc = true;
   renderOrdTable();
@@ -1087,7 +1210,7 @@ async function viewOrdDetail(id) {
   const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
   const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
   const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
-  
+
   const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
   const items = itemsResp.data || [];
   let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th></tr></thead><tbody>';
@@ -1121,10 +1244,10 @@ async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
   const activeWarehouses = D.warehouses.filter(function(w) { return w.is_active; });
-  
+
   let whOptions = '<option value="">請選擇倉庫</option>';
   for(let i=0; i<activeWarehouses.length; i++) { const w = activeWarehouses[i]; whOptions += '<option value="' + w.id + '" ' + (o && o.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>'; }
-  
+
   let custOptions = '<option value="">請選擇或搜尋客戶...</option>';
   for(let i=0; i<D.customers.length; i++) { const c = D.customers[i]; custOptions += '<option value="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-phone="' + (c.phone || '') + '" data-title="' + (c.invoice_title || '') + '" data-tax="' + (c.tax_id || '') + '" ' + (o && o.customer_id === c.id ? 'selected' : '') + '>' + (c.company_name || c.contact_person) + ' - ' + c.phone + '</option>'; }
 
@@ -1155,29 +1278,29 @@ async function openOrdModal(id) {
     '<div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200"><h3 class="font-bold mb-3">🎫 折價券與紅利點數</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">折價券金額</label><input type="number" id="o-coupon-amount" class="w-full px-3 py-2 border rounded input-field" value="'+couponAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">官網發放折價券</p></div><div><label class="block text-xs font-bold mb-1">紅利點數折抵</label><input type="number" id="o-points-amount" class="w-full px-3 py-2 border rounded input-field" value="'+pointsAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">紅利點數折抵金額</p></div></div></div>' +
     '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細</label><div class="flex gap-2 mb-2"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div></div>' +
     '<div class="bg-gray-100 p-4 rounded"><div class="flex justify-between items-center"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
-  
+
   openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
-  
+
   if(id && o) {
-    if(o.customer_id) { 
-      const cust = D.customers.find(function(c) { return c.id === o.customer_id; }); 
-      if(cust) { 
-        document.getElementById('o-cust').value = cust.id; 
-        fillCustomerData(); 
-      } 
+    if(o.customer_id) {
+      const cust = D.customers.find(function(c) { return c.id === o.customer_id; });
+      if(cust) {
+        document.getElementById('o-cust').value = cust.id;
+        fillCustomerData();
+      }
     }
     document.getElementById('o-recv-name').value = o.shipping_recv_name || '';
     document.getElementById('o-recv-phone').value = o.shipping_recv_phone || '';
     document.getElementById('o-recv-addr').value = o.shipping_address || '';
-    
+
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
-    if(items.length > 0) { 
-      for(let i=0; i<items.length; i++) { 
-        const item = items[i]; 
-        const p = D.products.find(function(x) { return x.id === item.product_id; }); 
-        if(p) addOrdItem(p.type, p, item.quantity, item.unit_price); 
-      } 
+    if(items.length > 0) {
+      for(let i=0; i<items.length; i++) {
+        const item = items[i];
+        const p = D.products.find(function(x) { return x.id === item.product_id; });
+        if(p) addOrdItem(p.type, p, item.quantity, item.unit_price);
+      }
     }
   }
   setTimeout(calcOrd, 100);
@@ -1199,12 +1322,12 @@ function fillCustomerData() {
   if(!custId) return;
   const cust = D.customers.find(function(c) { return c.id === custId; });
   if(!cust) return;
-  
+
   document.getElementById('o-recv-name').value = cust.contact_person || '';
   document.getElementById('o-recv-phone').value = cust.phone || '';
   document.getElementById('o-invoice-title').value = cust.invoice_title || '';
   document.getElementById('o-invoice-tax').value = cust.tax_id || '';
-  
+
   loadCustomerDefaultAddress(custId);
 }
 
@@ -1220,10 +1343,10 @@ function addOrdItem(typeFilter, prod, qty, price) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
-  
+
   const typeMap = { 'finished': '成品', 'gift_box': '禮盒', 'outer_box': '外箱' };
   const typeColor = { 'finished': 'bg-blue-100 text-blue-700', 'gift_box': 'bg-pink-100 text-pink-700', 'outer_box': 'bg-gray-200 text-gray-700' };
-  
+
   let prodOptions = '<option value="">選擇'+(typeMap[typeFilter]||'')+'產品</option>';
   for(let i=0; i<D.products.length; i++) {
     const p = D.products[i];
@@ -1231,7 +1354,7 @@ function addOrdItem(typeFilter, prod, qty, price) {
       prodOptions += '<option value="' + p.id + '" data-price="' + (p.sell_price || 0) + '" data-cost="' + (p.cost_price || 0) + '" data-type="' + p.type + '" ' + (prod && prod.id === p.id ? 'selected' : '') + '>' + p.name + ' - 售價:' + (p.sell_price || 0) + '</option>';
     }
   }
-  
+
   div.innerHTML = '<div class="flex-1 min-w-[150px]"><span class="inline-block px-2 py-1 rounded text-xs font-bold '+typeColor[typeFilter]+' mb-1">'+(typeMap[typeFilter]||'')+'</span><select class="o-prod w-full px-3 py-2 border rounded input-field" onchange="autoFillPrice(this); calcOrd()">' + prodOptions + '</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="' + (qty || 1) + '" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="' + (price !== undefined ? price : 0) + '" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
   box.appendChild(div);
   if(price !== undefined && price > 0) {
@@ -1244,8 +1367,8 @@ function autoFillPrice(select) {
   const price = option.dataset.price || 0;
   const row = select.closest('div.flex');
   const priceInput = row.querySelector('.o-price');
-  if(price && (!priceInput.value || priceInput.value === '0')) { 
-    priceInput.value = price; 
+  if(price && (!priceInput.value || priceInput.value === '0')) {
+    priceInput.value = price;
     calcOrd();
   }
 }
@@ -1285,11 +1408,11 @@ function calcOrd() {
   const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
   const pmSelect = document.getElementById('o-payment');
   const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
-  
+
   const chCommission = amountAfterDiscount * (chRate / 100);
   const pmCommission = amountAfterDiscount * (pmRate / 100);
   const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
-  
+
   const grossProfit = amountAfterDiscount - totalCost - chCommission - pmCommission - companyShippingCost;
   const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
 
@@ -1393,7 +1516,7 @@ async function saveOrd() {
     if(editingId) {
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
       const oldOrder = oldOrderResp.data;
-      
+
       if(oldOrder) {
         const oldBankId = oldOrder.bank_account_id;
         const bankChanged = (oldBankId !== bankId);
@@ -1405,22 +1528,22 @@ async function saveOrd() {
             }).eq('id', oldOrder.bank_account_id);
           }
         }
-        
+
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
-        
+
         for(let i=0; i<oldItems.length; i++) {
           const oldItem = oldItems[i];
           const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
           if(!oldProduct) continue;
-          
+
           if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
             const existingInv = await sb.from('warehouse_inventory')
               .select('id, quantity')
               .eq('warehouse_id', oldOrder.warehouse_id)
               .eq('product_id', oldProduct.id)
               .single();
-            
+
             if(existingInv.data) {
               await sb.from('warehouse_inventory').update({
                 quantity: (existingInv.data.quantity || 0) + oldItem.quantity
@@ -1434,23 +1557,23 @@ async function saveOrd() {
               }]);
             }
           }
-          
+
           const oldBomItems = D.bom.filter(function(b) { return b.parent_product_id === oldProduct.id; });
           if(oldBomItems.length > 0) {
             for(let j=0; j<oldBomItems.length; j++) {
               const oldBom = oldBomItems[j];
               const restoreQty = oldBom.quantity * oldItem.quantity;
-              
+
               const materialInv = await sb.from('warehouse_inventory')
                 .select('id, quantity, warehouse_id')
                 .eq('product_id', oldBom.child_product_id);
-              
+
               if(materialInv.data && materialInv.data.length > 0) {
-                let targetInv = materialInv.data.find(function(inv) { 
-                  return inv.warehouse_id === oldOrder.warehouse_id; 
+                let targetInv = materialInv.data.find(function(inv) {
+                  return inv.warehouse_id === oldOrder.warehouse_id;
                 });
                 if(!targetInv) targetInv = materialInv.data[0];
-                
+
                 await sb.from('warehouse_inventory').update({
                   quantity: (targetInv.quantity || 0) + restoreQty
                 }).eq('id', targetInv.id);
@@ -1465,10 +1588,10 @@ async function saveOrd() {
             }
           }
         }
-        
+
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
-      
+
       const oldBankId = oldOrder.bank_account_id;
       const newBankId = bankId;
 
@@ -1486,7 +1609,7 @@ async function saveOrd() {
     } else {
       const r = await sb.from('orders').insert([data]).select().single();
       editingId = r.data.id;
-      
+
       const bank = D.banks.find(function(b) { return b.id === bankId; });
       if(bank) {
         await sb.from('bank_accounts').update({
@@ -1494,23 +1617,23 @@ async function saveOrd() {
         }).eq('id', bankId);
       }
     }
-    
-    await sb.from('order_items').insert(items.map(function(i) { 
-      return Object.assign({}, i, {order_id: editingId}); 
+
+    await sb.from('order_items').insert(items.map(function(i) {
+      return Object.assign({}, i, {order_id: editingId});
     }));
-    
+
     for(let i=0; i<items.length; i++) {
       const item = items[i];
       const product = D.products.find(function(p) { return p.id === item.product_id; });
       if(!product) continue;
-      
+
       if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
         const existingInv = await sb.from('warehouse_inventory')
           .select('id, quantity')
           .eq('warehouse_id', wid)
           .eq('product_id', product.id)
           .single();
-        
+
         if(existingInv.data) {
           await sb.from('warehouse_inventory').update({
             quantity: (existingInv.data.quantity || 0) - item.quantity
@@ -1524,23 +1647,23 @@ async function saveOrd() {
           }]);
         }
       }
-      
+
       const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
       if(bomItems.length > 0) {
         for(let j=0; j<bomItems.length; j++) {
           const bom = bomItems[j];
           const requiredQty = bom.quantity * item.quantity;
-          
+
           const materialInv = await sb.from('warehouse_inventory')
             .select('id, quantity, warehouse_id')
             .eq('product_id', bom.child_product_id);
-          
+
           if(materialInv.data && materialInv.data.length > 0) {
-            let targetInv = materialInv.data.find(function(inv) { 
-              return inv.warehouse_id === wid; 
+            let targetInv = materialInv.data.find(function(inv) {
+              return inv.warehouse_id === wid;
             });
             if(!targetInv) targetInv = materialInv.data[0];
-            
+
             await sb.from('warehouse_inventory').update({
               quantity: (targetInv.quantity || 0) - requiredQty
             }).eq('id', targetInv.id);
@@ -1555,7 +1678,7 @@ async function saveOrd() {
         }
       }
     }
-    
+
     if(hasAdvance && advanceEmpId && advanceAmount > 0) {
       await sb.from('expenses').insert([{
         category_id: (D.expCats.find(function(c) { return c.name === '運費'; }) || {}).id,
@@ -1575,22 +1698,22 @@ async function saveOrd() {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message); 
+    showAlert('失敗：' + e.message);
     console.error('saveOrd error:', e);
   }
 }
-  
+
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
     const orderResp = await sb.from('orders').select('*').eq('id', id).single();
     const o = orderResp.data;
-    
+
     if(!o) {
       showAlert('找不到訂單！');
       return;
     }
-    
+
     if(o.bank_account_id && o.total_amount) {
       const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
       if(bank) {
@@ -1599,22 +1722,22 @@ async function delOrd(id) {
         }).eq('id', o.bank_account_id);
       }
     }
-    
+
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
-    
+
     for(let i=0; i<items.length; i++) {
       const item = items[i];
       const product = D.products.find(function(p) { return p.id === item.product_id; });
       if(!product) continue;
-      
+
       if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
         const existingInv = await sb.from('warehouse_inventory')
           .select('id, quantity')
           .eq('warehouse_id', o.warehouse_id)
           .eq('product_id', product.id)
           .single();
-        
+
         if(existingInv.data) {
           await sb.from('warehouse_inventory').update({
             quantity: (existingInv.data.quantity || 0) + item.quantity
@@ -1628,23 +1751,23 @@ async function delOrd(id) {
           }]);
         }
       }
-      
+
       const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
       if(bomItems.length > 0) {
         for(let j=0; j<bomItems.length; j++) {
           const bom = bomItems[j];
           const restoreQty = bom.quantity * item.quantity;
-          
+
           const materialInv = await sb.from('warehouse_inventory')
             .select('id, quantity, warehouse_id')
             .eq('product_id', bom.child_product_id);
-          
+
           if(materialInv.data && materialInv.data.length > 0) {
-            let targetInv = materialInv.data.find(function(inv) { 
-              return inv.warehouse_id === o.warehouse_id; 
+            let targetInv = materialInv.data.find(function(inv) {
+              return inv.warehouse_id === o.warehouse_id;
             });
             if(!targetInv) targetInv = materialInv.data[0];
-            
+
             await sb.from('warehouse_inventory').update({
               quantity: (targetInv.quantity || 0) + restoreQty
             }).eq('id', targetInv.id);
@@ -1659,16 +1782,16 @@ async function delOrd(id) {
         }
       }
     }
-    
+
     await sb.from('expenses').delete().eq('related_order_id', id);
     await sb.from('order_items').delete().eq('order_id', id);
     await sb.from('orders').delete().eq('id', id);
-    
+
     showAlert('訂單已刪除！');
     await loadAll();
     render();
-  } catch(e) { 
-    showAlert('刪除失敗：' + e.message); 
+  } catch(e) {
+    showAlert('刪除失敗：' + e.message);
     console.error('delOrd error:', e);
   }
 }
@@ -1697,12 +1820,12 @@ function renderProducts(c) {
 async function openProdModal(id) {
   editingId = id || null;
   const p = id ? D.products.find(function(x) { return x.id === id; }) : null;
-  
+
   if(id && p && p.initial_stock > 0) {
     const confirmed = confirm('⚠️ 警告：此產品已設定初始庫存 (' + p.initial_stock + ')\n\n修改初始庫存會影響庫存誤差率計算！\n\n確定要修改嗎？');
     if(!confirmed) return;
   }
-  
+
   const html = '<input type="hidden" id="p-id" value="' + (id || '') + '">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
       '<div><label class="block text-sm font-bold mb-2">SKU *</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.sku : '') + '"></div>' +
@@ -1714,7 +1837,7 @@ async function openProdModal(id) {
       '<div><label class="block text-sm font-bold mb-2">成本(進價)</label><input type="number" id="p-cost" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.cost_price : 0) + '"></div>' +
       '<div><label class="block text-sm font-bold mb-2">初始庫存</label><input type="number" id="p-initial" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.initial_stock || 0 : 0) + '"></div>' +
     '</div>';
-  
+
   openModal(id ? '編輯產品' : '新增產品', html, saveProd);
 }
 
@@ -1864,19 +1987,19 @@ function showWhTab(whId) {
   }
   const container = document.getElementById('inv-content');
   let rows = '';
-  
+
   if(whId === 'all') {
     for(let i=0; i<D.products.length; i++) {
       const p = D.products[i];
       let totalQty = 0;
       const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
       for(let j=0; j<invs.length; j++) { totalQty += invs[j].quantity || 0; }
-      
+
       const initialStock = p.initial_stock || 0;
       const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
       const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
       const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-      
+
       rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-bold text-lg">' + totalQty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
     }
     container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">初始庫存</th><th class="px-4 py-3 text-left text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
@@ -1887,12 +2010,12 @@ function showWhTab(whId) {
       const p = D.products[i];
       const wInv = inv.find(function(x) { return x.product_id === p.id; });
       const qty = wInv ? wInv.quantity : 0;
-      
+
       const initialStock = p.initial_stock || 0;
       const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
       const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
       const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-      
+
       rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3 font-bold">' + qty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
     }
     container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">初始庫存</th><th class="px-4 py-3 text-left text-xs">誤差率</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
@@ -1910,7 +2033,7 @@ function saveInvItem(btn, pid, wid) {
   }).catch(function(e) { showAlert('失敗：' + e.message); });
 }
 
-// ==================== 採購入庫 (已修復「詳情」和「編輯」功能) ====================
+// ==================== 採購入庫 (已修復「詳情」和「編輯」功能 + 購買發票稅金計算) ====================
 function renderPurchases(c) {
 c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
 renderPurTable();
@@ -1956,7 +2079,7 @@ function renderPurTable() {
   }
 }
 
-// ==================== 採購明細詳情 (已修復) ====================
+// 採購明細詳情 (已修復)
 function viewPurchaseDetail(id) {
     const p = D.purchases.find(x => x.id === id);
     if(!p) {
@@ -1964,7 +2087,7 @@ function viewPurchaseDetail(id) {
         return;
     }
     const vendor = D.vendors.find(v => v.id === p.vendor_id);
-    
+
     sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
         const items = res.data || [];
         let itemsHTML = '<div class="space-y-2">';
@@ -1983,7 +2106,7 @@ function viewPurchaseDetail(id) {
             });
         }
         itemsHTML += '</div>';
-        
+
         const html = '<div class="space-y-4">' +
             '<div class="grid grid-cols-2 gap-4">' +
             '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
@@ -2002,7 +2125,7 @@ function viewPurchaseDetail(id) {
     });
 }
 
-// ==================== 採購編輯彈窗 (已修復) ====================
+// 採購編輯彈窗 (已修復)
 async function openPurModal(isInvoicePurchase, editId) {
   editingId = editId || null;
   const existingData = editId ? D.purchases.find(function(x) { return x.id === editId; }) : null;
@@ -2060,6 +2183,7 @@ function calcPur() {
   document.getElementById('pu-total').textContent = subtotal.toLocaleString();
 }
 
+// 購買發票：成本 + 5% 稅，四捨五入
 async function savePur() {
   let editId = document.getElementById('pu-edit-id').value;
   const vendorId = document.getElementById('pu-v').value;
@@ -2078,7 +2202,21 @@ async function savePur() {
     }
   }
   if(!items.length) return showAlert('請加入採購商品！');
-  const d = { vendor_id: vendorId, is_invoice_purchase: isInvoiceMode, total_amount: subtotal, warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null };
+
+  let totalAmount = subtotal;
+  if (isInvoiceMode) {
+    const tax = subtotal * 0.05;
+    totalAmount = Math.round(subtotal + tax);
+  } else {
+    totalAmount = Math.round(subtotal);
+  }
+
+  const d = {
+    vendor_id: vendorId,
+    is_invoice_purchase: isInvoiceMode,
+    total_amount: totalAmount,
+    warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null
+  };
   try {
     if(editId) {
       await sb.from('purchase_items').delete().eq('purchase_id', editId);
@@ -2198,7 +2336,6 @@ function renderFinance(c) {
   let subHtml = '';
   for(let i=0; i<D.subs.length; i++) {
     const s = D.subs[i];
-    // 計算每月攤提
     let monthlyText = '-';
     if(s.start_date && s.end_date && s.amount) {
       const startDate = new Date(s.start_date);
@@ -2363,10 +2500,10 @@ function calcMonthlySub() {
 
 async function saveSub() {
   const id = document.getElementById('s-id').value;
-  const d = { 
-    name: document.getElementById('s-name').value, 
-    provider: document.getElementById('s-provider').value, 
-    amount: parseFloat(document.getElementById('s-amt').value) || 0, 
+  const d = {
+    name: document.getElementById('s-name').value,
+    provider: document.getElementById('s-provider').value,
+    amount: parseFloat(document.getElementById('s-amt').value) || 0,
     start_date: document.getElementById('s-start').value || null,
     end_date: document.getElementById('s-end').value || null
   };
