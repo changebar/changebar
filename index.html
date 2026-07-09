@@ -2504,48 +2504,48 @@ function clearPurFilters() {
   renderPurTable();
 }
 function viewPurchaseDetail(id) {
-  const p = D.purchases.find(x => x.id === id);
-  if(!p) {
-    showAlert('找不到採購資料');
-    return;
-  }
-  const vendor = D.vendors.find(v => v.id === p.vendor_id);
-  
-  sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
-    const items = res.data || [];
-    let itemsHTML = '<div class="space-y-2">';
-    if(items.length === 0) {
-      itemsHTML += '<div class="text-gray-500">無商品明細</div>';
-    } else {
-      items.forEach(function(item) {
-        const product = D.products.find(x => x.id === item.product_id);
-        itemsHTML += '<div class="border-b pb-2">' +
-          '<div class="grid grid-cols-3 gap-2 text-sm">' +
-            '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
-            '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
-            '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
-          '</div>' +
-        '</div>';
-      });
+    const p = D.purchases.find(x => x.id === id);
+    if(!p) {
+        showAlert('找不到採購資料');
+        return;
     }
-    itemsHTML += '</div>';
+    const vendor = D.vendors.find(v => v.id === p.vendor_id);
     
-    const html = '<div class="space-y-4">' +
-      '<div class="grid grid-cols-2 gap-4">' +
-        '<div><span class="text-gray-600">日期：</span>' + new Date(p.created_at).toLocaleDateString() + '</div>' +
-        '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
-        '<div><span class="text-gray-600">類型：</span>' + (p.is_invoice_purchase ? '購買發票' : '一般採購') + '</div>' +
-        '<div><span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
-      '</div>' +
-      '<div class="border-t pt-4">' +
-        '<h3 class="font-bold mb-2">採購明細</h3>' +
-        itemsHTML +
-      '</div>' +
-    '</div>';
-    openModal('採購詳情', html, null, true);
-  }).catch(function(e) {
-    showAlert('載入明細失敗：' + e.message);
-  });
+    sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
+        const items = res.data || [];
+        let itemsHTML = '<div class="space-y-2">';
+        if(items.length === 0) {
+            itemsHTML += '<div class="text-gray-500">無商品明細</div>';
+        } else {
+            items.forEach(function(item) {
+                const product = D.products.find(x => x.id === item.product_id);
+                itemsHTML += '<div class="border-b pb-2">' +
+                    '<div class="grid grid-cols-3 gap-2 text-sm">' +
+                    '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
+                    '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
+                    '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
+                    '</div>' +
+                    '</div>';
+            });
+        }
+        itemsHTML += '</div>';
+        
+        const html = '<div class="space-y-4">' +
+            '<div class="grid grid-cols-2 gap-4">' +
+            '<div><span class="text-gray-600">日期：</span>' + new Date(p.created_at).toLocaleDateString() + '</div>' +
+            '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
+            '<div><span class="text-gray-600">類型：</span>' + (p.is_invoice_purchase ? '購買發票' : '一般採購') + '</div>' +
+            '<div><span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
+            '</div>' +
+            '<div class="border-t pt-4">' +
+            '<h3 class="font-bold mb-2">採購明細</h3>' +
+            itemsHTML +
+            '</div>' +
+            '</div>';
+        openModal('採購詳情', html, null, true);
+    }).catch(function(e) {
+        showAlert('載入明細失敗：' + e.message);
+    });
 }
 </script>
 </body>
