@@ -136,7 +136,7 @@
 
 <script>
 // ==================== Supabase 初始化 ====================
-const SUPABASE_URL = 'https://flqdyjioxadhqsnbasax.supabase.co';
+const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
 
 if (typeof window.supabase !== 'undefined') {
@@ -326,7 +326,6 @@ function openModal(title, html, onSave, hideSave) {
 
 // ==================== DOM 載入後綁定事件 ====================
 document.addEventListener('DOMContentLoaded', function() {
-  // 側邊欄按鈕
   const menuBtn = document.getElementById('menu-toggle-btn');
   const closeBtn = document.getElementById('sidebar-close-btn');
   const overlay = document.getElementById('sidebar-overlay');
@@ -334,7 +333,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
   if (overlay) overlay.addEventListener('click', toggleSidebar);
   
-  // 導航連結
   const navLinks = document.querySelectorAll('nav a');
   for(let i=0; i<navLinks.length; i++) {
     navLinks[i].addEventListener('click', function(e) {
@@ -347,19 +345,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // 記住信箱
   const rememberedEmail = localStorage.getItem('rememberedEmail');
   if(rememberedEmail) {
     document.getElementById('email').value = rememberedEmail;
     document.getElementById('remember').checked = true;
   }
 
-  // Enter 鍵登入
   document.getElementById('password').addEventListener('keypress', function(e) {
     if(e.key === 'Enter') document.getElementById('login-btn').click();
   });
 
-  // 登出
   document.getElementById('logout-btn').addEventListener('click', function() {
     if(window.sb) {
       window.sb.auth.signOut().then(function() { location.reload(); });
@@ -368,7 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ====== 登入按鈕事件 ======
   document.getElementById('login-btn').addEventListener('click', function() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -749,10 +743,1220 @@ function renderCustTable() {
   document.getElementById('cust-tbody').innerHTML = html;
 }
 
-// 由於篇幅限制，其餘函數（renderOrders, renderProducts, renderWarehouses, renderInventory, renderPurchases, renderVendors, renderFinance, renderBanks, renderSettings 等）請保持與您原檔案相同
-// 但請注意 renderFinance 中的訂閱迴圈必須正確閉合
+async function viewCustDetail(id) {
+  const c = D.customers.find(function(x) { return x.id===id; });
+  if(!c) return showAlert('找不到客戶');
+  const win = D.windows.find(function(w) { return w.id===c.primary_contact_window_id; });
+  
+  const custTags = (D.customerTags || []).filter(function(ct) { return ct.customer_id === id; }).map(function(ct) {
+    const tag = D.tags.find(function(t) { return t.id === ct.tag_id; });
+    return tag ? '<span class="tag-'+tag.color+' px-2 py-1 rounded text-xs mr-1">'+tag.name+'</span>' : '';
+  }).join('');
+  
+  const subInfo = c.is_subscription ? '<span class="text-green-600 font-bold">是 ('+c.subscription_days+' 天)</span>' : '<span class="text-gray-500">否</span>';
 
-// ==================== 採購明細詳情（已修復） ====================
+  const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
+  const addrs = addrsResp.data || [];
+  let addrHtml = '';
+  if(addrs.length > 0) {
+    for(let i=0; i<addrs.length; i++) {
+      const a = addrs[i];
+      addrHtml += '<div class="border p-3 rounded mb-2 bg-gray-50"><div class="font-bold text-sm mb-1">'+a.address_type+' '+(a.is_default?'(預設)':'')+'</div><div class="text-sm">收件人：'+a.recipient_name+' ('+a.recipient_phone+')</div><div class="text-sm text-gray-600">'+(a.street || a.cvs_store_name || '-')+'</div></div>';
+    }
+  } else { addrHtml = '<p class="text-gray-500">無地址</p>'; }
+  
+  const html = '<div class="space-y-4">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">' +
+      '<div><b>類型:</b> '+c.type+'</div>' +
+      '<div><b>主要窗口:</b> '+(win ? win.name : '-')+'</div>' +
+      '<div><b>公司:</b> '+(c.company_name||'-')+'</div>' +
+      '<div><b>統編:</b> '+(c.tax_id||'-')+'</div>' +
+      '<div><b>聯絡人:</b> '+c.contact_person+'</div>' +
+      '<div><b>電話:</b> '+c.phone+'</div>' +
+      '<div><b>Email:</b> '+(c.email||'-')+'</div>' +
+      '<div><b>發票抬頭:</b> '+(c.invoice_title||'-')+'</div>' +
+      '<div class="md:col-span-2"><b>標籤:</b> '+(custTags || '無')+'</div>' +
+      '<div class="md:col-span-2 bg-indigo-50 p-2 rounded"><b>訂閱客戶:</b> '+subInfo+'</div>' +
+    '</div>' +
+    '<div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址</h3>'+addrHtml+'</div>' +
+  '</div>';
+  openModal('客戶詳情', html, function(){return Promise.resolve();}, true);
+}
+
+async function openCustModal(id) {
+  editingId = id || null;
+  const c = id ? D.customers.find(function(x) { return x.id===id; }) : null;
+  let custTagIds = [];
+  if(id && D.customerTags) {
+    const tags = D.customerTags.filter(function(ct) { return ct.customer_id === id; });
+    for(let i=0; i<tags.length; i++) custTagIds.push(tags[i].tag_id);
+  }
+  let winOptions = '<option value="">無</option>';
+  for(let i=0; i<D.windows.length; i++) {
+    const w = D.windows[i];
+    winOptions += '<option value="'+w.id+'" '+(c && c.primary_contact_window_id===w.id?'selected':'')+'>'+w.name+'</option>';
+  }
+  let tagHtml = '';
+  for(let i=0; i<D.tags.length; i++) {
+    const t = D.tags[i];
+    tagHtml += '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer"><input type="checkbox" value="'+t.id+'" class="c-tag-cb" '+(custTagIds.indexOf(t.id)!==-1?'checked':'')+'><span class="tag-'+t.color+' px-2 py-1 rounded text-xs">'+t.name+'</span></label>';
+  }
+  
+  const html = '<input type="hidden" id="c-id" value="'+(id||'')+'">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡窗口名</label><input type="text" id="c-winname" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_window_name||'':'')+'"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">聯絡人 *</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'" oninput="syncAddrContact()"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.invoice_title||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.tax_id||'':'')+'"></div></div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div>' +
+    '<div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">' +
+      '<h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3>' +
+      '<label class="flex items-center gap-2 cursor-pointer mb-2">' +
+        '<input type="checkbox" id="c-is-sub" class="w-5 h-5 text-indigo-600 rounded" '+(c&&c.is_subscription?'checked':'')+' onchange="document.getElementById(\'c-sub-days-box\').style.display = this.checked ? \'block\' : \'none\'">' +
+        '<span class="font-medium">訂閱客戶</span>' +
+      '</label>' +
+      '<div id="c-sub-days-box" style="display:'+(c&&c.is_subscription?'block':'none')+'">' +
+        '<label class="block text-sm font-bold mb-2">訂閱週期 (天數)</label>' +
+        '<select id="c-sub-days" class="w-full px-3 py-2 border rounded input-field">' +
+          '<option value="30" '+(c&&c.subscription_days===30?'selected':'')+'>30 天 (月繳)</option>' +
+          '<option value="45" '+(c&&c.subscription_days===45?'selected':'')+'>45 天</option>' +
+          '<option value="60" '+(c&&c.subscription_days===60?'selected':'')+'>60 天 (雙月繳)</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">'+tagHtml+'</div></div>' +
+    '<div class="border-t pt-4"><div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">寄送地址</h3><button type="button" onclick="addAddr()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增地址</button></div><div id="addr-box" class="space-y-3"></div></div>';
+  
+  openModal(id?'編輯客戶':'新增客戶', html, saveCust);
+  if(id) {
+    const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
+    const addrs = addrsResp.data || [];
+    document.getElementById('addr-box').innerHTML = '';
+    if(addrs && addrs.length > 0) { for(let i=0; i<addrs.length; i++) addAddr(addrs[i]); } else { addAddr(); }
+  } else { addAddr(null, true); }
+}
+
+function syncAddrContact() {
+  const contact = document.getElementById('c-contact') ? document.getElementById('c-contact').value || '' : '';
+  const phone = document.getElementById('c-phone') ? document.getElementById('c-phone').value || '' : '';
+  const recvInputs = document.querySelectorAll('#addr-box .a-recv');
+  const phoneInputs = document.querySelectorAll('#addr-box .a-phone');
+  for(let i=0; i<recvInputs.length; i++) { if(!recvInputs[i].dataset.userEdited) recvInputs[i].value = contact; }
+  for(let i=0; i<phoneInputs.length; i++) { if(!phoneInputs[i].dataset.userEdited) phoneInputs[i].value = phone; }
+}
+
+function addAddr(addrData, isDefault) {
+  const box = document.getElementById('addr-box');
+  const contact = document.getElementById('c-contact') ? document.getElementById('c-contact').value || '' : '';
+  const phone = document.getElementById('c-phone') ? document.getElementById('c-phone').value || '' : '';
+  const div = document.createElement('div');
+  div.className = 'border rounded-lg p-4 bg-gray-50';
+  const recipientName = addrData ? addrData.recipient_name : contact;
+  const recipientPhone = addrData ? addrData.recipient_phone : phone;
+  const addressType = addrData ? addrData.address_type : 'home';
+  const street = addrData ? addrData.street : '';
+  const isDefaultChecked = addrData ? addrData.is_default : (isDefault && box.children.length === 0);
+  div.innerHTML = '<div class="flex justify-between items-center mb-3"><label class="flex items-center gap-1 text-sm"><input type="checkbox" class="a-def" '+(isDefaultChecked?'checked':'')+'><span>預設</span></label><button type="button" onclick="this.closest(\'.border\').remove()" class="text-red-600 btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">類型</label><select class="a-type w-full px-3 py-2 border rounded input-field"><option value="home" '+(addressType==='home'?'selected':'')+'>住家</option><option value="office" '+(addressType==='office'?'selected':'')+'>公司</option><option value="cvs_711" '+(addressType==='cvs_711'?'selected':'')+'>7-11</option><option value="cvs_family" '+(addressType==='cvs_family'?'selected':'')+'>全家</option></select></div><div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" class="a-recv w-full px-3 py-2 border rounded input-field" value="'+recipientName+'" oninput="this.dataset.userEdited=\'true\'"></div><div><label class="block text-xs font-bold mb-1">電話</label><input type="text" class="a-phone w-full px-3 py-2 border rounded input-field" value="'+recipientPhone+'" oninput="this.dataset.userEdited=\'true\'"></div><div><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" class="a-addr w-full px-3 py-2 border rounded input-field" value="'+street+'"></div></div>';
+  box.appendChild(div);
+}
+
+async function saveCust() {
+  const id = document.getElementById('c-id').value;
+  const data = { type: document.getElementById('c-type').value, company_name: document.getElementById('c-comp').value||null, contact_person: document.getElementById('c-contact').value, phone: document.getElementById('c-phone').value, contact_window_name: document.getElementById('c-winname').value||null, primary_contact_window_id: document.getElementById('c-win').value||null, invoice_title: document.getElementById('c-title').value||null, tax_id: document.getElementById('c-tax').value||null, email: document.getElementById('c-email').value||null };
+  if(!data.contact_person || !data.phone) return showAlert('聯絡人和電話必填！');
+  try {
+    let cid = id;
+    if(id) await sb.from('customers').update(data).eq('id',id);
+    else { const inserted = await sb.from('customers').insert([data]).select().single(); cid = inserted.data.id; }
+    await sb.from('customer_tags').delete().eq('customer_id', cid);
+    const tagIds = [];
+    const checkboxes = document.querySelectorAll('.c-tag-cb:checked');
+    for(let i=0; i<checkboxes.length; i++) tagIds.push(checkboxes[i].value);
+    if(tagIds.length) { const tagInserts = []; for(let i=0; i<tagIds.length; i++) tagInserts.push({customer_id:cid, tag_id:tagIds[i]}); await sb.from('customer_tags').insert(tagInserts); }
+    await sb.from('customer_addresses').delete().eq('customer_id', cid);
+    const addrs = [];
+    const addrDivs = document.querySelectorAll('#addr-box > div');
+    for(let i=0; i<addrDivs.length; i++) { const d = addrDivs[i]; addrs.push({ customer_id:cid, address_type:d.querySelector('.a-type').value, recipient_name:d.querySelector('.a-recv').value, recipient_phone:d.querySelector('.a-phone').value, street:d.querySelector('.a-addr').value, is_default:d.querySelector('.a-def').checked }); }
+    if(addrs.length) await sb.from('customer_addresses').insert(addrs);
+    showAlert('客戶已儲存！'); window.closeModal(); await loadAll(); render();
+  } catch(e) { showAlert('失敗：'+e.message); }
+}
+
+async function delCust(id) {
+  if(!confirm('確定刪除？')) return;
+  try { await sb.from('customer_addresses').delete().eq('customer_id',id); await sb.from('customer_tags').delete().eq('customer_id',id); await sb.from('customers').delete().eq('id',id); await loadAll(); render(); } catch(e) { showAlert('刪除失敗：'+e.message); }
+}
+
+function manageWindows() {
+  const html = '<div class="flex gap-2 mb-4"><input type="text" id="w-name" placeholder="窗口姓名" class="flex-1 px-3 py-2 border rounded input-field"><button onclick="addWin()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="win-list" class="space-y-2">'+D.windows.map(function(w){return '<div class="flex justify-between p-2 border rounded"><span>'+w.name+'</span><button onclick="delWin(\''+w.id+'\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';}).join('')+'</div>';
+  openModal('管理聯繫窗口', html, function(){return Promise.resolve();}, true);
+}
+async function addWin() { const n = document.getElementById('w-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('contact_windows').insert([{name:n}]); await loadAll(); manageWindows(); }
+async function delWin(id) { if(!confirm('確定刪除？')) return; await sb.from('contact_windows').delete().eq('id',id); await loadAll(); manageWindows(); }
+
+function manageTags() {
+  let colorOptions = '';
+  for(const k in COLOR_NAMES) colorOptions += '<option value="'+k+'">'+COLOR_NAMES[k]+'</option>';
+  const html = '<div class="flex gap-2 mb-4"><input type="text" id="t-name" placeholder="標籤名稱" class="flex-1 px-3 py-2 border rounded input-field"><select id="t-color" class="px-3 py-2 border rounded input-field md:w-auto">'+colorOptions+'</select><button onclick="addTag()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="tag-list" class="space-y-2">'+D.tags.map(function(t){return '<div class="flex justify-between p-2 border rounded"><span class="tag-'+t.color+' px-2 py-1 rounded text-sm">'+t.name+'</span><button onclick="delTag(\''+t.id+'\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';}).join('')+'</div>';
+  openModal('管理標籤', html, function(){return Promise.resolve();}, true);
+}
+async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
+async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
+
+// ==================== 訂單出貨 ====================
+function renderOrders(c) {
+  c.innerHTML = '<div class="content-card">' +
+    '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
+      '<h1 class="text-3xl font-bold">📦 訂單出貨</h1>' +
+      '<button onclick="openOrdModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增出貨單</button>' +
+    '</div>' +
+    '<div class="bg-white rounded-lg shadow p-4 mb-4">' +
+      '<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-2">🔍 搜尋</label>' +
+          '<input type="text" id="ord-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入客戶名稱、電話、訂單編號..." oninput="renderOrdTable()">' +
+        '</div>' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-2">📅 開始日期</label>' +
+          '<input type="month" id="ord-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderOrdTable()">' +
+        '</div>' +
+        '<div>' +
+          '<label class="block text-sm font-bold mb-2">📅 結束日期</label>' +
+          '<input type="month" id="ord-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderOrdTable()">' +
+        '</div>' +
+        '<div class="flex items-end">' +
+          '<button onclick="clearOrdFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="bg-white rounded-lg shadow overflow-hidden table-container">' +
+      '<table class="min-w-full divide-y divide-gray-200">' +
+        '<thead class="bg-gray-50">' +
+          '<tr>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'created_at\')">日期 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">客戶</th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'order_no\')">訂單編號 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">運費代墊</th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'gross_profit_margin\')">毛利率 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>' +
+      '</table>' +
+    '</div>' +
+  '</div>';
+  renderOrdTable();
+}
+
+function renderOrdTable() {
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
+  
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+  const startDate = startDateInput ? startDateInput.value : '';
+  const endDate = endDateInput ? endDateInput.value : '';
+  
+  let list = D.orders.slice();
+  
+  if(searchTerm) {
+    list = list.filter(function(o) {
+      const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+      const customerName = c ? (c.company_name || c.contact_person || '').toLowerCase() : '';
+      const customerPhone = c ? (c.phone || '').toLowerCase() : '';
+      const orderNo = (o.order_no || '').toLowerCase();
+      return customerName.indexOf(searchTerm) !== -1 || 
+             customerPhone.indexOf(searchTerm) !== -1 || 
+             orderNo.indexOf(searchTerm) !== -1;
+    });
+  }
+  
+  if(startDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate >= startDate;
+    });
+  }
+  if(endDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate <= endDate;
+    });
+  }
+  
+  if(window.ordSortField) {
+    list.sort(function(a, b) {
+      let aVal = a[window.ordSortField];
+      let bVal = b[window.ordSortField];
+      if(window.ordSortField === 'created_at') {
+        aVal = new Date(aVal);
+        bVal = new Date(bVal);
+      }
+      if(aVal < bVal) return window.ordSortAsc ? -1 : 1;
+      if(aVal > bVal) return window.ordSortAsc ? 1 : -1;
+      return 0;
+    });
+  } else {
+    list.sort(function(a, b) {
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
+  }
+  
+  let html = '';
+  let totalAmount = 0;
+  let totalMargin = 0;
+  let count = 0;
+  
+  for(let i=0; i<list.length; i++) {
+    const o = list[i];
+    const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+    const emp = o.shipping_advance_employee_id ? D.emps.find(function(x) { return x.id === o.shipping_advance_employee_id; }) : null;
+    
+    totalAmount += o.total_amount || 0;
+    if(o.gross_profit_margin !== undefined) { totalMargin += o.gross_profit_margin || 0; count++; }
+    
+    let marginHtml = '<span class="text-gray-400">-</span>';
+    if(o.gross_profit_margin !== undefined && o.gross_profit_margin !== null) {
+      const color = o.gross_profit_margin >= 0 ? 'text-green-600' : 'text-red-600';
+      marginHtml = '<span class="'+color+' font-bold">'+o.gross_profit_margin.toFixed(1)+'%</span>';
+    }
+    
+    let advanceHtml = '<span class="text-gray-400">-</span>';
+    if(o.shipping_advance_amount > 0 && emp) {
+      advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">'+emp.name+'</div><div class="font-bold">'+o.shipping_advance_amount.toLocaleString()+'</div></div>';
+    }
+    
+    html += '<tr class="hover:bg-gray-50">' +
+      '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
+      '<td class="px-4 py-3 text-center font-mono text-sm">' + (o.order_no || '-') + '</td>' +
+      '<td class="px-4 py-3 text-center">' + advanceHtml + '</td>' +
+      '<td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + marginHtml + '</td>' +
+      '<td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
+        '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
+        '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
+        '<button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>' +
+      '</td>' +
+    '</tr>';
+  }
+  
+  const avgMargin = count > 0 ? (totalMargin / count).toFixed(1) : 0;
+  html += '<tr class="bg-gray-100 font-bold">' +
+    '<td class="px-4 py-3 text-center" colspan="3">總計 ('+list.length+' 單)</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+totalAmount.toLocaleString()+'</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+avgMargin+'%</td>' +
+    '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
+  '</tr>';
+  
+  const tbody = document.getElementById('ord-tbody');
+  if(tbody) {
+    tbody.innerHTML = html;
+  }
+}
+
+function sortOrders(field) {
+  if(window.ordSortField === field) {
+    window.ordSortAsc = !window.ordSortAsc;
+  } else {
+    window.ordSortField = field;
+    window.ordSortAsc = true;
+  }
+  renderOrdTable();
+}
+
+function clearOrdFilters() {
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
+  
+  if(searchInput) searchInput.value = '';
+  if(startDateInput) startDateInput.value = '';
+  if(endDateInput) endDateInput.value = '';
+  
+  window.ordSortField = null;
+  window.ordSortAsc = true;
+  renderOrdTable();
+}
+
+async function viewOrdDetail(id) {
+  const o = D.orders.find(function(x) { return x.id === id; });
+  if(!o) return showAlert('找不到訂單');
+  const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+  const w = D.warehouses.find(function(x) { return x.id === o.warehouse_id; });
+  const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
+  const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
+  const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
+  
+  const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+  const items = itemsResp.data || [];
+  let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th></tr></thead><tbody>';
+  let totalCost = 0;
+  for(let i=0; i<items.length; i++) {
+    const item = items[i];
+    const p = D.products.find(function(x) { return x.id === item.product_id; });
+    const subtotal = item.quantity * item.unit_price;
+    const cost = p ? (p.cost_price || 0) * item.quantity : 0;
+    totalCost += cost;
+    itemsHtml += '<tr class="border-b"><td class="p-2">'+(p?p.name:'未知')+'</td><td class="p-2 text-right">'+item.quantity+'</td><td class="p-2 text-right">'+item.unit_price+'</td><td class="p-2 text-right">'+subtotal.toLocaleString()+'</td></tr>';
+  }
+  itemsHtml += '</tbody></table>';
+
+  const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
+  const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
+  const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+
+  const html = '<div class="space-y-4 text-sm">' +
+    '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div>' +
+    '<div><b>📮 寄送地址:</b> '+(o.shipping_address || '無')+'</div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div>' +
+    '<div><b>📦 產品明細:</b>'+itemsHtml+'</div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div>' +
+  '</div>';
+  openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
+}
+
+async function openOrdModal(id) {
+  editingId = id || null;
+  const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
+  const activeWarehouses = D.warehouses.filter(function(w) { return w.is_active; });
+  
+  let whOptions = '<option value="">請選擇倉庫</option>';
+  for(let i=0; i<activeWarehouses.length; i++) { const w = activeWarehouses[i]; whOptions += '<option value="' + w.id + '" ' + (o && o.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>'; }
+  
+  let custOptions = '<option value="">請選擇或搜尋客戶...</option>';
+  for(let i=0; i<D.customers.length; i++) { const c = D.customers[i]; custOptions += '<option value="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-phone="' + (c.phone || '') + '" data-title="' + (c.invoice_title || '') + '" data-tax="' + (c.tax_id || '') + '" ' + (o && o.customer_id === c.id ? 'selected' : '') + '>' + (c.company_name || c.contact_person) + ' - ' + c.phone + '</option>'; }
+
+  let chOptions = '<option value="">請選擇通路</option>';
+  for(let i=0; i<D.channels.length; i++) { const ch = D.channels[i]; chOptions += '<option value="' + ch.id + '" data-rate="' + ch.commission_rate + '" ' + (o && o.sales_channel_id === ch.id ? 'selected' : '') + '>' + ch.name + ' (' + ch.commission_rate + '%)</option>'; }
+
+  let pmOptions = '<option value="">請選擇付款方式</option>';
+  for(let i=0; i<D.payments.length; i++) { const pm = D.payments[i]; pmOptions += '<option value="' + pm.id + '" data-rate="' + pm.commission_rate + '" ' + (o && o.payment_method_id === pm.id ? 'selected' : '') + '>' + pm.name + ' (' + pm.commission_rate + '%)</option>'; }
+
+  let bankOptions = '<option value="">請選擇入款銀行</option>';
+  for(let i=0; i<D.banks.length; i++) { const b = D.banks[i]; bankOptions += '<option value="' + b.id + '" ' + (o && o.bank_account_id === b.id ? 'selected' : '') + '>' + b.account_name + '</option>'; }
+
+  let empOptions = '<option value="">無代墊</option>';
+  for(let i=0; i<D.emps.length; i++) { const emp = D.emps[i]; empOptions += '<option value="' + emp.id + '" ' + (o && o.shipping_advance_employee_id === emp.id ? 'selected' : '') + '>' + emp.name + '</option>'; }
+
+  const isSubscription = o ? o.is_subscription_order : false;
+  const subscriptionDays = o ? o.subscription_days : 30;
+  const couponAmount = o ? o.coupon_amount || 0 : 0;
+  const pointsAmount = o ? o.points_amount || 0 : 0;
+
+  const html = '<input type="hidden" id="o-id" value="' + (id || '') + '">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">選擇客戶 *</label><input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field mb-2" placeholder="輸入名稱或電話搜尋..." oninput="searchCustomerInOrder()"><select id="o-cust" class="w-full px-3 py-2 border rounded input-field" onchange="fillCustomerData()">' + custOptions + '</select></div><div><label class="block text-sm font-bold mb-2">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div></div>' +
+    '<div class="bg-gray-50 p-4 rounded-lg mb-4"><h3 class="font-bold mb-3">📮 寄送地址 (自動帶入可修改)</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="o-recv-name" class="w-full px-3 py-2 border rounded input-field"></div><div><label class="block text-xs font-bold mb-1">電話</label><input type="text" id="o-recv-phone" class="w-full px-3 py-2 border rounded input-field"></div><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" id="o-recv-addr" class="w-full px-3 py-2 border rounded input-field"></div></div></div>' +
+    '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" '+(o&&(!o.invoice_type||o.invoice_type==='no')?'selected':'')+'>無發票</option><option value="yes" '+(o&&o.invoice_type==='yes'?'selected':'')+'>有發票</option><option value="tax_plus" '+(o&&o.invoice_type==='tax_plus'?'selected':'')+'>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_no||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_title||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_tax_id||'':'')+'"></div></div></div>' +
+    '<div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200"><h3 class="font-bold mb-3">💰 運費、通路與金流</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">運費金額</label><input type="number" id="o-shipping-fee" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.shipping_fee||0:0)+'" oninput="calcOrd()"></div><div><label class="block text-xs font-bold mb-1">運費支付方</label><select id="o-ship-payer" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="company" '+(o&&o.customer_paid_shipping===0?'selected':'')+'>公司吸收</option><option value="customer" '+(o&&o.customer_paid_shipping>0?'selected':'')+'>客戶支付 (加總)</option></select></div><div><label class="block text-xs font-bold mb-1">銷售通路</label><select id="o-channel" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + chOptions + '</select></div><div><label class="block text-xs font-bold mb-1">付款方式</label><select id="o-payment" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + pmOptions + '</select></div><div class="md:col-span-4"><label class="block text-xs font-bold mb-1">入款銀行帳戶 (存檔後自動入帳)</label><select id="o-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div></div></div>' +
+    '<div class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200"><h3 class="font-bold mb-3">🚚 運費代墊管理</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div class="md:col-span-1"><label class="flex items-center gap-2 cursor-pointer mb-2"><input type="checkbox" id="o-has-advance" class="w-5 h-5 text-orange-600 rounded" '+(o&&o.shipping_advance_employee_id?'checked':'')+' onchange="document.getElementById(\'o-advance-emp-box\').style.display = this.checked ? \'block\' : \'none\'"><span class="font-medium">有運費代墊</span></label></div><div class="md:col-span-1" id="o-advance-emp-box" style="display:'+(o&&o.shipping_advance_employee_id?'block':'none')+'"><label class="block text-xs font-bold mb-1">代墊員工</label><select id="o-advance-emp" class="w-full px-3 py-2 border rounded input-field">' + empOptions + '</select></div></div></div>' +
+    '<div class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-200"><h3 class="font-bold mb-3">🔄 訂閱訂單設定</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="o-is-subscription" class="w-5 h-5 text-indigo-600 rounded" '+(isSubscription?'checked':'')+' onchange="calcOrd()"><span class="font-medium">訂閱訂單</span></label><p class="text-xs text-gray-600 mt-1">勾選後會統計到平均月營收</p></div><div><label class="block text-xs font-bold mb-1">訂閱週期</label><select id="o-subscription-days" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="30" '+(subscriptionDays===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(subscriptionDays===45?'selected':'')+'>45 天</option><option value="60" '+(subscriptionDays===60?'selected':'')+'>60 天 (雙月繳)</option></select></div></div></div>' +
+    '<div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200"><h3 class="font-bold mb-3">🎫 折價券與紅利點數</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">折價券金額</label><input type="number" id="o-coupon-amount" class="w-full px-3 py-2 border rounded input-field" value="'+couponAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">官網發放折價券</p></div><div><label class="block text-xs font-bold mb-1">紅利點數折抵</label><input type="number" id="o-points-amount" class="w-full px-3 py-2 border rounded input-field" value="'+pointsAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">紅利點數折抵金額</p></div></div></div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細</label><div class="flex gap-2 mb-2"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div></div>' +
+    '<div class="bg-gray-100 p-4 rounded"><div class="flex justify-between items-center"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
+  
+  openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
+  
+  if(id && o) {
+    if(o.customer_id) { 
+      const cust = D.customers.find(function(c) { return c.id === o.customer_id; }); 
+      if(cust) { 
+        document.getElementById('o-cust').value = cust.id; 
+        fillCustomerData(); 
+      } 
+    }
+    document.getElementById('o-recv-name').value = o.shipping_recv_name || '';
+    document.getElementById('o-recv-phone').value = o.shipping_recv_phone || '';
+    document.getElementById('o-recv-addr').value = o.shipping_address || '';
+    
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+    if(items.length > 0) { 
+      for(let i=0; i<items.length; i++) { 
+        const item = items[i]; 
+        const p = D.products.find(function(x) { return x.id === item.product_id; }); 
+        if(p) addOrdItem(p.type, p, item.quantity, item.unit_price); 
+      } 
+    }
+  }
+  setTimeout(calcOrd, 100);
+}
+
+function searchCustomerInOrder() {
+  const kw = document.getElementById('o-cust-search').value.toLowerCase();
+  const select = document.getElementById('o-cust');
+  const options = select.querySelectorAll('option');
+  for(let i=0; i<options.length; i++) {
+    const opt = options[i];
+    const text = (opt.dataset.name || '').toLowerCase() + ' ' + (opt.dataset.phone || '').toLowerCase();
+    opt.style.display = text.indexOf(kw) !== -1 ? 'block' : 'none';
+  }
+}
+
+function fillCustomerData() {
+  const custId = document.getElementById('o-cust').value;
+  if(!custId) return;
+  const cust = D.customers.find(function(c) { return c.id === custId; });
+  if(!cust) return;
+  
+  document.getElementById('o-recv-name').value = cust.contact_person || '';
+  document.getElementById('o-recv-phone').value = cust.phone || '';
+  document.getElementById('o-invoice-title').value = cust.invoice_title || '';
+  document.getElementById('o-invoice-tax').value = cust.tax_id || '';
+  
+  loadCustomerDefaultAddress(custId);
+}
+
+async function loadCustomerDefaultAddress(custId) {
+  const resp = await sb.from('customer_addresses').select('*').eq('customer_id', custId).eq('is_default', true).limit(1);
+  if(resp.data && resp.data.length > 0) {
+    const addr = resp.data[0];
+    document.getElementById('o-recv-addr').value = addr.street || addr.cvs_store_name || '';
+  }
+}
+
+function addOrdItem(typeFilter, prod, qty, price) {
+  const box = document.getElementById('o-items');
+  const div = document.createElement('div');
+  div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
+  
+  const typeMap = { 'finished': '成品', 'gift_box': '禮盒', 'outer_box': '外箱' };
+  const typeColor = { 'finished': 'bg-blue-100 text-blue-700', 'gift_box': 'bg-pink-100 text-pink-700', 'outer_box': 'bg-gray-200 text-gray-700' };
+  
+  let prodOptions = '<option value="">選擇'+(typeMap[typeFilter]||'')+'產品</option>';
+  for(let i=0; i<D.products.length; i++) {
+    const p = D.products[i];
+    if(p.type === typeFilter) {
+      prodOptions += '<option value="' + p.id + '" data-price="' + (p.sell_price || 0) + '" data-cost="' + (p.cost_price || 0) + '" data-type="' + p.type + '" ' + (prod && prod.id === p.id ? 'selected' : '') + '>' + p.name + ' - 售價:' + (p.sell_price || 0) + '</option>';
+    }
+  }
+  
+  div.innerHTML = '<div class="flex-1 min-w-[150px]"><span class="inline-block px-2 py-1 rounded text-xs font-bold '+typeColor[typeFilter]+' mb-1">'+(typeMap[typeFilter]||'')+'</span><select class="o-prod w-full px-3 py-2 border rounded input-field" onchange="autoFillPrice(this); calcOrd()">' + prodOptions + '</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="' + (qty || 1) + '" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="' + (price !== undefined ? price : 0) + '" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
+  box.appendChild(div);
+  if(price !== undefined && price > 0) {
+    setTimeout(calcOrd, 50);
+  }
+}
+
+function autoFillPrice(select) {
+  const option = select.options[select.selectedIndex];
+  const price = option.dataset.price || 0;
+  const row = select.closest('div.flex');
+  const priceInput = row.querySelector('.o-price');
+  if(price && (!priceInput.value || priceInput.value === '0')) { 
+    priceInput.value = price; 
+    calcOrd();
+  }
+}
+function calcOrd() {
+  let productSubtotal = 0;
+  let totalCost = 0;
+  const rows = document.querySelectorAll('#o-items > div');
+  for(let i=0; i<rows.length; i++) {
+    const r = rows[i];
+    const select = r.querySelector('.o-prod');
+    if(!select || !select.value) continue;
+    const option = select.options[select.selectedIndex];
+    const costPrice = parseFloat(option.dataset.cost) || 0;
+    const price = parseFloat(r.querySelector('.o-price').value) || 0;
+    const qty = parseInt(r.querySelector('.o-qty').value) || 0;
+    productSubtotal += price * qty;
+    totalCost += costPrice * qty;
+  }
+
+  const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+  const shipPayer = document.getElementById('o-ship-payer').value;
+  let finalShipping = 0;
+  if(shipPayer === 'customer') finalShipping = shippingFee;
+
+  const invType = document.getElementById('o-invoice-type').value;
+  let taxAmount = 0;
+  if(invType === 'tax_plus') taxAmount = productSubtotal * 0.05;
+
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
+
+  let amountAfterDiscount = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if(amountAfterDiscount < 0) amountAfterDiscount = 0;
+
+  const chSelect = document.getElementById('o-channel');
+  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+  const pmSelect = document.getElementById('o-payment');
+  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+  
+  const chCommission = amountAfterDiscount * (chRate / 100);
+  const pmCommission = amountAfterDiscount * (pmRate / 100);
+  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+  
+  const grossProfit = amountAfterDiscount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
+
+  document.getElementById('o-total').textContent = Math.round(amountAfterDiscount).toLocaleString();
+  document.getElementById('o-cost').textContent = totalCost.toLocaleString();
+  document.getElementById('o-tax').textContent = Math.round(taxAmount).toLocaleString();
+  document.getElementById('o-coupon-display').textContent = Math.round(couponAmount).toLocaleString();
+  document.getElementById('o-points-display').textContent = Math.round(pointsAmount).toLocaleString();
+  document.getElementById('o-ch-commission').textContent = Math.round(chCommission).toLocaleString();
+  document.getElementById('o-pm-commission').textContent = Math.round(pmCommission).toLocaleString();
+  document.getElementById('o-margin').textContent = margin.toFixed(1) + '%';
+  document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
+}
+
+async function saveOrd() {
+  const cid = document.getElementById('o-cust').value;
+  const wid = document.getElementById('o-warehouse').value;
+  const bankId = document.getElementById('o-bank').value;
+  if(!cid) return showAlert('請選擇客戶！');
+  if(!wid) return showAlert('請選擇出貨倉庫！');
+  if(!bankId) return showAlert('請選擇入款銀行！');
+
+  const items = [];
+  let productSubtotal = 0;
+  let totalCost = 0;
+  const rows = document.querySelectorAll('#o-items > div');
+  for(let i=0; i<rows.length; i++) {
+    const r = rows[i];
+    const select = r.querySelector('.o-prod');
+    if(!select || !select.value) continue;
+    const option = select.options[select.selectedIndex];
+    const pid = option.value;
+    const costPrice = parseFloat(option.dataset.cost) || 0;
+    const q = parseInt(r.querySelector('.o-qty').value) || 0;
+    const p = parseFloat(r.querySelector('.o-price').value) || 0;
+    if(pid && q > 0) {
+      items.push({product_id: pid, quantity: q, unit_price: p});
+      productSubtotal += p * q;
+      totalCost += costPrice * q;
+    }
+  }
+  if(!items.length) return showAlert('請加入產品！');
+
+  const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+  const shipPayer = document.getElementById('o-ship-payer').value;
+  const finalShipping = shipPayer === 'customer' ? shippingFee : 0;
+  const invType = document.getElementById('o-invoice-type').value;
+  const taxAmount = invType === 'tax_plus' ? productSubtotal * 0.05 : 0;
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
+
+  let totalAmountRaw = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if(totalAmountRaw < 0) totalAmountRaw = 0;
+  const totalAmount = Math.round(totalAmountRaw);
+
+  const chSelect = document.getElementById('o-channel');
+  const chId = chSelect.value || null;
+  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+  const pmSelect = document.getElementById('o-payment');
+  const pmId = pmSelect.value || null;
+  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+
+  const chCommission = totalAmount * (chRate / 100);
+  const pmCommission = totalAmount * (pmRate / 100);
+  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+  const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+  const hasAdvance = document.getElementById('o-has-advance').checked;
+  const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
+  const advanceAmount = 0;
+  const advanceStatus = 'pending';
+  const advanceBankId = null;
+
+  const isSubscriptionOrder = document.getElementById('o-is-subscription').checked;
+  const subscriptionDays = parseInt(document.getElementById('o-subscription-days').value) || 30;
+
+  const data = {
+    customer_id: cid, warehouse_id: wid, bank_account_id: bankId,
+    total_amount: totalAmount, gross_profit_margin: margin,
+    status: 'shipped', order_no: editingId ? D.orders.find(function(x) { return x.id === editingId; }).order_no : 'ORD-' + Date.now(),
+    invoice_type: invType, invoice_no: document.getElementById('o-invoice-no').value || null,
+    invoice_title: document.getElementById('o-invoice-title').value, invoice_tax_id: document.getElementById('o-invoice-tax').value,
+    shipping_fee: shippingFee, absorbed_shipping_fee: companyShippingCost, customer_paid_shipping: finalShipping,
+    sales_channel_id: chId, payment_method_id: pmId,
+    shipping_recv_name: document.getElementById('o-recv-name').value,
+    shipping_recv_phone: document.getElementById('o-recv-phone').value,
+    shipping_address: document.getElementById('o-recv-addr').value,
+    shipping_advance_employee_id: advanceEmpId,
+    is_subscription_order: isSubscriptionOrder,
+    subscription_days: subscriptionDays,
+    coupon_amount: couponAmount,
+    points_amount: pointsAmount,
+    shipping_advance_amount: advanceAmount,
+    shipping_advance_reimbursed: advanceStatus === 'reimbursed',
+    shipping_advance_bank_id: advanceBankId,
+    shipping_advance_reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null
+  };
+
+  try {
+    if(editingId) {
+      const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
+      const oldOrder = oldOrderResp.data;
+      
+      if(oldOrder) {
+        const oldBankId = oldOrder.bank_account_id;
+        const bankChanged = (oldBankId !== bankId);
+        if(bankChanged && oldOrder.bank_account_id && oldOrder.total_amount) {
+          const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
+          if(oldBank) {
+            await sb.from('bank_accounts').update({
+              balance: (oldBank.balance || 0) - oldOrder.total_amount
+            }).eq('id', oldOrder.bank_account_id);
+          }
+        }
+        
+        const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
+        const oldItems = oldItemsResp.data || [];
+        
+        for(let i=0; i<oldItems.length; i++) {
+          const oldItem = oldItems[i];
+          const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
+          if(!oldProduct) continue;
+          
+          if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
+            const existingInv = await sb.from('warehouse_inventory')
+              .select('id, quantity')
+              .eq('warehouse_id', oldOrder.warehouse_id)
+              .eq('product_id', oldProduct.id)
+              .single();
+            
+            if(existingInv.data) {
+              await sb.from('warehouse_inventory').update({
+                quantity: (existingInv.data.quantity || 0) + oldItem.quantity
+              }).eq('id', existingInv.data.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{
+                warehouse_id: oldOrder.warehouse_id,
+                product_id: oldProduct.id,
+                quantity: oldItem.quantity,
+                safety_stock: 0
+              }]);
+            }
+          }
+          
+          const oldBomItems = D.bom.filter(function(b) { return b.parent_product_id === oldProduct.id; });
+          if(oldBomItems.length > 0) {
+            for(let j=0; j<oldBomItems.length; j++) {
+              const oldBom = oldBomItems[j];
+              const restoreQty = oldBom.quantity * oldItem.quantity;
+              
+              const materialInv = await sb.from('warehouse_inventory')
+                .select('id, quantity, warehouse_id')
+                .eq('product_id', oldBom.child_product_id);
+              
+              if(materialInv.data && materialInv.data.length > 0) {
+                let targetInv = materialInv.data.find(function(inv) { 
+                  return inv.warehouse_id === oldOrder.warehouse_id; 
+                });
+                if(!targetInv) targetInv = materialInv.data[0];
+                
+                await sb.from('warehouse_inventory').update({
+                  quantity: (targetInv.quantity || 0) + restoreQty
+                }).eq('id', targetInv.id);
+              } else {
+                await sb.from('warehouse_inventory').insert([{
+                  warehouse_id: oldOrder.warehouse_id,
+                  product_id: oldBom.child_product_id,
+                  quantity: restoreQty,
+                  safety_stock: 0
+                }]);
+              }
+            }
+          }
+        }
+        
+        await sb.from('expenses').delete().eq('related_order_id', editingId);
+      }
+      
+      const oldBankId = oldOrder.bank_account_id;
+      const newBankId = bankId;
+
+      if(oldBankId !== newBankId) {
+        const newBank = D.banks.find(function(b) { return b.id === newBankId; });
+        if(newBank) {
+          await sb.from('bank_accounts').update({
+            balance: (newBank.balance || 0) + totalAmount
+          }).eq('id', newBankId);
+        }
+      }
+
+      await sb.from('orders').update(data).eq('id', editingId);
+      await sb.from('order_items').delete().eq('order_id', editingId);
+    } else {
+      const r = await sb.from('orders').insert([data]).select().single();
+      editingId = r.data.id;
+      
+      const bank = D.banks.find(function(b) { return b.id === bankId; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) + totalAmount
+        }).eq('id', bankId);
+      }
+    }
+    
+    await sb.from('order_items').insert(items.map(function(i) { 
+      return Object.assign({}, i, {order_id: editingId}); 
+    }));
+    
+    for(let i=0; i<items.length; i++) {
+      const item = items[i];
+      const product = D.products.find(function(p) { return p.id === item.product_id; });
+      if(!product) continue;
+      
+      if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', wid)
+          .eq('product_id', product.id)
+          .single();
+        
+        if(existingInv.data) {
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) - item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: wid,
+            product_id: product.id,
+            quantity: -item.quantity,
+            safety_stock: 0
+          }]);
+        }
+      }
+      
+      const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
+      if(bomItems.length > 0) {
+        for(let j=0; j<bomItems.length; j++) {
+          const bom = bomItems[j];
+          const requiredQty = bom.quantity * item.quantity;
+          
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
+          
+          if(materialInv.data && materialInv.data.length > 0) {
+            let targetInv = materialInv.data.find(function(inv) { 
+              return inv.warehouse_id === wid; 
+            });
+            if(!targetInv) targetInv = materialInv.data[0];
+            
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) - requiredQty
+            }).eq('id', targetInv.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: wid,
+              product_id: bom.child_product_id,
+              quantity: -requiredQty,
+              safety_stock: 0
+            }]);
+          }
+        }
+      }
+    }
+    
+    if(hasAdvance && advanceEmpId && advanceAmount > 0) {
+      await sb.from('expenses').insert([{
+        category_id: (D.expCats.find(function(c) { return c.name === '運費'; }) || {}).id,
+        amount: advanceAmount,
+        description: '訂單 '+data.order_no+' 運費代墊',
+        payment_date: new Date().toISOString().split('T')[0],
+        employee_id: advanceEmpId,
+        is_reimbursed: advanceStatus === 'reimbursed',
+        reimbursement_bank_id: advanceBankId,
+        reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+        related_order_id: editingId
+      }]);
+    }
+
+    showAlert('出貨單已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message); 
+    console.error('saveOrd error:', e);
+  }
+}
+  
+async function delOrd(id) {
+  if(!confirm('確定刪除？')) return;
+  try {
+    const orderResp = await sb.from('orders').select('*').eq('id', id).single();
+    const o = orderResp.data;
+    
+    if(!o) {
+      showAlert('找不到訂單！');
+      return;
+    }
+    
+    if(o.bank_account_id && o.total_amount) {
+      const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) - o.total_amount
+        }).eq('id', o.bank_account_id);
+      }
+    }
+    
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+    
+    for(let i=0; i<items.length; i++) {
+      const item = items[i];
+      const product = D.products.find(function(p) { return p.id === item.product_id; });
+      if(!product) continue;
+      
+      if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', o.warehouse_id)
+          .eq('product_id', product.id)
+          .single();
+        
+        if(existingInv.data) {
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) + item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: o.warehouse_id,
+            product_id: product.id,
+            quantity: item.quantity,
+            safety_stock: 0
+          }]);
+        }
+      }
+      
+      const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
+      if(bomItems.length > 0) {
+        for(let j=0; j<bomItems.length; j++) {
+          const bom = bomItems[j];
+          const restoreQty = bom.quantity * item.quantity;
+          
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
+          
+          if(materialInv.data && materialInv.data.length > 0) {
+            let targetInv = materialInv.data.find(function(inv) { 
+              return inv.warehouse_id === o.warehouse_id; 
+            });
+            if(!targetInv) targetInv = materialInv.data[0];
+            
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) + restoreQty
+            }).eq('id', targetInv.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: o.warehouse_id,
+              product_id: bom.child_product_id,
+              quantity: restoreQty,
+              safety_stock: 0
+            }]);
+          }
+        }
+      }
+    }
+    
+    await sb.from('expenses').delete().eq('related_order_id', id);
+    await sb.from('order_items').delete().eq('order_id', id);
+    await sb.from('orders').delete().eq('id', id);
+    
+    showAlert('訂單已刪除！');
+    await loadAll();
+    render();
+  } catch(e) { 
+    showAlert('刪除失敗：' + e.message); 
+    console.error('delOrd error:', e);
+  }
+}
+
+// ==================== 商品與 BOM ====================
+function renderProducts(c) {
+  const tm = {finished: '成品', semi: '半成品', gift_box: '禮盒', outer_box: '外箱子'};
+  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 0)">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 1)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = html;
+  let prodHtml = '';
+  for(let i=0; i<D.products.length; i++) {
+    const p = D.products[i];
+    prodHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (tm[p.type] || p.type) + '</td><td class="px-4 py-3">' + (p.sell_price || 0) + '</td><td class="px-4 py-3 text-gray-500">' + (p.cost_price || 0) + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal(\'' + p.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delProd(\'' + p.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('prod-tbody').innerHTML = prodHtml;
+  let bomHtml = '';
+  for(let i=0; i<D.bom.length; i++) {
+    const b = D.bom[i];
+    const p1 = D.products.find(function(x) { return x.id === b.parent_product_id; });
+    const p2 = D.products.find(function(x) { return x.id === b.child_product_id; });
+    bomHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3">' + (p1 ? p1.name : '-') + '</td><td class="px-4 py-3">' + (p2 ? p2.name : '-') + '</td><td class="px-4 py-3 font-bold">' + b.quantity + '</td><td class="px-4 py-3"><button onclick="delBom(\'' + b.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('bom-tbody').innerHTML = bomHtml;
+}
+
+async function openProdModal(id) {
+  editingId = id || null;
+  const p = id ? D.products.find(function(x) { return x.id === id; }) : null;
+  
+  if(id && p && p.initial_stock > 0) {
+    const confirmed = confirm('⚠️ 警告：此產品已設定初始庫存 (' + p.initial_stock + ')\n\n修改初始庫存會影響庫存誤差率計算！\n\n確定要修改嗎？');
+    if(!confirmed) return;
+  }
+  
+  const html = '<input type="hidden" id="p-id" value="' + (id || '') + '">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
+      '<div><label class="block text-sm font-bold mb-2">SKU *</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.sku : '') + '"></div>' +
+      '<div><label class="block text-sm font-bold mb-2">類型</label><select id="p-type" class="w-full px-3 py-2 border rounded input-field"><option value="finished" ' + (p && p.type === 'finished' ? 'selected' : '') + '>成品</option><option value="semi" ' + (p && p.type === 'semi' ? 'selected' : '') + '>半成品</option><option value="gift_box" ' + (p && p.type === 'gift_box' ? 'selected' : '') + '>禮盒</option><option value="outer_box" ' + (p && p.type === 'outer_box' ? 'selected' : '') + '>外箱子</option></select></div>' +
+    '</div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="p-name" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.name : '') + '"></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+      '<div><label class="block text-sm font-bold mb-2">售價</label><input type="number" id="p-sell" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.sell_price : 0) + '"></div>' +
+      '<div><label class="block text-sm font-bold mb-2">成本(進價)</label><input type="number" id="p-cost" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.cost_price : 0) + '"></div>' +
+      '<div><label class="block text-sm font-bold mb-2">初始庫存</label><input type="number" id="p-initial" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.initial_stock || 0 : 0) + '"></div>' +
+    '</div>';
+  
+  openModal(id ? '編輯產品' : '新增產品', html, saveProd);
+}
+
+async function saveProd() {
+  const id = document.getElementById('p-id').value;
+  const initialStock = parseInt(document.getElementById('p-initial').value) || 0;
+  const d = {
+    sku: document.getElementById('p-sku').value,
+    name: document.getElementById('p-name').value,
+    type: document.getElementById('p-type').value,
+    sell_price: parseFloat(document.getElementById('p-sell').value) || 0,
+    cost_price: parseFloat(document.getElementById('p-cost').value) || 0,
+    initial_stock: initialStock
+  };
+  if(!d.sku || !d.name) return showAlert('SKU與名稱為必填！');
+  try {
+    if(id) {
+      await sb.from('products').update(d).eq('id', id);
+    } else {
+      await sb.from('products').insert([Object.assign({}, d, {current_stock: initialStock})]);
+    }
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+async function delProd(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    await sb.from('bom_list').delete().or('parent_product_id.eq.' + id + ',child_product_id.eq.' + id);
+    await sb.from('warehouse_inventory').delete().eq('product_id', id);
+    await sb.from('products').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('刪除失敗：' + e.message);
+  }
+}
+
+function openBomModal() {
+  let parentOptions = '';
+  const finishedProducts = D.products.filter(function(p) { return p.type === 'finished'; });
+  for(let i=0; i<finishedProducts.length; i++) {
+    const p = finishedProducts[i];
+    parentOptions += '<option value="' + p.id + '">' + p.name + '</option>';
+  }
+  let childOptions = '';
+  const semiProducts = D.products.filter(function(p) { return p.type === 'semi'; });
+  for(let i=0; i<semiProducts.length; i++) {
+    const p = semiProducts[i];
+    childOptions += '<option value="' + p.id + '">' + p.name + '</option>';
+  }
+  const html = '<div class="mb-4"><label class="block text-sm font-bold mb-2">成品</label><select id="b-p" class="w-full px-3 py-2 border rounded input-field">' + parentOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-2">物料 (半成品/原料)</label><select id="b-c" class="w-full px-3 py-2 border rounded input-field">' + childOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-2">用量</label><input type="number" id="b-q" class="w-full px-3 py-2 border rounded input-field" value="1"></div>';
+  openModal('新增 BOM', html, async function() {
+    try {
+      await sb.from('bom_list').insert([{ parent_product_id: document.getElementById('b-p').value, child_product_id: document.getElementById('b-c').value, quantity: parseFloat(document.getElementById('b-q').value) }]);
+      showAlert('已儲存！');
+      window.closeModal();
+      await loadAll();
+      render();
+    } catch(e) {
+      showAlert('失敗：' + e.message);
+    }
+  });
+}
+
+async function delBom(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    await sb.from('bom_list').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+// ==================== 倉庫管理 ====================
+function renderWarehouses(c) {
+  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'wh-tbody\', 0)">倉庫名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = html;
+  let whHtml = '';
+  for(let i=0; i<D.warehouses.length; i++) {
+    const w = D.warehouses[i];
+    whHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + w.name + '</td><td class="px-4 py-3 text-sm">' + (w.location || '-') + '</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ' + (w.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') + '">' + (w.is_active ? '啟用' : '停用') + '</span></td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openWarehouseModal(\'' + w.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delWarehouse(\'' + w.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('wh-tbody').innerHTML = whHtml;
+}
+
+function openWarehouseModal(id) {
+  editingId = id || null;
+  const w = id ? D.warehouses.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="wh-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded input-field" value="' + (w ? w.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded input-field" value="' + (w ? w.location : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded input-field"><option value="true" ' + (w && w.is_active !== false ? 'selected' : '') + '>啟用</option><option value="false" ' + (w && w.is_active === false ? 'selected' : '') + '>停用</option></select></div>';
+  openModal(id ? '編輯倉庫' : '新增倉庫', html, saveWarehouse);
+}
+
+async function saveWarehouse() {
+  const name = document.getElementById('wh-name').value.trim();
+  if(!name) return showAlert('倉庫名稱必填！');
+  const data = { name: name, location: document.getElementById('wh-loc').value, is_active: document.getElementById('wh-active').value === 'true' };
+  try {
+    if(editingId) await sb.from('warehouses').update(data).eq('id', editingId);
+    else await sb.from('warehouses').insert([data]);
+    showAlert('倉庫已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+async function delWarehouse(id) {
+  if(!confirm('確定刪除？')) return;
+  try {
+    await sb.from('warehouse_inventory').delete().eq('warehouse_id', id);
+    await sb.from('warehouses').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('刪除失敗：' + e.message);
+  }
+}
+
+// ==================== 庫存盤點 ====================
+function renderInventory(c) {
+  let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
+  const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
+  for(let i=0; i<activeWh.length; i++) {
+    const w = activeWh[i];
+    tabsHtml += '<button onclick="showWhTab(\'' + w.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + w.id + '">' + w.name + '</button>';
+  }
+  c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div><div id="inv-content"></div></div>';
+  showWhTab('all');
+}
+
+function showWhTab(whId) {
+  const tabs = document.querySelectorAll('.wh-tab');
+  for(let i=0; i<tabs.length; i++) {
+    const t = tabs[i];
+    t.className = t.className.replace('bg-blue-600 text-white', 'bg-gray-200 text-gray-700');
+    if(t.dataset.wh === whId) t.className = t.className.replace('bg-gray-200 text-gray-700', 'bg-blue-600 text-white');
+  }
+  const container = document.getElementById('inv-content');
+  let rows = '';
+  
+  if(whId === 'all') {
+    for(let i=0; i<D.products.length; i++) {
+      const p = D.products[i];
+      let totalQty = 0;
+      const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
+      for(let j=0; j<invs.length; j++) { totalQty += invs[j].quantity || 0; }
+      
+      const initialStock = p.initial_stock || 0;
+      const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
+      const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+      const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+      
+      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-bold text-lg">' + totalQty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
+    }
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">SKU</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">初始庫存</th><th class="px-4 py-3 text-left text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  } else {
+    const wh = D.warehouses.find(function(w) { return w.id === whId; });
+    const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
+    for(let i=0; i<D.products.length; i++) {
+      const p = D.products[i];
+      const wInv = inv.find(function(x) { return x.product_id === p.id; });
+      const qty = wInv ? wInv.quantity : 0;
+      
+      const initialStock = p.initial_stock || 0;
+      const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
+      const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+      const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+      
+      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3 font-bold">' + qty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
+    }
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs">產品</th><th class="px-4 py-3 text-left text-xs">目前庫存</th><th class="px-4 py-3 text-left text-xs">初始庫存</th><th class="px-4 py-3 text-left text-xs">誤差率</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+}
+
+function saveInvItem(btn, pid, wid) {
+  const tr = btn.closest('tr');
+  const qty = parseInt(tr.querySelector('.inv-qty').value) || 0;
+  const existing = D.warehouseInv.find(function(i) { return i.warehouse_id === wid && i.product_id === pid; });
+  const data = {quantity: qty};
+  const promise = existing ? sb.from('warehouse_inventory').update(data).eq('id', existing.id) : sb.from('warehouse_inventory').insert([{warehouse_id: wid, product_id: pid, quantity: qty, safety_stock: 0}]);
+  promise.then(function() {
+    loadAll().then(function() { showWhTab(wid); showAlert('庫存已更新！'); });
+  }).catch(function(e) { showAlert('失敗：' + e.message); });
+}
+
+// ==================== 採購入庫 (已修復「詳情」和「編輯」功能) ====================
+function renderPurchases(c) {
+c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
+renderPurTable();
+}
+
+function renderPurTable() {
+  const searchText = (document.getElementById('pur-search')?.value || '').toLowerCase();
+  const startDate = document.getElementById('pur-start-date')?.value || '';
+  const endDate = document.getElementById('pur-end-date')?.value || '';
+
+  let list = D.purchases.filter(function(p) {
+    const vendor = D.vendors.find(v => v.id === p.vendor_id);
+    const vendorName = vendor?.name || '';
+    const purchaseDate = p.created_at ? p.created_at.split('T')[0] : '';
+    const matchSearch = !searchText || vendorName.toLowerCase().includes(searchText);
+    const matchStartDate = !startDate || purchaseDate >= startDate;
+    const matchEndDate = !endDate || purchaseDate <= endDate;
+    return matchSearch && matchStartDate && matchEndDate;
+  }).sort(function(a, b) {
+    const vendorA = D.vendors.find(v => v.id === a.vendor_id)?.name || '';
+    const vendorB = D.vendors.find(v => v.id === b.vendor_id)?.name || '';
+    return vendorA.localeCompare(vendorB, 'zh-TW');
+  });
+
+  let html = '';
+  for(let i=0; i<list.length; i++) {
+    const p = list[i];
+    const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
+    const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
+
+    const items = p.items || [];
+    const itemsText = items.map(function(item) {
+      const prod = D.products.find(x => x.id === item.product_id);
+      return (prod?.name || '?') + ' x' + item.quantity;
+    }).join(', ');
+
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3 font-bold">' + (p.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(false, \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
+  }
+
+  const tbody = document.getElementById('pur-tbody');
+  if(tbody) {
+    tbody.innerHTML = html;
+  }
+}
+
+// ==================== 採購明細詳情 (已修復) ====================
 function viewPurchaseDetail(id) {
     const p = D.purchases.find(x => x.id === id);
     if(!p) {
@@ -782,7 +1986,7 @@ function viewPurchaseDetail(id) {
         
         const html = '<div class="space-y-4">' +
             '<div class="grid grid-cols-2 gap-4">' +
-            '<div><span class="text-gray-600">日期：</span>' + new Date(p.created_at).toLocaleDateString() + '</div>' +
+            '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
             '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
             '<div><span class="text-gray-600">類型：</span>' + (p.is_invoice_purchase ? '購買發票' : '一般採購') + '</div>' +
             '<div><span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
@@ -798,78 +2002,7 @@ function viewPurchaseDetail(id) {
     });
 }
 
-// ==================== renderFinance 已修復（訂閱列表正確閉合） ====================
-function renderFinance(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button><button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button></div></div><div class="flex flex-col md:flex-row gap-4 mb-4 w-full"><input type="month" id="exp-month" value="' + bossDateRange.start + '" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48 input-field"><input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded input-field" oninput="renderExpTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類別</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">供應商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">期間</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">每月攤提</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
-  renderExpTable();
-  let subHtml = '';
-  for(let i=0; i<D.subs.length; i++) {
-    const s = D.subs[i];
-    let monthlyText = '-';
-    if(s.start_date && s.end_date && s.amount) {
-      const startDate = new Date(s.start_date);
-      const endDate = new Date(s.end_date);
-      const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
-      if(diffMonths > 0) {
-        const monthly = s.amount / diffMonths;
-        monthlyText = monthly.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0});
-      }
-    }
-    subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.start_date || '-') + ' ~ ' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 font-bold text-blue-600">' + monthlyText + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
-  }
-  document.getElementById('sub-tbody').innerHTML = subHtml;
-}
-
-// 此處保留其他函數（renderExpTable, openExpModal, toggleExpBankSelect, saveExp, delExp, manageExpCats, addExpCat, delExpCat, openSubModal, calcMonthlySub, saveSub, delSub 等）
-// 由於篇幅限制，請確保這些函數都存在且正確閉合
-
-// ==================== 採購入庫 ====================
-function renderPurchases(c) {
-c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
-renderPurTable();
-}
-
-function renderPurTable() {
-  const searchText = (document.getElementById('pur-search')?.value || '').toLowerCase();
-  const startDate = document.getElementById('pur-start-date')?.value || '';
-  const endDate = document.getElementById('pur-end-date')?.value || '';
-
-  let list = D.purchases.filter(function(p) {
-    const vendor = D.vendors.find(v => v.id === p.vendor_id);
-    const vendorName = vendor?.name || '';
-    const purchaseDate = p.created_at.split('T')[0];
-    const matchSearch = !searchText || vendorName.toLowerCase().includes(searchText);
-    const matchStartDate = !startDate || purchaseDate >= startDate;
-    const matchEndDate = !endDate || purchaseDate <= endDate;
-    return matchSearch && matchStartDate && matchEndDate;
-  }).sort(function(a, b) {
-    const vendorA = D.vendors.find(v => v.id === a.vendor_id)?.name || '';
-    const vendorB = D.vendors.find(v => v.id === b.vendor_id)?.name || '';
-    return vendorA.localeCompare(vendorB, 'zh-TW');
-  });
-
-  let html = '';
-  for(let i=0; i<list.length; i++) {
-    const p = list[i];
-    const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
-    const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
-
-    const items = p.items || [];
-    const itemsText = items.map(function(item) {
-      const prod = D.products.find(x => x.id === item.product_id);
-      return (prod?.name || '?') + ' x' + item.quantity;
-    }).join(', ');
-
-    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + new Date(p.created_at).toLocaleDateString() + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3 font-bold">' + (p.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(false, \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
-  }
-
-  const tbody = document.getElementById('pur-tbody');
-  if(tbody) {
-    tbody.innerHTML = html;
-  }
-}
-
-// ==================== 採購編輯彈窗 ====================
+// ==================== 採購編輯彈窗 (已修復) ====================
 async function openPurModal(isInvoicePurchase, editId) {
   editingId = editId || null;
   const existingData = editId ? D.purchases.find(function(x) { return x.id === editId; }) : null;
@@ -998,7 +2131,203 @@ function clearPurFilters() {
   renderPurTable();
 }
 
-// ==================== 訂閱相關函數 ====================
+// ==================== 廠商管理 ====================
+function renderVendors(c) {
+  const sortedVendors = [...D.vendors].sort(function(a, b) {
+    const statusA = a.cooperation_status || 'normal';
+    const statusB = b.cooperation_status || 'normal';
+    if (statusA === 'normal' && statusB === 'paused') return -1;
+    if (statusA === 'paused' && statusB === 'normal') return 1;
+    return 0;
+  });
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'ven-tbody\', 0)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  let html = '';
+  for(let i=0; i<sortedVendors.length; i++) {
+    const v = sortedVendors[i];
+    const status = v.cooperation_status || 'normal';
+    const statusHtml = status === 'paused' ? '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">暫時無配合</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">正常配合</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + v.name + '</td><td class="px-4 py-3">' + (v.tax_id || '-') + '</td><td class="px-4 py-3">' + (v.contact_person || '-') + '</td><td class="px-4 py-3">' + (v.phone || '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openVenModal(\'' + v.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delVen(\'' + v.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('ven-tbody').innerHTML = html;
+}
+
+function openVenModal(id) {
+  editingId = id || null;
+  const v = id ? D.vendors.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="v-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="v-name" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.name : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">統編</label><input type="text" id="v-tax" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.tax_id : '') + '"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="v-con" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.contact_person : '') + '"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">電話</label><input type="text" id="v-phone" class="w-full px-3 py-2 border rounded input-field" value="' + (v ? v.phone : '') + '"></div><div><label class="block text-sm font-bold mb-2">合作狀態</label><select id="v-status" class="w-full px-3 py-2 border rounded input-field"><option value="normal" ' + (v && v.cooperation_status === 'normal' ? 'selected' : '') + '>正常配合</option><option value="paused" ' + (v && v.cooperation_status === 'paused' ? 'selected' : '') + '>暫時無配合</option></select></div></div>';
+  openModal(id ? '編輯廠商' : '新增廠商', html, saveVen);
+}
+
+async function saveVen() {
+  const id = document.getElementById('v-id').value;
+  const d = {
+    name: document.getElementById('v-name').value,
+    tax_id: document.getElementById('v-tax').value,
+    contact_person: document.getElementById('v-con').value,
+    phone: document.getElementById('v-phone').value,
+    cooperation_status: document.getElementById('v-status').value
+  };
+  if(!d.name) return showAlert('名稱必填！');
+  try {
+    if(id) await sb.from('vendors').update(d).eq('id', id);
+    else await sb.from('vendors').insert([d]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+async function delVen(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    await sb.from('vendors').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    showAlert('失敗：' + e.message);
+  }
+}
+
+// ==================== 收支與訂閱 (加入開始日期與每月攤提) ====================
+function renderFinance(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button><button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button></div></div><div class="flex flex-col md:flex-row gap-4 mb-4 w-full"><input type="month" id="exp-month" value="' + bossDateRange.start + '" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48 input-field"><input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded input-field" oninput="renderExpTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類別</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">供應商</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">期間</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">每月攤提</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  renderExpTable();
+  let subHtml = '';
+  for(let i=0; i<D.subs.length; i++) {
+    const s = D.subs[i];
+    // 計算每月攤提
+    let monthlyText = '-';
+    if(s.start_date && s.end_date && s.amount) {
+      const startDate = new Date(s.start_date);
+      const endDate = new Date(s.end_date);
+      const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+      if(diffMonths > 0) {
+        const monthly = s.amount / diffMonths;
+        monthlyText = monthly.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+      }
+    }
+    subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.start_date || '-') + ' ~ ' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 font-bold text-blue-600">' + monthlyText + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('sub-tbody').innerHTML = subHtml;
+}
+
+function renderExpTable() {
+  const monthVal = document.getElementById('exp-month').value;
+  const kw = (document.getElementById('exp-search') ? document.getElementById('exp-search').value || '' : '').toLowerCase();
+  const list = D.expenses.filter(function(e) {
+    if(!e.payment_date) return false;
+    const d = new Date(e.payment_date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const matchMonth = (y + '-' + m) === monthVal;
+    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
+    const matchKw = !kw || (cat && cat.name.toLowerCase().indexOf(kw) !== -1) || (e.description && e.description.toLowerCase().indexOf(kw) !== -1);
+    return matchMonth && matchKw;
+  }).sort(function(a,b) { return new Date(b.payment_date) - new Date(a.payment_date); });
+  let html = '';
+  for(let i=0; i<list.length; i++) {
+    const e = list[i];
+    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
+    const emp = D.emps.find(function(x) { return x.id === e.employee_id; });
+    const statusHtml = e.is_reimbursed ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">已結帳</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">待結帳</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + e.payment_date + '</td><td class="px-4 py-3">' + (cat ? cat.name : '-') + '</td><td class="px-4 py-3 font-bold text-red-600">' + (e.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-sm">' + (e.description || '-') + '</td><td class="px-4 py-3">' + (emp ? emp.name : '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openExpModal(\'' + e.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delExp(\'' + e.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  }
+  document.getElementById('exp-tbody').innerHTML = html;
+}
+
+async function openExpModal(id) {
+  editingId = id || null;
+  const e = id ? D.expenses.find(function(x) { return x.id === id; }) : null;
+  const isCompanyPay = !e || !e.employee_id;
+  let catOptions = '';
+  for(let i=0; i<D.expCats.length; i++) {
+    const c = D.expCats[i];
+    catOptions += '<option value="' + c.id + '" ' + (e && e.category_id === c.id ? 'selected' : '') + '>' + c.name + '</option>';
+  }
+  let empOptions = '<option value="">無 (公司直接支付)</option>';
+  for(let i=0; i<D.emps.length; i++) {
+    const emp = D.emps[i];
+    empOptions += '<option value="' + emp.id + '" ' + (e && e.employee_id === emp.id ? 'selected' : '') + '>' + emp.name + '</option>';
+  }
+  let bankOptions = '<option value="">請選擇銀行</option>';
+  for(let i=0; i<D.banks.length; i++) {
+    const b = D.banks[i];
+    bankOptions += '<option value="' + b.id + '" ' + (e && e.reimbursement_bank_id === b.id ? 'selected' : '') + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+  }
+  const html = '<input type="hidden" id="e-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">類別</label><select id="e-cat" class="w-full px-3 py-2 border rounded input-field">' + catOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-2">金額</label><input type="number" id="e-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.amount : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">描述</label><input type="text" id="e-desc" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.description : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">日期</label><input type="date" id="e-date" class="w-full px-3 py-2 border rounded input-field" value="' + (e ? e.payment_date : new Date().toISOString().split('T')[0]) + '"></div><div class="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4"><h3 class="font-bold text-orange-800 mb-2">💰 支出方式與撥款管理</h3><div class="mb-3"><label class="block text-sm font-bold mb-2">代墊員工</label><select id="e-emp" class="w-full px-3 py-2 border rounded input-field" onchange="toggleExpBankSelect()">' + empOptions + '</select></div><div class="mb-3" id="e-bank-box"><label class="block text-sm font-bold mb-2">出帳銀行帳戶 *</label><select id="e-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select><p class="text-xs text-gray-500 mt-1">* 公司支出或員工代墊結帳都需要選擇出帳帳戶，系統將自動扣款</p></div><label class="flex items-center gap-2 cursor-pointer" id="e-reimbursed-box" style="display:' + (isCompanyPay ? 'block' : 'none') + '"><input type="checkbox" id="e-reimbursed" class="w-5 h-5 text-orange-600 rounded" ' + (e && e.is_reimbursed ? 'checked' : '') + ' ' + (isCompanyPay ? 'disabled' : '') + '><span class="font-medium">此筆費用已結帳 ' + (isCompanyPay ? '(公司支付自動結帳)' : '') + '</span></label></div>';
+  openModal(id ? '編輯收支' : '新增收支', html, saveExp);
+  toggleExpBankSelect();
+}
+
+function toggleExpBankSelect() {
+  const empId = document.getElementById('e-emp').value;
+  const reimbursedBox = document.getElementById('e-reimbursed-box');
+  const reimbursedCheck = document.getElementById('e-reimbursed');
+  if(reimbursedBox) {
+    reimbursedBox.style.display = 'block';
+    if(empId) {
+      reimbursedCheck.checked = false;
+      reimbursedCheck.disabled = false;
+      reimbursedBox.querySelector('span').textContent = '此筆費用已結帳給員工';
+    } else {
+      reimbursedCheck.checked = true;
+      reimbursedCheck.disabled = true;
+      reimbursedBox.querySelector('span').textContent = '此筆費用已結帳 (公司支付自動結帳)';
+    }
+  }
+}
+
+async function saveExp() {
+  const id = document.getElementById('e-id').value;
+  const empId = document.getElementById('e-emp').value || null;
+  const isCompanyPay = !empId;
+  const isReimbursed = isCompanyPay ? true : document.getElementById('e-reimbursed').checked;
+  const bankId = document.getElementById('e-bank').value || null;
+  const amount = parseFloat(document.getElementById('e-amt').value) || 0;
+  if(!bankId && amount > 0) return showAlert('請選擇出帳銀行帳戶！');
+  const d = { category_id: document.getElementById('e-cat').value, amount: amount, description: document.getElementById('e-desc').value, payment_date: document.getElementById('e-date').value, employee_id: empId, is_reimbursed: isReimbursed, reimbursement_bank_id: bankId, reimbursed_date: isReimbursed ? new Date().toISOString().split('T')[0] : null };
+  try {
+    if(id) { await sb.from('expenses').update(d).eq('id', id); showAlert('已更新！'); }
+    else {
+      const newExp = await sb.from('expenses').insert([d]).select().single();
+      if(newExp.error) throw newExp.error;
+      if(bankId && amount > 0) {
+        const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+        if(bank.data) { await sb.from('bank_accounts').update({balance: (bank.data.balance || 0) - amount}).eq('id', bankId); }
+      }
+      showAlert('已記錄並扣款！');
+    }
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delExp(id) {
+  if(!confirm('確定刪除?')) return;
+  try {
+    const e = D.expenses.find(function(x) { return x.id === id; });
+    if(e && e.reimbursement_bank_id && e.amount > 0 && e.is_reimbursed) {
+      const bank = await sb.from('bank_accounts').select('balance').eq('id', e.reimbursement_bank_id).single();
+      if(bank.data) { await sb.from('bank_accounts').update({balance: (bank.data.balance || 0) + e.amount}).eq('id', e.reimbursement_bank_id); }
+    }
+    await sb.from('expenses').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+function manageExpCats() {
+  const html = '<div class="flex gap-2 mb-4"><input type="text" id="ec-name" placeholder="類別名稱" class="flex-1 px-3 py-2 border rounded input-field"><button onclick="addExpCat()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="ec-list" class="space-y-2">' + D.expCats.map(function(c){return '<div class="flex justify-between p-2 border rounded"><span>' + c.name + '</span><button onclick="delExpCat(\'' + c.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';}).join('') + '</div>';
+  openModal('管理收支類別', html, function(){return Promise.resolve();}, true);
+}
+async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
+async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
+
+// ==================== 訂閱管理 (加入開始日期與每月攤提計算) ====================
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
@@ -1057,38 +2386,126 @@ async function delSub(id) {
   try { await sb.from('system_subscriptions').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
 }
 
-// ==================== 其他輔助函數 ====================
-function renderExpTable() {
-  const monthVal = document.getElementById('exp-month').value;
-  const kw = (document.getElementById('exp-search') ? document.getElementById('exp-search').value || '' : '').toLowerCase();
-  const list = D.expenses.filter(function(e) {
-    if(!e.payment_date) return false;
-    const d = new Date(e.payment_date);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const matchMonth = (y + '-' + m) === monthVal;
-    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
-    const matchKw = !kw || (cat && cat.name.toLowerCase().indexOf(kw) !== -1) || (e.description && e.description.toLowerCase().indexOf(kw) !== -1);
-    return matchMonth && matchKw;
-  }).sort(function(a,b) { return new Date(b.payment_date) - new Date(a.payment_date); });
+// ==================== 銀行帳戶 ====================
+function renderBanks(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 0)">帳戶名稱 <span class="sort-icon"></span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 3)">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   let html = '';
-  for(let i=0; i<list.length; i++) {
-    const e = list[i];
-    const cat = D.expCats.find(function(c) { return c.id === e.category_id; });
-    const emp = D.emps.find(function(x) { return x.id === e.employee_id; });
-    const statusHtml = e.is_reimbursed ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">已結帳</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">待結帳</span>';
-    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + e.payment_date + '</td><td class="px-4 py-3">' + (cat ? cat.name : '-') + '</td><td class="px-4 py-3 font-bold text-red-600">' + (e.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-sm">' + (e.description || '-') + '</td><td class="px-4 py-3">' + (emp ? emp.name : '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openExpModal(\'' + e.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delExp(\'' + e.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
+  for(let i=0; i<D.banks.length; i++) {
+    const b = D.banks[i];
+    const statusHtml = b.is_active ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">啟用</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">停用</span>';
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + b.account_name + '</td><td class="px-4 py-3">' + (b.bank_name || '-') + '</td><td class="px-4 py-3">' + (b.account_number || '-') + '</td><td class="px-4 py-3 font-bold text-green-600">' + (b.balance || 0).toLocaleString() + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openBankModal(\'' + b.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delBank(\'' + b.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
   }
-  document.getElementById('exp-tbody').innerHTML = html;
+  document.getElementById('bank-tbody').innerHTML = html;
 }
 
-// ==================== 函數占位（請保留原有實現） ====================
-// 以下函數由於篇幅限制，請保留您原有的完整實現：
-// - renderOrders, renderProducts, renderWarehouses, renderInventory
-// - renderVendors, renderBanks, renderSettings
-// - openCustModal, saveCust, delCust 等客戶管理函數
-// - openOrdModal, saveOrd, delOrd 等訂單函數
-// - 所有 openXXX, saveXXX, delXXX 函數
+async function openBankModal(id) {
+  editingId = id || null;
+  const b = id ? D.banks.find(function(x) { return x.id === id; }) : null;
+  const html = '<input type="hidden" id="b-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">帳戶名稱 *</label><input type="text" id="b-name" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.account_name : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">銀行名稱</label><input type="text" id="b-bank" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.bank_name : '') + '"></div><div><label class="block text-sm font-bold mb-2">帳號</label><input type="text" id="b-number" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.account_number : '') + '"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">餘額</label><input type="number" id="b-balance" class="w-full px-3 py-2 border rounded input-field" value="' + (b ? b.balance : 0) + '"></div><div><label class="block text-sm font-bold mb-2">狀態</label><select id="b-active" class="w-full px-3 py-2 border rounded input-field"><option value="true" ' + (b && b.is_active !== false ? 'selected' : '') + '>啟用</option><option value="false" ' + (b && b.is_active === false ? 'selected' : '') + '>停用</option></select></div></div>';
+  openModal(id ? '編輯帳戶' : '新增帳戶', html, saveBank);
+}
+
+async function saveBank() {
+  const id = document.getElementById('b-id').value;
+  const d = { account_name: document.getElementById('b-name').value, bank_name: document.getElementById('b-bank').value, account_number: document.getElementById('b-number').value, balance: parseFloat(document.getElementById('b-balance').value) || 0, is_active: document.getElementById('b-active').value === 'true' };
+  if(!d.account_name) return showAlert('帳戶名稱必填！');
+  try {
+    if(id) await sb.from('bank_accounts').update(d).eq('id', id);
+    else await sb.from('bank_accounts').insert([d]);
+    showAlert('已儲存！');
+    window.closeModal();
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delBank(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('bank_accounts').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+// ==================== 通路與員工 ====================
+function renderSettings(c) {
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">️ 通路與員工</h1></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">🛒 銷售通路</h3><button onclick="openChannelModal()" class="bg-blue-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="channel-list" class="space-y-2"></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-purple-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">💳 付款方式</h3><button onclick="openPaymentModal()" class="bg-purple-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="payment-list" class="space-y-2"></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-green-500"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-gray-800">👷 員工管理</h3><button onclick="openEmpModal()" class="bg-green-600 text-white px-3 py-1 rounded text-sm btn-touch">+ 新增</button></div><div id="emp-list" class="space-y-2"></div></div></div></div>';
+  renderChannelList();
+  renderPaymentList();
+  renderEmpList();
+}
+
+function renderChannelList() {
+  let html = '';
+  for(let i=0; i<D.channels.length; i++) {
+    const ch = D.channels[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + ch.name + '</span><span class="text-sm text-gray-500 ml-2">(' + ch.commission_rate + '%)</span></div><button onclick="delChannel(\'' + ch.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('channel-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+function renderPaymentList() {
+  let html = '';
+  for(let i=0; i<D.payments.length; i++) {
+    const pm = D.payments[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + pm.name + '</span><span class="text-sm text-gray-500 ml-2">(' + pm.commission_rate + '%)</span></div><button onclick="delPayment(\'' + pm.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('payment-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+function renderEmpList() {
+  let html = '';
+  for(let i=0; i<D.emps.length; i++) {
+    const emp = D.emps[i];
+    html += '<div class="flex justify-between items-center p-2 border rounded"><div><span class="font-medium">' + emp.name + '</span><span class="text-sm text-gray-500 ml-2">(' + (emp.position || '-') + ')</span></div><button onclick="delEmp(\'' + emp.id + '\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';
+  }
+  document.getElementById('emp-list').innerHTML = html || '<p class="text-gray-500">尚無資料</p>';
+}
+
+async function openChannelModal() {
+  const name = prompt('請輸入通路名稱：');
+  if(!name) return;
+  const rate = parseFloat(prompt('請輸入抽成比例 (%)：')) || 0;
+  try {
+    await sb.from('sales_channels').insert([{name: name, commission_rate: rate}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delChannel(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('sales_channels').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function openPaymentModal() {
+  const name = prompt('請輸入付款方式名稱：');
+  if(!name) return;
+  const rate = parseFloat(prompt('請輸入手續費比例 (%)：')) || 0;
+  try {
+    await sb.from('payment_methods').insert([{name: name, commission_rate: rate}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delPayment(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function openEmpModal() {
+  const name = prompt('請輸入員工姓名：');
+  if(!name) return;
+  const position = prompt('請輸入職位：') || '';
+  try {
+    await sb.from('employees').insert([{name: name, position: position}]);
+    await loadAll();
+    render();
+  } catch(e) { showAlert('失敗：' + e.message); }
+}
+
+async function delEmp(id) {
+  if(!confirm('確定刪除?')) return;
+  try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+}
 
 console.log('✅ 系統載入完成');
 </script>
