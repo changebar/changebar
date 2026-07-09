@@ -2022,7 +2022,7 @@ function addPurItem(prod, qty, price) {
     const p = D.products[i];
     prodOptions += '<option value="' + p.id + '" data-cost="' + (p.cost_price || 0) + '" ' + (prod && prod.id === p.id ? 'selected' : '') + '>' + p.name + '</option>';
   }
-  div.innerHTML = '<div class="flex-1 min-w-[150px]"><select class="pu-prod w-full px-3 py-2 border rounded input-field" onchange="if(this.value){this.parentElement.parentElement.querySelector(\'.pu-price\').value=this.options[this.selectedIndex].dataset.cost;}calcPur()">' + prodOptions + '</select></div><div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="' + (qty || 1) + '" min="1" oninput="calcPur()"></div><div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="' + (price || 0) + '" step="0.01" oninput="calcPur()"></div><button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
+  div.innerHTML = '<div class="flex-1 min-w-[150px]"><select class="pu-prod w-full px-3 py-2 border rounded input-field" onchange="if(this.value){this.closest(\'div.flex\').querySelector(\'.pu-price\').value=this.options[this.selectedIndex].dataset.cost;}calcPur()">' + prodOptions + '</select></div><div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="' + (qty || 1) + '" min="1" oninput="calcPur()"></div><div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="' + (price || 0) + '" step="0.01" oninput="calcPur()"></div><button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
   box.appendChild(div);
 }
 
@@ -2166,10 +2166,18 @@ function renderFinance(c) {
   let subHtml = '';
   for(let i=0; i<D.subs.length; i++) {
     const s = D.subs[i];
-    subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
-  }
-  document.getElementById('sub-tbody').innerHTML = subHtml;
-}
+    // 計算每月攤提
+    let monthlyText = '-';
+    if(s.start_date && s.end_date && s.amount) {
+      const startDate = new Date(s.start_date);
+      const endDate = new Date(s.end_date);
+      const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+      if(diffMonths > 0) {
+        const monthly = s.amount / diffMonths;
+        monthlyText = monthly.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+      }
+    }
+    subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.start_date || '-') + ' ~ ' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 font-bold text-blue-600">' + monthlyText + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
 
 function renderExpTable() {
   const monthVal = document.getElementById('exp-month').value;
@@ -2287,13 +2295,68 @@ async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
-  const html = '<input type="hidden" id="s-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="s-name" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">供應商</label><input type="text" id="s-provider" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.provider : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">金額</label><input type="number" id="s-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.amount : '') + '"></div><div><label class="block text-sm font-bold mb-2">結束日期</label><input type="date" id="s-end" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.end_date : '') + '"></div></div>';
+  const today = new Date().toISOString().split('T')[0];
+  const html = '<input type="hidden" id="s-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="s-name" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">供應商</label><input type="text" id="s-provider" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.provider : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">開始日期</label><input type="date" id="s-start" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.start_date : today) + '"></div><div><label class="block text-sm font-bold mb-2">結束日期</label><input type="date" id="s-end" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.end_date : '') + '"></div><div><label class="block text-sm font-bold mb-2">總金額</label><input type="number" id="s-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.amount : '') + '"></div></div><div class="bg-blue-50 p-3 rounded"><span class="text-sm text-gray-600">每月攤提費用：</span><span id="s-monthly" class="text-lg font-bold text-blue-600">0</span></div>';
   openModal(id ? '編輯訂閱' : '新增訂閱', html, saveSub);
+  // 計算每月攤提
+  calcMonthlySub();
+  // 綁定計算事件
+  document.getElementById('s-start')?.addEventListener('change', calcMonthlySub);
+  document.getElementById('s-end')?.addEventListener('change', calcMonthlySub);
+  document.getElementById('s-amt')?.addEventListener('input', calcMonthlySub);
+}
+
+function calcMonthlySub() {
+  const start = document.getElementById('s-start')?.value;
+  const end = document.getElementById('s-end')?.value;
+  const amount = parseFloat(document.getElementById('s-amt')?.value) || 0;
+  const monthlyEl = document.getElementById('s-monthly');
+  if(!monthlyEl) return;
+  if(!start || !end || amount <= 0) {
+    monthlyEl.textContent = '0';
+    return;
+  }
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+  if(diffMonths <= 0) {
+    monthlyEl.textContent = '0 (日期無效)';
+    return;
+  }
+  const monthly = amount / diffMonths;
+  monthlyEl.textContent = monthly.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+
+function calcMonthlySub() {
+  const start = document.getElementById('s-start')?.value;
+  const end = document.getElementById('s-end')?.value;
+  const amount = parseFloat(document.getElementById('s-amt')?.value) || 0;
+  const monthlyEl = document.getElementById('s-monthly');
+  if(!monthlyEl) return;
+  if(!start || !end || amount <= 0) {
+    monthlyEl.textContent = '0';
+    return;
+  }
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+  if(diffMonths <= 0) {
+    monthlyEl.textContent = '0 (日期無效)';
+    return;
+  }
+  const monthly = amount / diffMonths;
+  monthlyEl.textContent = monthly.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0});
 }
 
 async function saveSub() {
   const id = document.getElementById('s-id').value;
-  const d = { name: document.getElementById('s-name').value, provider: document.getElementById('s-provider').value, amount: parseFloat(document.getElementById('s-amt').value) || 0, end_date: document.getElementById('s-end').value };
+  const d = { 
+    name: document.getElementById('s-name').value, 
+    provider: document.getElementById('s-provider').value, 
+    amount: parseFloat(document.getElementById('s-amt').value) || 0, 
+    start_date: document.getElementById('s-start').value || null,
+    end_date: document.getElementById('s-end').value || null
+  };
   if(!d.name) return showAlert('名稱必填！');
   try {
     if(id) await sb.from('system_subscriptions').update(d).eq('id', id);
@@ -2444,33 +2507,41 @@ function viewPurchaseDetail(id) {
   const p = D.purchases.find(x => x.id === id);
   if(!p) return;
   const vendor = D.vendors.find(v => v.id === p.vendor_id);
-  const items = p.items || [];
-  let itemsHTML = '<div class="space-y-2">';
-  items.forEach(function(item) {
-    const product = D.products.find(x => x.id === item.product_id);
-    itemsHTML += '<div class="border-b pb-2">' +
-      '<div class="grid grid-cols-3 gap-2 text-sm">' +
-        '<div><span class="text-gray-600">商品：</span>' + (product?.p_name || '-') + '</div>' +
-        '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
-        '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
+  // 載入採購明細
+  sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
+    const items = res.data || [];
+    let itemsHTML = '<div class="space-y-2">';
+    if(items.length === 0) {
+      itemsHTML += '<div class="text-gray-500">無商品明細</div>';
+    } else {
+      items.forEach(function(item) {
+        const product = D.products.find(x => x.id === item.product_id);
+        itemsHTML += '<div class="border-b pb-2">' +
+          '<div class="grid grid-cols-3 gap-2 text-sm">' +
+            '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
+            '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
+            '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
+          '</div>' +
+        '</div>';
+      });
+    }
+    itemsHTML += '</div>';
+    const html = '<div class="space-y-4">' +
+      '<div class="grid grid-cols-2 gap-4">' +
+        '<div><span class="text-gray-600">日期：</span>' + new Date(p.created_at).toLocaleDateString() + '</div>' +
+        '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
+        '<div><span class="text-gray-600">類型：</span>' + (p.is_invoice_purchase ? '購買發票' : '一般採購') + '</div>' +
+        '<div><span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
+      '</div>' +
+      '<div class="border-t pt-4">' +
+        '<h3 class="font-bold mb-2">採購明細</h3>' +
+        itemsHTML +
       '</div>' +
     '</div>';
+    openModal('採購詳情', html, null, true);
+  }).catch(function(e) {
+    showAlert('載入明細失敗：' + e.message);
   });
-  itemsHTML += '</div>';
-  const html = '<div class="space-y-4">' +
-    '<div class="grid grid-cols-2 gap-4">' +
-      '<div><span class="text-gray-600">日期：</span>' + p.date + '</div>' +
-      '<div><span class="text-gray-600">廠商：</span>' + (vendor?.v_name || '-') + '</div>' +
-    '</div>' +
-    '<div class="border-t pt-4">' +
-      '<h3 class="font-bold mb-2">採購明細</h3>' +
-      itemsHTML +
-    '</div>' +
-    '<div class="border-t pt-4 text-lg font-bold">' +
-      '<span class="text-gray-600">總金額：</span>$' + (p.total_amount || 0).toLocaleString() +
-    '</div>' +
-  '</div>';
-  openModal('採購詳情', html, null, true);
 }
 </script>
 </body>
