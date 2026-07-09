@@ -438,6 +438,79 @@ function sortTable(tbodyId, colIndex) {
   });
   for(let i=0; i<rows.length; i++) tbody.appendChild(rows[i]);
 }
+  // ==================== 重新繪製當前視圖 ====================
+function render() {
+    switchView(currentView);
+}
+
+// ==================== 從 Supabase 載入所有資料 ====================
+async function loadAll() {
+    try {
+        const [
+            productsRes,
+            windowsRes,
+            customersRes,
+            tagsRes,
+            warehousesRes,
+            bomRes,
+            vendorsRes,
+            channelsRes,
+            paymentsRes,
+            expensesRes,
+            subsRes,
+            banksRes,
+            empsRes,
+            expCatsRes,
+            ordersRes,
+            purchasesRes,
+            warehouseInvRes,
+            customerTagsRes
+        ] = await Promise.all([
+            sb.from('products').select('*'),
+            sb.from('contact_windows').select('*'),
+            sb.from('customers').select('*'),
+            sb.from('tags').select('*'),
+            sb.from('warehouses').select('*'),
+            sb.from('bom_list').select('*'),
+            sb.from('vendors').select('*'),
+            sb.from('sales_channels').select('*'),
+            sb.from('payment_methods').select('*'),
+            sb.from('expenses').select('*'),
+            sb.from('system_subscriptions').select('*'),
+            sb.from('bank_accounts').select('*'),
+            sb.from('employees').select('*'),
+            sb.from('expense_categories').select('*'),
+            sb.from('orders').select('*'),
+            sb.from('purchases').select('*'),
+            sb.from('warehouse_inventory').select('*'),
+            sb.from('customer_tags').select('*')
+        ]);
+
+        D.products = productsRes.data || [];
+        D.windows = windowsRes.data || [];
+        D.customers = customersRes.data || [];
+        D.tags = tagsRes.data || [];
+        D.warehouses = warehousesRes.data || [];
+        D.bom = bomRes.data || [];
+        D.vendors = vendorsRes.data || [];
+        D.channels = channelsRes.data || [];
+        D.payments = paymentsRes.data || [];
+        D.expenses = expensesRes.data || [];
+        D.subs = subsRes.data || [];
+        D.banks = banksRes.data || [];
+        D.emps = empsRes.data || [];
+        D.expCats = expCatsRes.data || [];
+        D.orders = ordersRes.data || [];
+        D.purchases = purchasesRes.data || [];
+        D.warehouseInv = warehouseInvRes.data || [];
+        D.customerTags = customerTagsRes.data || [];
+
+        console.log('✅ 所有資料載入完成');
+    } catch (error) {
+        console.error('❌ 載入資料失敗：', error);
+        showAlert('載入資料失敗，請檢查網路或重新登入。');
+    }
+}
 
 // ==================== 老闆查閱（完整功能）====================
 function renderBoss(c) {
