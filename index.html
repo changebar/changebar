@@ -13,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
     </script>
     <style>
+        /* 原有樣式不變，此處省略以節省篇幅，實際會保留完整樣式 */
         body {
             font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif;
             -webkit-tap-highlight-color: transparent;
@@ -384,129 +385,27 @@
                 padding: 1rem;
             }
         }
-        /* boss 卡片样式 */
-        .boss-stat-card {
-            background: #fff;
-            border-radius: 0.75rem;
-            padding: 1.25rem 1.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            border-left: 4px solid #3b82f6;
-            transition: transform 0.2s;
+        /* 簡潔的老闆查閱用樣式 */
+        .boss-summary {
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
         }
-        .boss-stat-card:hover {
-            transform: translateY(-2px);
+        .boss-summary .item {
+            font-size: 0.9rem;
         }
-        .boss-stat-card .label {
-            font-size: 0.8rem;
+        .boss-summary .item .label {
             color: #6b7280;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 500;
         }
-        .boss-stat-card .value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin-top: 0.25rem;
-            line-height: 1.2;
-        }
-        .boss-stat-card .sub {
-            font-size: 0.85rem;
-            color: #6b7280;
-            margin-top: 0.15rem;
-        }
-        .boss-stat-card.blue {
-            border-left-color: #3b82f6;
-        }
-        .boss-stat-card.green {
-            border-left-color: #10b981;
-        }
-        .boss-stat-card.red {
-            border-left-color: #ef4444;
-        }
-        .boss-stat-card.purple {
-            border-left-color: #8b5cf6;
-        }
-        .boss-stat-card.orange {
-            border-left-color: #f59e0b;
-        }
-        .boss-stat-card.teal {
-            border-left-color: #14b8a6;
-        }
-        .boss-chart-container {
-            background: #fff;
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-        }
-        .boss-chart-container h3 {
+        .boss-summary .item .value {
             font-weight: 700;
-            font-size: 1rem;
-            color: #1f2937;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .boss-chart-bar {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.2rem 0;
-        }
-        .boss-chart-bar .bar-label {
-            width: 60px;
-            font-size: 0.75rem;
-            color: #4b5563;
-            text-align: right;
-            flex-shrink: 0;
-        }
-        .boss-chart-bar .bar-track {
-            flex: 1;
-            height: 20px;
-            background: #f3f4f6;
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-        }
-        .boss-chart-bar .bar-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.6s ease;
-            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            min-width: 4px;
-        }
-        .boss-chart-bar .bar-value {
-            width: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #1f2937;
-            text-align: right;
-            flex-shrink: 0;
-        }
-        .boss-chart-bar .bar-fill.green {
-            background: linear-gradient(90deg, #10b981, #34d399);
-        }
-        .boss-chart-bar .bar-fill.red {
-            background: linear-gradient(90deg, #ef4444, #f87171);
-        }
-        .boss-chart-bar .bar-fill.orange {
-            background: linear-gradient(90deg, #f59e0b, #fbbf24);
-        }
-        .boss-chart-bar .bar-fill.purple {
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
-        }
-        @media (max-width: 640px) {
-            .boss-stat-card .value {
-                font-size: 1.4rem;
-            }
-            .boss-chart-bar .bar-label {
-                width: 40px;
-                font-size: 0.65rem;
-            }
-            .boss-chart-bar .bar-value {
-                width: 40px;
-                font-size: 0.65rem;
-            }
+            font-size: 1.2rem;
+            margin-left: 0.5rem;
         }
     </style>
 </head>
@@ -1057,14 +956,11 @@
         }
 
         // ================================================================
-        //  1. 老闆查閱 (完整版)
+        //  1. 老闆查閱 (簡潔版)
         // ================================================================
         function renderBoss(c) {
-            const now = new Date();
-            const currentMonth = now.toISOString().slice(0, 7);
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
-            const startMonth = document.getElementById('boss-month-start')?.value || currentMonth;
-            const endMonth = document.getElementById('boss-month-end')?.value || currentMonth;
+            const startMonth = document.getElementById('boss-month-start')?.value || bossMonth;
+            const endMonth = document.getElementById('boss-month-end')?.value || bossMonth;
 
             // 過濾訂單
             const filteredOrders = D.orders.filter(function(o) {
@@ -1075,153 +971,82 @@
 
             // 計算統計
             let totalRevenue = 0,
-                totalCost = 0,
                 totalMargin = 0,
                 marginCount = 0;
-            let totalExpenses = 0,
-                subTotal = 0;
-            let orderCount = filteredOrders.length;
-            let subOrders = 0,
-                subRevenue = 0;
-
             filteredOrders.forEach(function(o) {
                 totalRevenue += o.total_amount || 0;
                 if (o.gross_profit_margin !== undefined && o.gross_profit_margin !== null) {
                     totalMargin += o.gross_profit_margin;
                     marginCount++;
                 }
-                // 訂閱訂單
-                if (o.is_subscription_order) {
-                    subOrders++;
-                    subRevenue += o.total_amount || 0;
-                }
             });
+            const avgMargin = marginCount > 0 ? (totalMargin / marginCount) : 0;
 
-            // 計算成本：從訂單項目推算
-            // 簡化：用毛利率反推成本
-            const avgMargin = marginCount > 0 ? totalMargin / marginCount : 0;
-            // 成本 = 營收 * (1 - 毛利率)
-            totalCost = totalRevenue * (1 - avgMargin / 100);
-
-            // 支出 (當月)
-            const expMonth = startMonth;
-            const monthExpenses = D.expenses.filter(function(e) {
-                if (!e.payment_date) return false;
-                const d = new Date(e.payment_date);
-                const m = d.toISOString().slice(0, 7);
-                return m === expMonth;
-            });
-            monthExpenses.forEach(function(e) {
-                totalExpenses += e.amount || 0;
-            });
-
-            // 訂閱攤提 (當月)
-            D.subs.forEach(function(s) {
-                if (s.start_date && s.end_date && s.amount) {
-                    const startDate = new Date(s.start_date);
-                    const endDate = new Date(s.end_date);
-                    const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-                        (endDate.getMonth() - startDate.getMonth()) + 1;
-                    if (diffMonths > 0) {
-                        subTotal += s.amount / diffMonths;
-                    }
-                }
-            });
-
-            const profit = totalRevenue - totalCost - totalExpenses - subTotal;
-
-            // 按月統計
-            const monthMap = {};
-            filteredOrders.forEach(function(o) {
-                const m = new Date(o.created_at).toISOString().slice(0, 7);
-                if (!monthMap[m]) monthMap[m] = { revenue: 0, count: 0 };
-                monthMap[m].revenue += o.total_amount || 0;
-                monthMap[m].count++;
-            });
-            const sortedMonths = Object.keys(monthMap).sort();
-            const maxRevenue = Math.max(...sortedMonths.map(m => monthMap[m].revenue), 1);
-
-            let chartHtml = '';
-            sortedMonths.forEach(function(m) {
-                const data = monthMap[m];
-                const pct = (data.revenue / maxRevenue * 100).toFixed(1);
-                const label = m.slice(5) + '月';
-                chartHtml += '<div class="boss-chart-bar">' +
-                    '<span class="bar-label">' + label + '</span>' +
-                    '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;"></div></div>' +
-                    '<span class="bar-value">' + data.revenue.toLocaleString() + '</span>' +
-                    '</div>';
-            });
-
-            // 最近訂單 (前10筆)
-            let recentOrdersHtml = '';
-            const recent = filteredOrders.slice(0, 10).sort(function(a, b) {
+            // 排序：依日期新到舊
+            const sorted = filteredOrders.slice().sort(function(a, b) {
                 return new Date(b.created_at) - new Date(a.created_at);
             });
-            recent.forEach(function(o) {
+
+            let rowsHtml = '';
+            for (let i = 0; i < sorted.length; i++) {
+                const o = sorted[i];
                 const c = D.customers.find(function(x) { return x.id === o.customer_id; });
                 const custName = c ? (c.company_name || c.contact_person) : '-';
-                recentOrdersHtml += '<tr class="border-b hover:bg-gray-50">' +
-                    '<td class="px-3 py-2 text-sm">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
-                    '<td class="px-3 py-2 text-sm">' + custName + '</td>' +
-                    '<td class="px-3 py-2 text-sm font-bold text-right">' + (o.total_amount || 0).toLocaleString() +
+                const marginDisplay = o.gross_profit_margin !== undefined ? o.gross_profit_margin.toFixed(1) + '%' : '-';
+                rowsHtml += '<tr class="border-b hover:bg-gray-50">' +
+                    '<td class="px-4 py-2 text-sm">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+                    '<td class="px-4 py-2 text-sm">' + custName + '</td>' +
+                    '<td class="px-4 py-2 text-sm font-bold text-right">' + (o.total_amount || 0).toLocaleString() +
                     '</td>' +
-                    '<td class="px-3 py-2 text-sm text-right">' + (o.gross_profit_margin !== undefined ? o
-                        .gross_profit_margin.toFixed(1) + '%' : '-') + '</td>' +
+                    '<td class="px-4 py-2 text-sm text-right">' + marginDisplay + '</td>' +
                     '</tr>';
-            });
+            }
+
+            // 總計列
+            const totalRow = '<tr class="bg-gray-100 font-bold">' +
+                '<td class="px-4 py-2 text-sm" colspan="2">總計 (' + filteredOrders.length + ' 單)</td>' +
+                '<td class="px-4 py-2 text-sm text-right">' + totalRevenue.toLocaleString() + '</td>' +
+                '<td class="px-4 py-2 text-sm text-right">' + avgMargin.toFixed(1) + '%</td>' +
+                '</tr>';
 
             const html = `
             <div class="content-card">
-              <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                <h1 class="text-3xl font-bold">👑 老闆查閱</h1>
-                <button onclick="downloadBossReport()" class="bg-green-600 text-white px-4 py-2 rounded-lg btn-touch">📥 匯出報表</button>
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                <h1 class="text-2xl font-bold">👑 老闆查閱</h1>
+                <button onclick="downloadBossReport()" class="bg-green-600 text-white px-4 py-2 rounded-lg btn-touch text-sm">📥 匯出報表</button>
               </div>
-
-              <!-- 日期區間 -->
-              <div class="bg-gray-50 p-4 rounded-lg mb-6 flex flex-wrap gap-3 items-end">
+              <!-- 月份篩選 -->
+              <div class="bg-gray-50 p-3 rounded-lg mb-4 flex flex-wrap gap-3 items-end">
                 <div><label class="block text-xs font-bold text-gray-600 mb-1">開始月份</label>
                   <input type="month" id="boss-month-start" value="${startMonth}" class="px-3 py-2 border rounded input-field" onchange="renderBoss(document.getElementById('main-content'))">
                 </div>
                 <div><label class="block text-xs font-bold text-gray-600 mb-1">結束月份</label>
                   <input type="month" id="boss-month-end" value="${endMonth}" class="px-3 py-2 border rounded input-field" onchange="renderBoss(document.getElementById('main-content'))">
                 </div>
-                <button onclick="document.getElementById('boss-month-start').value='${lastMonth}';document.getElementById('boss-month-end').value='${currentMonth}';renderBoss(document.getElementById('main-content'))" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">📅 最近兩個月</button>
-                <button onclick="document.getElementById('boss-month-start').value='${currentMonth}';document.getElementById('boss-month-end').value='${currentMonth}';renderBoss(document.getElementById('main-content'))" class="px-4 py-2 bg-gray-600 text-white rounded btn-touch">📅 本月</button>
+                <button onclick="document.getElementById('boss-month-start').value='${bossMonth}';document.getElementById('boss-month-end').value='${bossMonth}';renderBoss(document.getElementById('main-content'))" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch text-sm">📅 本月</button>
+                <button onclick="document.getElementById('boss-month-start').value='${new Date(new Date().getFullYear(), new Date().getMonth()-1, 1).toISOString().slice(0,7)}';document.getElementById('boss-month-end').value='${bossMonth}';renderBoss(document.getElementById('main-content'))" class="px-4 py-2 bg-gray-600 text-white rounded btn-touch text-sm">📅 最近兩個月</button>
               </div>
 
-              <!-- 統計卡片 -->
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div class="boss-stat-card blue"><div class="label">📦 訂單數</div><div class="value">${orderCount}</div><div class="sub">${subOrders} 筆訂閱</div></div>
-                <div class="boss-stat-card green"><div class="label">💰 總營收</div><div class="value">${totalRevenue.toLocaleString()}</div><div class="sub">訂閱營收 ${subRevenue.toLocaleString()}</div></div>
-                <div class="boss-stat-card red"><div class="label">📉 總成本</div><div class="value">${Math.round(totalCost).toLocaleString()}</div><div class="sub">含支出與訂閱攤提</div></div>
-                <div class="boss-stat-card purple"><div class="label">📈 淨利潤</div><div class="value" style="color:${profit>=0?'#10b981':'#ef4444'}">${Math.round(profit).toLocaleString()}</div><div class="sub">毛利率 ${avgMargin.toFixed(1)}%</div></div>
+              <!-- 簡易統計 -->
+              <div class="boss-summary">
+                <div class="item"><span class="label">總訂單數</span><span class="value">${filteredOrders.length}</span></div>
+                <div class="item"><span class="label">總營收</span><span class="value">${totalRevenue.toLocaleString()}</span></div>
+                <div class="item"><span class="label">平均毛利率</span><span class="value">${avgMargin.toFixed(1)}%</span></div>
               </div>
 
-              <!-- 支出明細 -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div class="boss-stat-card orange"><div class="label">💸 當月支出</div><div class="value">${Math.round(totalExpenses).toLocaleString()}</div><div class="sub">${monthExpenses.length} 筆費用</div></div>
-                <div class="boss-stat-card teal"><div class="label">🔄 訂閱攤提</div><div class="value">${Math.round(subTotal).toLocaleString()}</div><div class="sub">${D.subs.length} 個訂閱</div></div>
-              </div>
-
-              <!-- 月趨勢 -->
-              <div class="boss-chart-container mb-6">
-                <h3>📊 月營收趨勢</h3>
-                ${chartHtml || '<div class="text-gray-400 text-sm">尚無訂單數據</div>'}
-              </div>
-
-              <!-- 最近訂單 -->
+              <!-- 訂單列表 -->
               <div class="bg-white rounded-lg shadow overflow-hidden">
-                <h3 class="font-bold p-4 border-b bg-gray-50">📋 最近訂單</h3>
                 <div class="table-container">
                   <table class="min-w-full">
-                    <thead class="bg-gray-50"><tr>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">日期</th>
-                      <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">客戶</th>
-                      <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">金額</th>
-                      <th class="px-3 py-2 text-right text-xs font-medium text-gray-500">毛利率</th>
-                    </tr></thead>
-                    <tbody>${recentOrdersHtml || '<tr><td colspan="4" class="text-center text-gray-400 py-4">尚無訂單</td></tr>'}</tbody>
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">日期</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">客戶</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">金額</th>
+                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500">毛利率</th>
+                      </tr>
+                    </thead>
+                    <tbody>${rowsHtml || '<tr><td colspan="4" class="text-center text-gray-400 py-4">尚無訂單</td></tr>'}${rowsHtml ? totalRow : ''}</tbody>
                   </table>
                 </div>
               </div>
@@ -1249,7 +1074,7 @@
         }
 
         // ================================================================
-        //  2. 客戶管理 (完整)
+        //  2. 客戶管理 (含新增客戶加入窗口欄位)
         // ================================================================
         function renderCRM(c) {
             c.innerHTML =
@@ -1264,7 +1089,6 @@
                 list = list.filter(function(c) {
                     const name = (c.company_name || c.contact_person || '').toLowerCase();
                     const phone = (c.phone || '').toLowerCase();
-                    // 標籤搜尋
                     const tags = D.customerTags.filter(function(t) { return t.customer_id === c.id; });
                     const tagNames = tags.map(function(t) {
                         const tag = D.tags.find(function(x) { return x.id === t.tag_id; });
@@ -1328,6 +1152,7 @@
             openModal('客戶詳情', html, function() { return Promise.resolve(); }, true);
         }
 
+        // ===== 修改：新增客戶時加入主要窗口姓名和電話 =====
         async function openCustModal(id) {
             editingId = id || null;
             const c = id ? D.customers.find(function(x) { return x.id === id; }) : null;
@@ -1337,6 +1162,8 @@
                 return '<label class="inline-flex items-center mr-3"><input type="checkbox" class="cust-tag" value="' +
                     t.id + '" ' + (checked ? 'checked' : '') + '><span class="ml-1 text-sm">' + t.name + '</span></label>';
             }).join('');
+            // 主要窗口欄位 (編輯時帶入主要窗口資料)
+            const mainWin = id ? D.windows.find(function(w) { return w.customer_id === id && w.is_main; }) : null;
             const html = '<input type="hidden" id="c-id" value="' + (id || '') + '">' +
                 '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
                 '<div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="company" ' +
@@ -1356,11 +1183,18 @@
                 (c ? c.tax_id : '') + '"></div></div>' +
                 '<div class="mb-4"><label class="block text-sm font-bold mb-2">地址</label><input type="text" id="c-addr" class="w-full px-3 py-2 border rounded input-field" value="' +
                 (c ? c.address : '') + '"></div>' +
+                // 新增主要窗口欄位
+                '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
+                '<div><label class="block text-sm font-bold mb-2">主要窗口姓名</label><input type="text" id="c-win-name" class="w-full px-3 py-2 border rounded input-field" value="' +
+                (mainWin ? mainWin.name : '') + '"></div>' +
+                '<div><label class="block text-sm font-bold mb-2">窗口電話</label><input type="text" id="c-win-phone" class="w-full px-3 py-2 border rounded input-field" value="' +
+                (mainWin ? mainWin.phone : '') + '"></div></div>' +
                 '<div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div class="flex flex-wrap">' +
                 tagOptions + '</div></div>';
             openModal(id ? '編輯客戶' : '新增客戶', html, saveCust);
         }
 
+        // ===== 修改：儲存客戶時一併建立窗口 =====
         async function saveCust() {
             const id = document.getElementById('c-id').value;
             const isCompany = document.getElementById('c-type').value === 'company';
@@ -1374,13 +1208,35 @@
                 address: document.getElementById('c-addr').value
             };
             if (!d.contact_person) return showAlert('請輸入姓名/聯絡人！');
+            // 窗口資料
+            const winName = document.getElementById('c-win-name').value.trim();
+            const winPhone = document.getElementById('c-win-phone').value.trim();
+
             try {
                 let custId = id;
                 if (id) {
                     await sb.from('customers').update(d).eq('id', id);
+                    // 若有窗口資料，更新窗口（先刪除舊的主要窗口再新增）
+                    if (winName) {
+                        await sb.from('contact_windows').delete().eq('customer_id', id).eq('is_main', true);
+                        await sb.from('contact_windows').insert([{
+                            customer_id: id,
+                            name: winName,
+                            phone: winPhone || '',
+                            is_main: true
+                        }]);
+                    }
                 } else {
                     const r = await sb.from('customers').insert([d]).select().single();
                     custId = r.data.id;
+                    if (winName) {
+                        await sb.from('contact_windows').insert([{
+                            customer_id: custId,
+                            name: winName,
+                            phone: winPhone || '',
+                            is_main: true
+                        }]);
+                    }
                 }
                 // 處理標籤
                 const checkedTags = Array.from(document.querySelectorAll('.cust-tag:checked')).map(function(el) { return el
@@ -1414,7 +1270,7 @@
             }
         }
 
-        // 聯繫窗口管理
+        // ===== 管理聯繫窗口 (保持原有功能，但可選) =====
         function manageWindows() {
             const html = '<div class="mb-4"><select id="win-cust" class="w-full px-3 py-2 border rounded input-field">' +
                 D.customers.map(function(c) { return '<option value="' + c.id + '">' + (c.company_name || c
@@ -1469,9 +1325,9 @@
             renderWinList();
         }
 
-        // 標籤管理
+        // ===== 管理標籤 (調整版面：輸入框寬，顏色選取器窄) =====
         function manageTags() {
-            const html = '<div class="flex gap-2 mb-4"><input type="text" id="tag-name" placeholder="標籤名稱" class="flex-1 px-3 py-2 border rounded input-field"><select id="tag-color" class="px-3 py-2 border rounded input-field">' +
+            const html = '<div class="flex gap-2 mb-4"><input type="text" id="tag-name" placeholder="標籤名稱" class="flex-1 px-3 py-2 border rounded input-field"><select id="tag-color" class="w-28 px-2 py-2 border rounded input-field">' +
                 Object.keys(COLOR_NAMES).map(function(k) { return '<option value="' + k + '">' + COLOR_NAMES[k] +
                     '</option>'; }).join('') +
                 '</select><button onclick="addTag()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="tag-list" class="space-y-2">' +
