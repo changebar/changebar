@@ -1372,7 +1372,6 @@ async function viewOrdDetail(id) {
   openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
 
-// ===== 修正：訂單存檔功能 =====
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1560,7 +1559,6 @@ function calcOrd() {
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ===== 修正：訂單儲存函數 =====
 async function saveOrd() {
   const cid = document.getElementById('o-cust').value;
   const wid = document.getElementById('o-warehouse').value;
@@ -1951,7 +1949,6 @@ function renderProducts(c) {
   document.getElementById('bom-tbody').innerHTML = bomHtml;
 }
 
-// ===== 修正：產品儲存函數 =====
 async function openProdModal(id) {
   editingId = id || null;
   const p = id ? D.products.find(function(x) { return x.id === id; }) : null;
@@ -2016,7 +2013,6 @@ async function delProd(id) {
   }
 }
 
-// ===== BOM 編輯功能 =====
 async function editBom(id) {
   const b = D.bom.find(function(x) { return x.id === id; });
   if(!b) return showAlert('找不到 BOM 資料');
@@ -2060,7 +2056,6 @@ async function editBom(id) {
   });
 }
 
-// ===== 修正：BOM新增函數 =====
 function openBomModal() {
   let parentOptions = '';
   const finishedProducts = D.products.filter(function(p) { return p.type === 'finished'; });
@@ -2567,7 +2562,7 @@ function renderSubTable() {
   document.getElementById('sub-tbody').innerHTML = subHtml;
 }
 
-// ===== 修正：收支儲存函數 =====
+// ===== 修正：收支儲存函數（強制刷新） =====
 async function openExpModal(id) {
   editingId = id || null;
   const e = id ? D.expenses.find(function(x) { return x.id === id; }) : null;
@@ -2648,6 +2643,7 @@ async function saveExp() {
     }
     window.closeModal();
     await loadAll();
+    // 強制刷新當前視圖
     if (currentView === 'finance') {
       renderFinance(document.getElementById('main-content'));
     } else {
@@ -2684,7 +2680,7 @@ function manageExpCats() {
 async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
 async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
 
-// ===== 修正：訂閱儲存函數 =====
+// ===== 修正：訂閱儲存函數（強制刷新） =====
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
@@ -2734,6 +2730,7 @@ async function saveSub() {
     showAlert('已儲存！');
     window.closeModal();
     await loadAll();
+    // 強制刷新當前視圖
     if (currentView === 'finance') {
       renderFinance(document.getElementById('main-content'));
     } else {
