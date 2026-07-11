@@ -793,20 +793,29 @@ function renderBoss(c) {
   let exp = 0;
   for(let i=0; i<monthExpenses.length; i++) exp += monthExpenses[i].amount||0;
   
-  const monthSubs = D.subs.filter(function(s) {
-    if(!s.start_date) return false;
-    const d = new Date(s.start_date);
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    return (y > startY || (y === startY && m >= startM)) && (y < endY || (y === endY && m <= endM));
-  });
-  let sub = 0;
-  for(let i=0; i<monthSubs.length; i++) sub += monthSubs[i].amount||0;
+  // 計算訂閱每月攤提（分攤到每個月）
+  let subMonthlyTotal = 0;
+  const targetMonth = bossDateRange.start; // 使用開始月份計算當月攤提
+  for(let i=0; i<D.subs.length; i++) {
+    const s = D.subs[i];
+    if(s.start_date && s.end_date && s.amount) {
+      const startDate = new Date(s.start_date);
+      const endDate = new Date(s.end_date);
+      // 檢查這個訂閱是否涵蓋目標月份
+      const targetDate = new Date(targetMonth + '-01');
+      if(targetDate >= startDate && targetDate <= endDate) {
+        const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
+        if(diffMonths > 0) {
+          subMonthlyTotal += s.amount / diffMonths;
+        }
+      }
+    }
+  }
   
   let totalCash = 0;
   for(let i=0; i<D.banks.length; i++) totalCash += D.banks[i].balance||0;
   
-  const monthlyProfit = rev - pur - exp - sub;
+  const monthlyProfit = rev - pur - exp - subMonthlyTotal;
   
   const unreimbursedExpenses = D.expenses.filter(function(e) { return e.employee_id && !e.is_reimbursed; });
   const unreimbursedByEmp = {};
@@ -957,7 +966,7 @@ function renderBoss(c) {
     '<div class="card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">' +
     '<div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間業績</p><p class="text-3xl font-bold mt-2">'+rev.toLocaleString()+'</p><p class="text-xs mt-2 opacity-75">訂單數：'+monthOrderCount+' 單</p></div>' +
     '<div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間採購</p><p class="text-3xl font-bold mt-2">'+pur.toLocaleString()+'</p></div>' +
-    '<div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間開銷(含訂閱)</p><p class="text-3xl font-bold mt-2">'+(exp+sub).toLocaleString()+'</p></div>' +
+    '<div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間開銷(含訂閱攤提)</p><p class="text-3xl font-bold mt-2">'+(exp+subMonthlyTotal).toLocaleString()+'</p><p class="text-xs opacity-75">訂閱攤提：'+subMonthlyTotal.toLocaleString()+'</p></div>' +
     '<div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間淨利</p><p class="text-3xl font-bold mt-2">'+monthlyProfit.toLocaleString()+'</p></div>' +
     '</div>' +
     '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3><div class="space-y-4">'+unreimbursedHtml+'</div></div>' +
@@ -2562,7 +2571,7 @@ function renderSubTable() {
   document.getElementById('sub-tbody').innerHTML = subHtml;
 }
 
-// ===== 修正：收支儲存函數（強制刷新） =====
+// ===== 修正：收支儲存函數 =====
 async function openExpModal(id) {
   editingId = id || null;
   const e = id ? D.expenses.find(function(x) { return x.id === id; }) : null;
@@ -2643,7 +2652,6 @@ async function saveExp() {
     }
     window.closeModal();
     await loadAll();
-    // 強制刷新當前視圖
     if (currentView === 'finance') {
       renderFinance(document.getElementById('main-content'));
     } else {
@@ -2680,12 +2688,29 @@ function manageExpCats() {
 async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
 async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
 
-// ===== 修正：訂閱儲存函數（強制刷新） =====
+// ===== 修正：訂閱儲存函數（加入銀行扣款） =====
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
   const today = new Date().toISOString().split('T')[0];
-  const html = '<input type="hidden" id="s-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="s-name" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">供應商</label><input type="text" id="s-provider" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.provider : '') + '"></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">開始日期</label><input type="date" id="s-start" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.start_date : today) + '"></div><div><label class="block text-sm font-bold mb-2">結束日期</label><input type="date" id="s-end" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.end_date : '') + '"></div><div><label class="block text-sm font-bold mb-2">總金額</label><input type="number" id="s-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.amount : '') + '"></div></div><div class="bg-blue-50 p-3 rounded"><span class="text-sm text-gray-600">每月攤提費用：</span><span id="s-monthly" class="text-lg font-bold text-blue-600">0</span></div>';
+  
+  // 銀行帳戶選項
+  let bankOptions = '<option value="">請選擇出帳銀行</option>';
+  for(let i=0; i<D.banks.length; i++) {
+    const b = D.banks[i];
+    bankOptions += '<option value="' + b.id + '" ' + (s && s.bank_account_id === b.id ? 'selected' : '') + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+  }
+  
+  const html = '<input type="hidden" id="s-id" value="' + (id || '') + '">' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="s-name" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.name : '') + '"></div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">供應商</label><input type="text" id="s-provider" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.provider : '') + '"></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+      '<div><label class="block text-sm font-bold mb-2">開始日期</label><input type="date" id="s-start" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.start_date : today) + '"></div>' +
+      '<div><label class="block text-sm font-bold mb-2">結束日期</label><input type="date" id="s-end" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.end_date : '') + '"></div>' +
+      '<div><label class="block text-sm font-bold mb-2">總金額</label><input type="number" id="s-amt" class="w-full px-3 py-2 border rounded input-field" value="' + (s ? s.amount : '') + '"></div>' +
+    '</div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">出帳銀行帳戶 *</label><select id="s-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div>' +
+    '<div class="bg-blue-50 p-3 rounded"><span class="text-sm text-gray-600">每月攤提費用：</span><span id="s-monthly" class="text-lg font-bold text-blue-600">0</span></div>';
   openModal(id ? '編輯訂閱' : '新增訂閱', html, saveSub);
   calcMonthlySub();
   document.getElementById('s-start')?.addEventListener('change', calcMonthlySub);
@@ -2716,21 +2741,58 @@ function calcMonthlySub() {
 
 async function saveSub() {
   const id = document.getElementById('s-id').value;
+  const bankId = document.getElementById('s-bank').value;
+  const amount = parseFloat(document.getElementById('s-amt').value) || 0;
+  const startDate = document.getElementById('s-start').value;
+  const endDate = document.getElementById('s-end').value;
+  
+  if (!document.getElementById('s-name').value.trim()) return showAlert('名稱必填！');
+  if (!bankId) return showAlert('請選擇出帳銀行帳戶！');
+  if (amount <= 0) return showAlert('金額必須大於0！');
+  if (!startDate || !endDate) return showAlert('請選擇完整的日期區間！');
+
   const d = {
-    name: document.getElementById('s-name').value,
+    name: document.getElementById('s-name').value.trim(),
     provider: document.getElementById('s-provider').value,
-    amount: parseFloat(document.getElementById('s-amt').value) || 0,
-    start_date: document.getElementById('s-start').value || null,
-    end_date: document.getElementById('s-end').value || null
+    amount: amount,
+    start_date: startDate,
+    end_date: endDate,
+    bank_account_id: bankId
   };
-  if (!d.name) return showAlert('名稱必填！');
+  
   try {
-    if (id) await sb.from('system_subscriptions').update(d).eq('id', id);
-    else await sb.from('system_subscriptions').insert([d]);
-    showAlert('已儲存！');
+    // 檢查銀行餘額是否足夠
+    const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+    if(bank.data && bank.data.balance < amount) {
+      return showAlert('銀行餘額不足！目前餘額：' + bank.data.balance.toLocaleString());
+    }
+    
+    if (id) {
+      // 編輯時先還原舊的扣款
+      const oldSub = D.subs.find(function(x) { return x.id === id; });
+      if(oldSub && oldSub.bank_account_id) {
+        const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldSub.bank_account_id).single();
+        if(oldBank.data) {
+          await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldSub.amount }).eq('id', oldSub.bank_account_id);
+        }
+      }
+      await sb.from('system_subscriptions').update(d).eq('id', id);
+    } else {
+      const r = await sb.from('system_subscriptions').insert([d]).select().single();
+      editingId = r.data.id;
+    }
+    
+    // 扣款
+    if(bankId && amount > 0) {
+      const currentBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+      if(currentBank.data) {
+        await sb.from('bank_accounts').update({ balance: (currentBank.data.balance || 0) - amount }).eq('id', bankId);
+      }
+    }
+    
+    showAlert('訂閱已儲存並完成扣款！');
     window.closeModal();
     await loadAll();
-    // 強制刷新當前視圖
     if (currentView === 'finance') {
       renderFinance(document.getElementById('main-content'));
     } else {
@@ -2738,12 +2800,28 @@ async function saveSub() {
     }
   } catch(e) {
     showAlert('失敗：' + e.message);
+    console.error('saveSub error:', e);
   }
 }
 
 async function delSub(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('system_subscriptions').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try {
+    const s = D.subs.find(function(x) { return x.id === id; });
+    // 退款
+    if(s && s.bank_account_id && s.amount > 0) {
+      const bank = await sb.from('bank_accounts').select('balance').eq('id', s.bank_account_id).single();
+      if(bank.data) {
+        await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + s.amount }).eq('id', s.bank_account_id);
+      }
+    }
+    await sb.from('system_subscriptions').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) { 
+    showAlert('失敗：' + e.message);
+    console.error('delSub error:', e);
+  }
 }
 
 // ==================== 銀行帳戶 ====================
