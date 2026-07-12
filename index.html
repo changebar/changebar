@@ -2220,10 +2220,10 @@ function saveInvItem(btn, pid, wid) {
   }).catch(function(e) { showAlert('失敗：' + e.message); });
 }
 
-// ==================== 採購入庫 ====================
+// ==================== 採購入庫（修改重點） ====================
 function renderPurchases(c) {
-c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
-renderPurTable();
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer">日期</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">廠商</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">總金額</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
+  renderPurTable();
 }
 
 function renderPurTable() {
@@ -2252,6 +2252,7 @@ function renderPurTable() {
     const typeLabel = p.is_invoice_purchase ?
       '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' :
       '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
+    const invoiceLabel = p.is_invoice_purchase ? '<span class="text-green-600 font-bold">有</span>' : '<span class="text-gray-400">無</span>';
 
     const items = p.items || [];
     const itemsText = items.map(function(item) {
@@ -2259,7 +2260,13 @@ function renderPurTable() {
       return (prod?.name || '?') + ' x' + item.quantity;
     }).join(', ');
 
-    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3 font-bold">' + (p.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
+    let amountDisplay = p.total_amount || 0;
+    let amountHtml = '<span class="font-bold">' + amountDisplay.toLocaleString() + '</span>';
+    if (p.is_invoice_purchase) {
+      amountHtml = '<span class="font-bold text-orange-600">' + amountDisplay.toLocaleString() + '</span>';
+    }
+
+    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + invoiceLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
   }
 
   const tbody = document.getElementById('pur-tbody');
@@ -2302,6 +2309,7 @@ function viewPurchaseDetail(id) {
       '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
       '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
       '<div><span class="text-gray-600">類型：</span>' + (isInvoice ? '購買發票' : '一般採購') + '</div>' +
+      '<div><span class="text-gray-600">發票：</span>' + (p.is_invoice_purchase ? '有' : '無') + '</div>' +
       '<div><span class="text-gray-600">' + totalDisplay + '：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
       '</div>' +
       '<div class="border-t pt-4">' +
@@ -2329,7 +2337,26 @@ async function openPurModal(isInvoicePurchase, editId) {
     const w = activeWh[i];
     whOptions += '<option value="' + w.id + '" ' + (existingData && existingData.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
   }
-  const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (!isInvoicePurchase ? '<div><label class="block text-sm font-bold mb-2">入庫倉庫</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>' : '') + '</div><div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div><div class="bg-gray-50 p-4 rounded mb-4"><div class="grid grid-cols-2 gap-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold">0</span></div><div><span class="text-sm text-gray-600">稅金 (5%)：</span><span id="pu-tax" class="font-bold text-orange-600">0</span></div><div class="col-span-2"><span class="text-sm text-gray-600">' + (isInvoicePurchase ? '稅金總額 (保存時四捨五入)' : '含稅總金額') + '：</span><span id="pu-total" class="text-xl font-bold text-blue-600">0</span></div></div></div>';
+
+  let invoiceCheckHtml = '';
+  if (!isInvoicePurchase) {
+    const checked = existingData && existingData.is_invoice_purchase ? 'checked' : '';
+    invoiceCheckHtml = '<div class="mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pu-has-invoice" class="w-5 h-5 text-blue-600 rounded" ' + checked + '><span class="font-medium">有發票</span></label></div>';
+  } else {
+    invoiceCheckHtml = '<input type="hidden" id="pu-has-invoice" value="true">';
+  }
+
+  let calcHtml = '';
+  if (isInvoicePurchase) {
+    calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div class="grid grid-cols-2 gap-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold">0</span></div><div><span class="text-sm text-gray-600">稅金 (5%)：</span><span id="pu-tax" class="font-bold text-orange-600">0</span></div><div class="col-span-2"><span class="text-sm text-gray-600">含稅總金額：</span><span id="pu-total" class="text-xl font-bold text-blue-600">0</span></div></div></div>';
+  } else {
+    calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold text-lg">0</span></div></div>';
+  }
+
+  const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (!isInvoicePurchase ? '<div><label class="block text-sm font-bold mb-2">入庫倉庫</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>' : '<div></div>') + '</div>' + invoiceCheckHtml +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>' +
+    calcHtml;
+
   openModal(isInvoicePurchase ? '購買發票' : '一般採購入庫', html, savePur);
   if(editId && existingData) {
     const itemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
@@ -2369,17 +2396,26 @@ function calcPur() {
     const qty = parseInt(r.querySelector('.pu-qty').value) || 0;
     subtotal += price * qty;
   }
-  const tax = subtotal * 0.05;
-  const total = subtotal + tax;
+  const isInvoiceMode = document.getElementById('pu-invoice-mode')?.value === 'true';
   document.getElementById('pu-cost').textContent = subtotal.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-  document.getElementById('pu-tax').textContent = tax.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-  document.getElementById('pu-total').textContent = total.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+  if (isInvoiceMode) {
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+    document.getElementById('pu-tax').textContent = tax.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+    document.getElementById('pu-total').textContent = total.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
+  }
 }
 
 async function savePur() {
   let editId = document.getElementById('pu-edit-id').value;
   const vendorId = document.getElementById('pu-v').value;
   const isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
+  let hasInvoice = isInvoiceMode;
+  if (!isInvoiceMode) {
+    const checkbox = document.getElementById('pu-has-invoice');
+    hasInvoice = checkbox ? checkbox.checked : false;
+  }
+
   const items = [];
   let subtotal = 0;
   const rows = document.querySelectorAll('#pu-items > div');
@@ -2404,7 +2440,7 @@ async function savePur() {
 
   const d = {
     vendor_id: vendorId,
-    is_invoice_purchase: isInvoiceMode,
+    is_invoice_purchase: hasInvoice,
     total_amount: totalAmount,
     warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null
   };
@@ -2419,7 +2455,7 @@ async function savePur() {
       editId = r.data.id;
     }
     await sb.from('purchase_items').insert(items.map(function(i) { return Object.assign({}, i, {purchase_id: editId}); }));
-    if(!isInvoiceMode && d.warehouse_id) {
+    if (!isInvoiceMode && d.warehouse_id) {
       for(let i=0; i<items.length; i++) {
         const item = items[i];
         const existing = D.warehouseInv.find(function(w) { return w.warehouse_id === d.warehouse_id && w.product_id === item.product_id; });
@@ -2686,13 +2722,11 @@ function manageExpCats() {
 async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
 async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
 
-// ===== 系統訂閱 - 優化版本（含完整錯誤引導） =====
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
   const today = new Date().toISOString().split('T')[0];
   
-  // 檢查是否有銀行帳戶
   if (D.banks.length === 0) {
     const confirmCreate = confirm('⚠️ 目前沒有任何銀行帳戶！\n\n建立訂閱需要選擇一個銀行帳戶進行扣款。\n\n是否前往「銀行帳戶」建立？');
     if (confirmCreate) {
@@ -2701,7 +2735,6 @@ async function openSubModal(id) {
     return;
   }
   
-  // 銀行帳戶選項
   let bankOptions = '<option value="">請選擇出帳銀行</option>';
   for(let i=0; i<D.banks.length; i++) {
     const b = D.banks[i];
@@ -2774,7 +2807,6 @@ async function saveSub() {
   };
   
   try {
-    // 檢查銀行餘額是否足夠
     const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
     if(bank.data && bank.data.balance < amount) {
       return showAlert('⚠️ 銀行餘額不足！\n目前餘額：' + bank.data.balance.toLocaleString() + '\n訂閱金額：' + amount.toLocaleString());
@@ -2782,7 +2814,6 @@ async function saveSub() {
     
     let result;
     if (id) {
-      // 編輯時先還原舊的扣款
       const oldSub = D.subs.find(function(x) { return x.id === id; });
       if(oldSub && oldSub.bank_account_id) {
         const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldSub.bank_account_id).single();
@@ -2800,7 +2831,6 @@ async function saveSub() {
       showAlert('訂閱已新增！');
     }
     
-    // 扣款
     if(bankId && amount > 0) {
       const currentBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
       if(currentBank.data) {
@@ -2818,17 +2848,10 @@ async function saveSub() {
   } catch(e) {
     console.error('saveSub error:', e);
     let errMsg = '儲存失敗：';
-    // 檢查是否為欄位不存在錯誤
-    if (e.message && e.message.includes('column') && e.message.includes('bank_account_id')) {
-      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位或欄位名稱不正確。\n\n' +
-                '請執行以下步驟檢查並修正：\n' +
-                '1. 在 Supabase SQL Editor 中執行：\n' +
-                '   SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \'system_subscriptions\' AND column_name LIKE \'%bank%\';\n\n' +
-                '2. 如果看到 bank_account_id 以外的名稱（例如 bank_accountId），請重新命名為 bank_account_id：\n' +
-                '   ALTER TABLE system_subscriptions RENAME COLUMN "bank_accountId" TO bank_account_id;\n\n' +
-                '3. 如果欄位不存在，請新增：\n' +
-                '   ALTER TABLE system_subscriptions ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);\n\n' +
-                '完成後重新整理頁面。';
+    if (e.message && (e.message.includes('start_date') || e.message.includes('end_date'))) {
+      errMsg += '資料表 system_subscriptions 缺少 start_date 或 end_date 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE system_subscriptions ADD COLUMN IF NOT EXISTS start_date DATE;\nALTER TABLE system_subscriptions ADD COLUMN IF NOT EXISTS end_date DATE;';
+    } else if (e.message && e.message.includes('column') && e.message.includes('bank_account_id')) {
+      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE system_subscriptions ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);';
     } else {
       errMsg += e.message;
     }
@@ -2840,12 +2863,10 @@ async function delSub(id) {
   if(!confirm('確定刪除這筆訂閱？刪除後會將款項退回原銀行帳戶。')) return;
   try {
     const s = D.subs.find(function(x) { return x.id === id; });
-    // 退款
     if(s && s.bank_account_id && s.amount > 0) {
       const bank = await sb.from('bank_accounts').select('balance').eq('id', s.bank_account_id).single();
       if(bank.data) {
         await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + s.amount }).eq('id', s.bank_account_id);
-        console.log('✅ 已退款 ' + s.amount + ' 至 ' + s.bank_account_id);
       }
     }
     await sb.from('system_subscriptions').delete().eq('id', id);
