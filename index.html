@@ -1439,6 +1439,7 @@ async function viewOrdDetail(id) {
   openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
 
+// ========== 新增/編輯訂單 (含搜尋下拉、發票勾選) ==========
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1498,7 +1499,10 @@ async function openOrdModal(id) {
       for(let i=0; i<items.length; i++) {
         const item = items[i];
         const p = D.products.find(function(x) { return x.id === item.product_id; });
-        if(p) addOrdItem(p.type, p, item.quantity, item.unit_price);
+        if(p) {
+          const hasInvoice = item.has_invoice || false;
+          addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice);
+        }
       }
     }
   }
@@ -1538,70 +1542,157 @@ async function loadCustomerDefaultAddress(custId) {
   }
 }
 
-function addOrdItem(typeFilter, prod, qty, price) {
+// 新增訂單產品行 (含搜尋下拉、發票勾選)
+function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
+  const uid = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
-  const typeMap = { 'finished': '成品', 'gift_box': '禮盒', 'outer_box': '外箱' };
-  const typeColor = { 'finished': 'bg-blue-100 text-blue-700', 'gift_box': 'bg-pink-100 text-pink-700', 'outer_box': 'bg-gray-200 text-gray-700' };
+  // 建立產品選項列表 (僅顯示符合 typeFilter 的產品)
+  let prodOptionsHtml = '';
+  const filtered = D.products.filter(p => p.type === typeFilter);
+  for (let i = 0; i < filtered.length; i++) {
+    const p = filtered[i];
+    const selected = (prod && prod.id === p.id) ? 'selected' : '';
+    prodOptionsHtml += `<div class="opt-item" data-id="${p.id}" data-cost="${p.cost_price || 0}" data-name="${p.name}" ${selected} onclick="selectOrdProduct(this, '${uid}')">
+      <span class="opt-name">${p.name}</span><span class="opt-cost">(成本: ${p.cost_price || 0})</span>
+    </div>`;
+  }
+  if (!prodOptionsHtml) {
+    prodOptionsHtml = '<div class="opt-item no-match">尚無此類商品</div>';
+  }
 
-  let prodOptions = '<option value="">選擇'+(typeMap[typeFilter]||'')+'產品</option>';
-  for(let i=0; i<D.products.length; i++) {
-    const p = D.products[i];
-    if(p.type === typeFilter) {
-      prodOptions += '<option value="' + p.id + '" data-price="' + (p.sell_price || 0) + '" data-cost="' + (p.cost_price || 0) + '" data-type="' + p.type + '" ' + (prod && prod.id === p.id ? 'selected' : '') + '>' + p.name + ' - 售價:' + (p.sell_price || 0) + '</option>';
+  // 預設選中的產品名稱與成本
+  let defaultName = prod ? prod.name : '';
+  let defaultCost = prod ? (prod.cost_price || 0) : 0;
+  // 是否有發票 (僅成品有效)
+  const isFinished = (typeFilter === 'finished');
+  const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
+
+  div.innerHTML = `
+    <div class="flex-1 min-w-[150px] prod-search-wrapper">
+      <input type="text" class="pu-prod-search w-full px-3 py-2 border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},200)">
+      <div class="pu-prod-select" id="ord_dropdown_${uid}">
+        ${prodOptionsHtml}
+      </div>
+      <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
+    </div>
+    <div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()"></div>
+    <div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultCost}" step="0.01" oninput="calcOrd()"></div>
+    ${isFinished ? `<label class="flex items-center gap-1 text-sm whitespace-nowrap"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()"> <span>有發票</span></label>` : ''}
+    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>
+  `;
+  box.appendChild(div);
+
+  // 如果有預設產品但沒有選中，確保 hidden 值正確
+  if (prod) {
+    const hiddenInput = div.querySelector('.pu-prod-id');
+    hiddenInput.value = prod.id;
+    const priceInput = div.querySelector('.o-price');
+    if (price !== undefined && price > 0) {
+      priceInput.value = price;
+    } else {
+      priceInput.value = prod.cost_price || 0;
     }
   }
-
-  div.innerHTML = '<div class="flex-1 min-w-[150px]"><span class="inline-block px-2 py-1 rounded text-xs font-bold '+typeColor[typeFilter]+' mb-1">'+(typeMap[typeFilter]||'')+'</span><select class="o-prod w-full px-3 py-2 border rounded input-field" onchange="autoFillPrice(this); calcOrd()">' + prodOptions + '</select></div><div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="' + (qty || 1) + '" min="1" oninput="calcOrd()"></div><div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="' + (price !== undefined ? price : 0) + '" step="0.01" oninput="calcOrd()"></div><button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>';
-  box.appendChild(div);
-  if(price !== undefined && price > 0) {
-    setTimeout(calcOrd, 50);
-  }
+  setTimeout(calcOrd, 50);
 }
 
-function autoFillPrice(select) {
-  const option = select.options[select.selectedIndex];
-  const price = option.dataset.price || 0;
-  const row = select.closest('div.flex');
-  const priceInput = row.querySelector('.o-price');
-  if(price && (!priceInput.value || priceInput.value === '0')) {
-    priceInput.value = price;
-    calcOrd();
+// 訂單產品搜尋過濾
+function filterOrdProdOptions(input, uid) {
+  const kw = input.value.toLowerCase();
+  const dropdown = document.getElementById('ord_dropdown_' + uid);
+  if (!dropdown) return;
+  const items = dropdown.querySelectorAll('.opt-item');
+  let hasMatch = false;
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (item.classList.contains('no-match')) continue;
+    const name = (item.dataset.name || '').toLowerCase();
+    if (name.indexOf(kw) !== -1) {
+      item.style.display = 'block';
+      hasMatch = true;
+    } else {
+      item.style.display = 'none';
+    }
   }
+  let noMatch = dropdown.querySelector('.opt-item.no-match');
+  if (!hasMatch) {
+    if (!noMatch) {
+      noMatch = document.createElement('div');
+      noMatch.className = 'opt-item no-match';
+      noMatch.textContent = '無符合商品';
+      dropdown.appendChild(noMatch);
+    }
+    noMatch.style.display = 'block';
+  } else {
+    if (noMatch) noMatch.style.display = 'none';
+  }
+  dropdown.classList.add('show');
 }
+
+// 選擇訂單產品
+function selectOrdProduct(el, uid) {
+  const id = el.dataset.id;
+  const cost = parseFloat(el.dataset.cost) || 0;
+  const name = el.dataset.name || '';
+  const wrapper = document.getElementById('ord_dropdown_' + uid)?.closest('.prod-search-wrapper');
+  if (!wrapper) return;
+  const searchInput = wrapper.querySelector('.pu-prod-search');
+  const hiddenInput = wrapper.querySelector('.pu-prod-id');
+  const priceInput = wrapper.closest('div.flex')?.querySelector('.o-price');
+  if (searchInput) searchInput.value = name;
+  if (hiddenInput) hiddenInput.value = id;
+  if (priceInput && !priceInput.dataset.userSet) {
+    priceInput.value = cost;
+  }
+  const dropdown = document.getElementById('ord_dropdown_' + uid);
+  if (dropdown) dropdown.classList.remove('show');
+  calcOrd();
+}
+
+// 計算訂單 (含發票稅金影響成本)
 function calcOrd() {
   let productSubtotal = 0;
   let totalCost = 0;
   const rows = document.querySelectorAll('#o-items > div');
-  for(let i=0; i<rows.length; i++) {
+  for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
-    const select = r.querySelector('.o-prod');
-    if(!select || !select.value) continue;
-    const option = select.options[select.selectedIndex];
-    const costPrice = parseFloat(option.dataset.cost) || 0;
+    const hiddenInput = r.querySelector('.pu-prod-id');
+    if (!hiddenInput || !hiddenInput.value) continue;
+    const productId = hiddenInput.value;
+    const product = D.products.find(p => p.id === productId);
+    if (!product) continue;
+    const costPrice = product.cost_price || 0;
     const price = parseFloat(r.querySelector('.o-price').value) || 0;
     const qty = parseInt(r.querySelector('.o-qty').value) || 0;
     productSubtotal += price * qty;
-    totalCost += costPrice * qty;
+
+    // 檢查是否有發票 (僅成品)
+    let finalCost = costPrice;
+    const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+    if (hasInvoiceCheck && hasInvoiceCheck.checked && product.type === 'finished') {
+      finalCost = costPrice * 1.05; // 加5%稅金
+    }
+    totalCost += finalCost * qty;
   }
 
   const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
   const shipPayer = document.getElementById('o-ship-payer').value;
   let finalShipping = 0;
-  if(shipPayer === 'customer') finalShipping = shippingFee;
+  if (shipPayer === 'customer') finalShipping = shippingFee;
 
   const invType = document.getElementById('o-invoice-type').value;
   let taxAmount = 0;
-  if(invType === 'tax_plus') taxAmount = productSubtotal * 0.05;
+  if (invType === 'tax_plus') taxAmount = productSubtotal * 0.05;
 
   const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
   const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
   const totalDiscount = couponAmount + pointsAmount;
 
   let amountAfterDiscount = productSubtotal + finalShipping + taxAmount - totalDiscount;
-  if(amountAfterDiscount < 0) amountAfterDiscount = 0;
+  if (amountAfterDiscount < 0) amountAfterDiscount = 0;
 
   const chSelect = document.getElementById('o-channel');
   const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
@@ -1626,6 +1717,7 @@ function calcOrd() {
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
+// 儲存訂單 (含 has_invoice)
 async function saveOrd() {
   const cid = document.getElementById('o-cust').value;
   const wid = document.getElementById('o-warehouse').value;
@@ -1640,17 +1732,20 @@ async function saveOrd() {
   const rows = document.querySelectorAll('#o-items > div');
   for(let i=0; i<rows.length; i++) {
     const r = rows[i];
-    const select = r.querySelector('.o-prod');
-    if(!select || !select.value) continue;
-    const option = select.options[select.selectedIndex];
-    const pid = option.value;
-    const costPrice = parseFloat(option.dataset.cost) || 0;
+    const hiddenInput = r.querySelector('.pu-prod-id');
+    if (!hiddenInput || !hiddenInput.value) continue;
+    const pid = hiddenInput.value;
     const q = parseInt(r.querySelector('.o-qty').value) || 0;
     const p = parseFloat(r.querySelector('.o-price').value) || 0;
     if(pid && q > 0) {
-      items.push({product_id: pid, quantity: q, unit_price: p});
+      const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+      const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
+      items.push({product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice});
       productSubtotal += p * q;
-      totalCost += costPrice * q;
+      const product = D.products.find(x => x.id === pid);
+      const cost = product ? product.cost_price || 0 : 0;
+      const finalCost = hasInvoice && product && product.type === 'finished' ? cost * 1.05 : cost;
+      totalCost += finalCost * q;
     }
   }
   if(!items.length) return showAlert('請加入產品！');
@@ -2220,7 +2315,6 @@ function renderInventory(c) {
     const w = activeWh[i];
     tabsHtml += '<button onclick="showWhTab(\'' + w.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + w.id + '">' + w.name + '</button>';
   }
-  // 加入搜尋框
   c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div><div class="mb-4"><input type="text" id="inv-search" placeholder="🔍 搜尋產品名稱或SKU..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="showWhTab(document.querySelector(\'.wh-tab.bg-blue-600\')?.dataset.wh || \'all\')"></div><div id="inv-content"></div></div>';
   showWhTab('all');
 }
@@ -2235,10 +2329,7 @@ function showWhTab(whId) {
   const container = document.getElementById('inv-content');
   const searchKw = (document.getElementById('inv-search')?.value || '').toLowerCase();
 
-  // 取得當前顯示的產品列表 (根據 whId)
   let productList = D.products.slice();
-
-  // 搜尋過濾
   if(searchKw) {
     productList = productList.filter(function(p) {
       return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
@@ -2246,7 +2337,6 @@ function showWhTab(whId) {
     });
   }
 
-  // 排序 (預設按名稱)
   const sortField = sortState.inventory.field || 'name';
   const sortAsc = sortState.inventory.asc !== false;
   productList.sort(function(a, b) {
@@ -2317,7 +2407,7 @@ function saveInvItem(btn, pid, wid) {
   }).catch(function(e) { showAlert('失敗：' + e.message); });
 }
 
-// ==================== 採購入庫 (商品明細加入搜尋) ====================
+// ==================== 採購入庫 (商品明細搜尋) ====================
 function renderPurchases(c) {
   c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
   renderPurTable();
@@ -2339,7 +2429,6 @@ function renderPurTable() {
     return matchSearch && matchStartDate && matchEndDate;
   });
 
-  // 排序
   const sortField = sortState.purchase.field || 'created_at';
   const sortAsc = sortState.purchase.asc !== false;
   list.sort(function(a, b) {
@@ -2496,14 +2585,13 @@ async function openPurModal(isInvoicePurchase, editId) {
   calcPur();
 }
 
-// 採購商品明細 - 自定義搜尋下拉 (取代原本的 select)
+// 採購商品明細 - 自定義搜尋下拉
 function addPurItem(prod, qty, price) {
   const box = document.getElementById('pu-items');
   const div = document.createElement('div');
   div.className = 'flex gap-2 items-end bg-gray-50 p-3 rounded flex-wrap';
   const uid = 'pu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
-  // 建立商品選項列表
   let prodOptionsHtml = '';
   for(let i=0; i<D.products.length; i++) {
     const p = D.products[i];
@@ -2514,7 +2602,6 @@ function addPurItem(prod, qty, price) {
     prodOptionsHtml = '<div class="opt-item no-match">尚無商品，請先建立</div>';
   }
 
-  // 預設選中的商品名稱
   let defaultName = prod ? prod.name : '';
   let defaultCost = prod ? prod.cost_price : 0;
 
@@ -2532,7 +2619,6 @@ function addPurItem(prod, qty, price) {
   `;
   box.appendChild(div);
 
-  // 如果沒有預設選中，但 prod 有值，確保選中狀態
   if(prod) {
     const hiddenInput = div.querySelector('.pu-prod-id');
     hiddenInput.value = prod.id;
@@ -2563,7 +2649,6 @@ function filterPurProdOptions(input, uid) {
       item.style.display = 'none';
     }
   }
-  // 如果沒有匹配，顯示提示
   let noMatch = dropdown.querySelector('.opt-item.no-match');
   if(!hasMatch) {
     if(!noMatch) {
@@ -2789,7 +2874,6 @@ function renderExpTable() {
     return matchMonth && matchKw;
   });
 
-  // 排序
   const sortField = sortState.expense.field || 'payment_date';
   const sortAsc = sortState.expense.asc !== false;
   list.sort(function(a, b) {
@@ -2832,7 +2916,6 @@ function sortExpTable(field) {
 
 function renderSubTable() {
   let list = D.subs.slice();
-  // 排序
   const sortField = sortState.subscription.field || 'name';
   const sortAsc = sortState.subscription.asc !== false;
   list.sort(function(a, b) {
