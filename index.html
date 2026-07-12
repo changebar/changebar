@@ -795,13 +795,12 @@ function renderBoss(c) {
   
   // 計算訂閱每月攤提（分攤到每個月）
   let subMonthlyTotal = 0;
-  const targetMonth = bossDateRange.start; // 使用開始月份計算當月攤提
+  const targetMonth = bossDateRange.start;
   for(let i=0; i<D.subs.length; i++) {
     const s = D.subs[i];
     if(s.start_date && s.end_date && s.amount) {
       const startDate = new Date(s.start_date);
       const endDate = new Date(s.end_date);
-      // 檢查這個訂閱是否涵蓋目標月份
       const targetDate = new Date(targetMonth + '-01');
       if(targetDate >= startDate && targetDate <= endDate) {
         const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
@@ -2571,7 +2570,6 @@ function renderSubTable() {
   document.getElementById('sub-tbody').innerHTML = subHtml;
 }
 
-// ===== 修正：收支儲存函數 =====
 async function openExpModal(id) {
   editingId = id || null;
   const e = id ? D.expenses.find(function(x) { return x.id === id; }) : null;
@@ -2688,17 +2686,28 @@ function manageExpCats() {
 async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
 async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
 
-// ===== 修正：訂閱儲存函數（加入銀行扣款） =====
+// ===== 系統訂閱 - 優化版本 =====
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
   const today = new Date().toISOString().split('T')[0];
   
+  // 檢查是否有銀行帳戶
+  if (D.banks.length === 0) {
+    const confirmCreate = confirm('⚠️ 目前沒有任何銀行帳戶！\n\n建立訂閱需要選擇一個銀行帳戶進行扣款。\n\n是否前往「銀行帳戶」建立？');
+    if (confirmCreate) {
+      // 切換到銀行帳戶頁面
+      document.querySelector('nav a[data-view="banks"]').click();
+    }
+    return;
+  }
+  
   // 銀行帳戶選項
   let bankOptions = '<option value="">請選擇出帳銀行</option>';
   for(let i=0; i<D.banks.length; i++) {
     const b = D.banks[i];
-    bankOptions += '<option value="' + b.id + '" ' + (s && s.bank_account_id === b.id ? 'selected' : '') + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+    const selected = (s && s.bank_account_id === b.id) ? 'selected' : '';
+    bankOptions += '<option value="' + b.id + '" ' + selected + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
   }
   
   const html = '<input type="hidden" id="s-id" value="' + (id || '') + '">' +
@@ -2745,15 +2754,20 @@ async function saveSub() {
   const amount = parseFloat(document.getElementById('s-amt').value) || 0;
   const startDate = document.getElementById('s-start').value;
   const endDate = document.getElementById('s-end').value;
+  const name = document.getElementById('s-name').value.trim();
   
-  if (!document.getElementById('s-name').value.trim()) return showAlert('名稱必填！');
+  if (!name) return showAlert('請輸入訂閱名稱！');
   if (!bankId) return showAlert('請選擇出帳銀行帳戶！');
   if (amount <= 0) return showAlert('金額必須大於0！');
   if (!startDate || !endDate) return showAlert('請選擇完整的日期區間！');
+  
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (end < start) return showAlert('結束日期不能早於開始日期！');
 
   const d = {
-    name: document.getElementById('s-name').value.trim(),
-    provider: document.getElementById('s-provider').value,
+    name: name,
+    provider: document.getElementById('s-provider').value.trim(),
     amount: amount,
     start_date: startDate,
     end_date: endDate,
@@ -2764,7 +2778,7 @@ async function saveSub() {
     // 檢查銀行餘額是否足夠
     const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
     if(bank.data && bank.data.balance < amount) {
-      return showAlert('銀行餘額不足！目前餘額：' + bank.data.balance.toLocaleString());
+      return showAlert('⚠️ 銀行餘額不足！\n目前餘額：' + bank.data.balance.toLocaleString() + '\n訂閱金額：' + amount.toLocaleString());
     }
     
     if (id) {
@@ -2777,9 +2791,11 @@ async function saveSub() {
         }
       }
       await sb.from('system_subscriptions').update(d).eq('id', id);
+      showAlert('訂閱已更新！');
     } else {
       const r = await sb.from('system_subscriptions').insert([d]).select().single();
       editingId = r.data.id;
+      showAlert('訂閱已新增！');
     }
     
     // 扣款
@@ -2790,7 +2806,6 @@ async function saveSub() {
       }
     }
     
-    showAlert('訂閱已儲存並完成扣款！');
     window.closeModal();
     await loadAll();
     if (currentView === 'finance') {
@@ -2799,13 +2814,19 @@ async function saveSub() {
       render();
     }
   } catch(e) {
-    showAlert('失敗：' + e.message);
     console.error('saveSub error:', e);
+    let errMsg = '儲存失敗：';
+    if (e.message && e.message.includes('column') && e.message.includes('does not exist')) {
+      errMsg += '資料表缺少 bank_account_id 欄位，請在 Supabase 中為 system_subscriptions 表新增此欄位。';
+    } else {
+      errMsg += e.message;
+    }
+    showAlert(errMsg);
   }
 }
 
 async function delSub(id) {
-  if(!confirm('確定刪除?')) return;
+  if(!confirm('確定刪除這筆訂閱？刪除後會將款項退回原銀行帳戶。')) return;
   try {
     const s = D.subs.find(function(x) { return x.id === id; });
     // 退款
@@ -2813,13 +2834,15 @@ async function delSub(id) {
       const bank = await sb.from('bank_accounts').select('balance').eq('id', s.bank_account_id).single();
       if(bank.data) {
         await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + s.amount }).eq('id', s.bank_account_id);
+        console.log('✅ 已退款 ' + s.amount + ' 至 ' + s.bank_account_id);
       }
     }
     await sb.from('system_subscriptions').delete().eq('id', id);
     await loadAll();
     render();
+    showAlert('訂閱已刪除並完成退款！');
   } catch(e) { 
-    showAlert('失敗：' + e.message);
+    showAlert('刪除失敗：' + e.message);
     console.error('delSub error:', e);
   }
 }
