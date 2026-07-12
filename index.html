@@ -118,6 +118,7 @@
   .table-container th, .table-container td {
     padding: 0.75rem 1rem;
     white-space: nowrap;
+    text-align: center; /* 置中 */
   }
   @media (max-width: 640px) {
     .table-container th, .table-container td {
@@ -1049,7 +1050,7 @@ function downloadBossReport() {
 
 // ==================== 客戶管理 ====================
 function renderCRM(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 0)">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 1)">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 2)">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 0)">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 1)">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 2)">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   renderCustTable();
 }
 
@@ -1542,7 +1543,7 @@ async function loadCustomerDefaultAddress(custId) {
   }
 }
 
-// 新增訂單產品行 (含搜尋下拉、發票勾選)
+// 新增訂單產品行 (含搜尋下拉、發票勾選，調整位置，顯示售價)
 function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
@@ -1555,17 +1556,19 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   for (let i = 0; i < filtered.length; i++) {
     const p = filtered[i];
     const selected = (prod && prod.id === p.id) ? 'selected' : '';
-    prodOptionsHtml += `<div class="opt-item" data-id="${p.id}" data-cost="${p.cost_price || 0}" data-name="${p.name}" ${selected} onclick="selectOrdProduct(this, '${uid}')">
-      <span class="opt-name">${p.name}</span><span class="opt-cost">(成本: ${p.cost_price || 0})</span>
+    // 顯示售價 (sell_price) 而非成本
+    const displayPrice = p.sell_price || 0;
+    prodOptionsHtml += `<div class="opt-item" data-id="${p.id}" data-price="${displayPrice}" data-name="${p.name}" ${selected} onclick="selectOrdProduct(this, '${uid}')">
+      <span class="opt-name">${p.name}</span><span class="opt-cost">(售價: ${displayPrice})</span>
     </div>`;
   }
   if (!prodOptionsHtml) {
     prodOptionsHtml = '<div class="opt-item no-match">尚無此類商品</div>';
   }
 
-  // 預設選中的產品名稱與成本
+  // 預設選中的產品名稱與售價
   let defaultName = prod ? prod.name : '';
-  let defaultCost = prod ? (prod.cost_price || 0) : 0;
+  let defaultPrice = prod ? (prod.sell_price || 0) : 0;
   // 是否有發票 (僅成品有效)
   const isFinished = (typeFilter === 'finished');
   const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
@@ -1579,13 +1582,12 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
       <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
     </div>
     <div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()"></div>
-    <div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultCost}" step="0.01" oninput="calcOrd()"></div>
-    ${isFinished ? `<label class="flex items-center gap-1 text-sm whitespace-nowrap"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()"> <span>有發票</span></label>` : ''}
+    <div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()"></div>
+    ${isFinished ? `<label class="flex items-center gap-1 text-sm whitespace-nowrap ml-1"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()"> <span>有發票</span></label>` : ''}
     <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch">X</button>
   `;
   box.appendChild(div);
 
-  // 如果有預設產品但沒有選中，確保 hidden 值正確
   if (prod) {
     const hiddenInput = div.querySelector('.pu-prod-id');
     hiddenInput.value = prod.id;
@@ -1593,7 +1595,7 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
     if (price !== undefined && price > 0) {
       priceInput.value = price;
     } else {
-      priceInput.value = prod.cost_price || 0;
+      priceInput.value = prod.sell_price || 0;
     }
   }
   setTimeout(calcOrd, 50);
@@ -1635,7 +1637,7 @@ function filterOrdProdOptions(input, uid) {
 // 選擇訂單產品
 function selectOrdProduct(el, uid) {
   const id = el.dataset.id;
-  const cost = parseFloat(el.dataset.cost) || 0;
+  const price = parseFloat(el.dataset.price) || 0;
   const name = el.dataset.name || '';
   const wrapper = document.getElementById('ord_dropdown_' + uid)?.closest('.prod-search-wrapper');
   if (!wrapper) return;
@@ -1645,14 +1647,14 @@ function selectOrdProduct(el, uid) {
   if (searchInput) searchInput.value = name;
   if (hiddenInput) hiddenInput.value = id;
   if (priceInput && !priceInput.dataset.userSet) {
-    priceInput.value = cost;
+    priceInput.value = price;
   }
   const dropdown = document.getElementById('ord_dropdown_' + uid);
   if (dropdown) dropdown.classList.remove('show');
   calcOrd();
 }
 
-// 計算訂單 (含發票稅金影響成本)
+// 計算訂單 (含發票稅金影響成本，顯示總金額與成本)
 function calcOrd() {
   let productSubtotal = 0;
   let totalCost = 0;
@@ -2089,11 +2091,10 @@ async function delOrd(id) {
     console.error('delOrd error:', e);
   }
 }
-
-// ==================== 商品與 BOM ====================
+  // ==================== 商品與 BOM ====================
 function renderProducts(c) {
   const tm = {finished: '成品', semi: '半成品', gift_box: '禮盒', outer_box: '外箱子'};
-  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 0)">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 1)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 0)">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 1)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   c.innerHTML = html;
   let prodHtml = '';
   for(let i=0; i<D.products.length; i++) {
@@ -2262,7 +2263,7 @@ async function delBom(id) {
 
 // ==================== 倉庫管理 ====================
 function renderWarehouses(c) {
-  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'wh-tbody\', 0)">倉庫名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'wh-tbody\', 0)">倉庫名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   c.innerHTML = html;
   let whHtml = '';
   for(let i=0; i<D.warehouses.length; i++) {
@@ -2364,7 +2365,7 @@ function showWhTab(whId) {
 
       rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-bold text-lg">' + totalQty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
     }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   } else {
     const wh = D.warehouses.find(function(w) { return w.id === whId; });
     const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
@@ -2380,7 +2381,7 @@ function showWhTab(whId) {
 
       rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3 font-bold">' + qty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
     }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs">誤差率</th><th class="px-4 py-3 text-left text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th><th class="px-4 py-3 text-center text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 }
 
@@ -2407,7 +2408,7 @@ function saveInvItem(btn, pid, wid) {
   }).catch(function(e) { showAlert('失敗：' + e.message); });
 }
 
-// ==================== 採購入庫 (商品明細搜尋) ====================
+// ==================== 採購入庫 (修正類型邏輯 + 商品明細搜尋) ====================
 function renderPurchases(c) {
   c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
   renderPurTable();
@@ -2450,9 +2451,11 @@ function renderPurTable() {
   for(let i=0; i<list.length; i++) {
     const p = list[i];
     const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
+    // 類型根據 is_invoice_purchase 決定
     const typeLabel = p.is_invoice_purchase ?
       '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' :
       '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
+    // 發票欄顯示是否有勾選「有發票」 (存於 is_invoice_purchase 但與類型分離，此處顯示是否含發票)
     const invoiceLabel = p.is_invoice_purchase ? '<span class="text-green-600 font-bold">有</span>' : '<span class="text-gray-400">無</span>';
 
     const items = p.items || [];
@@ -2549,11 +2552,13 @@ async function openPurModal(isInvoicePurchase, editId) {
     whOptions += '<option value="' + w.id + '" ' + (existingData && existingData.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
   }
 
+  // 發票勾選（僅在一般採購時顯示，但勾選不代表類型改變，只是記錄是否有發票）
   let invoiceCheckHtml = '';
   if (!isInvoicePurchase) {
     const checked = existingData && existingData.is_invoice_purchase ? 'checked' : '';
-    invoiceCheckHtml = '<div class="mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pu-has-invoice" class="w-5 h-5 text-blue-600 rounded" ' + checked + '><span class="font-medium">有發票</span></label></div>';
+    invoiceCheckHtml = '<div class="mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pu-has-invoice" class="w-5 h-5 text-blue-600 rounded" ' + checked + '><span class="font-medium">此採購有發票</span></label></div>';
   } else {
+    // 購買發票類型本身就有發票，不顯示勾選
     invoiceCheckHtml = '<input type="hidden" id="pu-has-invoice" value="true">';
   }
 
@@ -2585,7 +2590,7 @@ async function openPurModal(isInvoicePurchase, editId) {
   calcPur();
 }
 
-// 採購商品明細 - 自定義搜尋下拉
+// 採購商品明細 - 自定義搜尋下拉 (與訂單相同)
 function addPurItem(prod, qty, price) {
   const box = document.getElementById('pu-items');
   const div = document.createElement('div');
@@ -2596,14 +2601,15 @@ function addPurItem(prod, qty, price) {
   for(let i=0; i<D.products.length; i++) {
     const p = D.products[i];
     const selected = (prod && prod.id === p.id) ? 'selected' : '';
-    prodOptionsHtml += '<div class="opt-item" data-id="' + p.id + '" data-cost="' + (p.cost_price || 0) + '" data-name="' + p.name + '" ' + selected + ' onclick="selectPurProduct(this, \'' + uid + '\')"><span class="opt-name">' + p.name + '</span><span class="opt-cost">(成本: ' + (p.cost_price || 0) + ')</span></div>';
+    const displayPrice = p.cost_price || 0; // 採購顯示成本
+    prodOptionsHtml += '<div class="opt-item" data-id="' + p.id + '" data-cost="' + displayPrice + '" data-name="' + p.name + '" ' + selected + ' onclick="selectPurProduct(this, \'' + uid + '\')"><span class="opt-name">' + p.name + '</span><span class="opt-cost">(成本: ' + displayPrice + ')</span></div>';
   }
   if(!prodOptionsHtml) {
     prodOptionsHtml = '<div class="opt-item no-match">尚無商品，請先建立</div>';
   }
 
   let defaultName = prod ? prod.name : '';
-  let defaultCost = prod ? prod.cost_price : 0;
+  let defaultCost = prod ? (prod.cost_price || 0) : 0;
 
   div.innerHTML = `
     <div class="flex-1 min-w-[150px] prod-search-wrapper">
@@ -2706,6 +2712,7 @@ async function savePur() {
   let editId = document.getElementById('pu-edit-id').value;
   const vendorId = document.getElementById('pu-v').value;
   const isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
+  // 決定是否有發票 (購買發票強制 true，一般採購看勾選)
   let hasInvoice = isInvoiceMode;
   if (!isInvoiceMode) {
     const checkbox = document.getElementById('pu-has-invoice');
@@ -2730,14 +2737,14 @@ async function savePur() {
 
   let totalAmount;
   if (isInvoiceMode) {
-    totalAmount = Math.round(subtotal * 0.05);
+    totalAmount = Math.round(subtotal * 0.05); // 購買發票只記錄稅金
   } else {
     totalAmount = Math.round(subtotal);
   }
 
   const d = {
     vendor_id: vendorId,
-    is_invoice_purchase: hasInvoice,
+    is_invoice_purchase: hasInvoice,  // 儲存是否有發票
     total_amount: totalAmount,
     warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null
   };
@@ -2802,7 +2809,7 @@ function renderVendors(c) {
     if (statusA === 'paused' && statusB === 'normal') return 1;
     return 0;
   });
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'ven-tbody\', 0)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'ven-tbody\', 0)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   let html = '';
   for(let i=0; i<sortedVendors.length; i++) {
     const v = sortedVendors[i];
@@ -2855,7 +2862,7 @@ async function delVen(id) {
 
 // ==================== 收支與訂閱 (加入排序) ====================
 function renderFinance(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button><button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button></div></div><div class="flex flex-col md:flex-row gap-4 mb-4 w-full"><input type="month" id="exp-month" value="' + bossDateRange.start + '" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48 input-field"><input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded input-field" oninput="renderExpTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'payment_date\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'category_name\')">類別 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'amount\')">金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'name\')">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'provider\')">供應商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">期間</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">每月攤提</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">💰 收支與訂閱</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageExpCats()" class="bg-gray-600 text-white px-4 py-2 rounded btn-touch">管理類別</button><button onclick="openExpModal()" class="bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增收支</button></div></div><div class="flex flex-col md:flex-row gap-4 mb-4 w-full"><input type="month" id="exp-month" value="' + bossDateRange.start + '" onchange="renderExpTable()" class="px-4 py-2 border rounded md:w-48 input-field"><input type="text" id="exp-search" placeholder="🔍 搜尋..." class="flex-1 px-4 py-2 border rounded input-field" oninput="renderExpTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'payment_date\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'category_name\')">類別 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortExpTable(\'amount\')">金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">描述</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">代墊員工</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">結帳狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="exp-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">系統訂閱 (定期費用)</h2><button onclick="openSubModal()" class="bg-cyan-600 text-white px-4 py-2 rounded btn-touch">+ 新增訂閱</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'name\')">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'provider\')">供應商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">期間</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortSubTable(\'amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">每月攤提</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="sub-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   renderExpTable();
   renderSubTable();
 }
@@ -3231,7 +3238,7 @@ async function delSub(id) {
 
 // ==================== 銀行帳戶 ====================
 function renderBanks(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 0)">帳戶名稱 <span class="sort-icon"></span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 3)">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 0)">帳戶名稱 <span class="sort-icon"></span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 3)">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   let html = '';
   for(let i=0; i<D.banks.length; i++) {
     const b = D.banks[i];
