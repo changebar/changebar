@@ -2818,10 +2818,17 @@ async function saveSub() {
   } catch(e) {
     console.error('saveSub error:', e);
     let errMsg = '儲存失敗：';
+    // 檢查是否為欄位不存在錯誤
     if (e.message && e.message.includes('column') && e.message.includes('bank_account_id')) {
-      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位。\n\n請在 Supabase 控制台中執行以下 SQL 指令：\n\n' +
-        'ALTER TABLE system_subscriptions ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);\n\n' +
-        '執行完成後請重新整理頁面再試一次。';
+      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位或欄位名稱不正確。\n\n' +
+                '請執行以下步驟檢查並修正：\n' +
+                '1. 在 Supabase SQL Editor 中執行：\n' +
+                '   SELECT column_name, data_type FROM information_schema.columns WHERE table_name = \'system_subscriptions\' AND column_name LIKE \'%bank%\';\n\n' +
+                '2. 如果看到 bank_account_id 以外的名稱（例如 bank_accountId），請重新命名為 bank_account_id：\n' +
+                '   ALTER TABLE system_subscriptions RENAME COLUMN "bank_accountId" TO bank_account_id;\n\n' +
+                '3. 如果欄位不存在，請新增：\n' +
+                '   ALTER TABLE system_subscriptions ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);\n\n' +
+                '完成後重新整理頁面。';
     } else {
       errMsg += e.message;
     }
