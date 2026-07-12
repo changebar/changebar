@@ -2686,7 +2686,7 @@ function manageExpCats() {
 async function addExpCat() { const n = document.getElementById('ec-name').value.trim(); if(!n) return showAlert('必填！'); await sb.from('expense_categories').insert([{name:n}]); await loadAll(); manageExpCats(); }
 async function delExpCat(id) { if(!confirm('確定刪除？')) return; await sb.from('expense_categories').delete().eq('id',id); await loadAll(); manageExpCats(); }
 
-// ===== 系統訂閱 - 優化版本 =====
+// ===== 系統訂閱 - 優化版本（修正資料表問題） =====
 async function openSubModal(id) {
   editingId = id || null;
   const s = id ? D.subs.find(function(x) { return x.id === id; }) : null;
@@ -2696,7 +2696,6 @@ async function openSubModal(id) {
   if (D.banks.length === 0) {
     const confirmCreate = confirm('⚠️ 目前沒有任何銀行帳戶！\n\n建立訂閱需要選擇一個銀行帳戶進行扣款。\n\n是否前往「銀行帳戶」建立？');
     if (confirmCreate) {
-      // 切換到銀行帳戶頁面
       document.querySelector('nav a[data-view="banks"]').click();
     }
     return;
@@ -2781,6 +2780,7 @@ async function saveSub() {
       return showAlert('⚠️ 銀行餘額不足！\n目前餘額：' + bank.data.balance.toLocaleString() + '\n訂閱金額：' + amount.toLocaleString());
     }
     
+    let result;
     if (id) {
       // 編輯時先還原舊的扣款
       const oldSub = D.subs.find(function(x) { return x.id === id; });
@@ -2790,11 +2790,13 @@ async function saveSub() {
           await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldSub.amount }).eq('id', oldSub.bank_account_id);
         }
       }
-      await sb.from('system_subscriptions').update(d).eq('id', id);
+      result = await sb.from('system_subscriptions').update(d).eq('id', id);
+      if (result.error) throw result.error;
       showAlert('訂閱已更新！');
     } else {
-      const r = await sb.from('system_subscriptions').insert([d]).select().single();
-      editingId = r.data.id;
+      result = await sb.from('system_subscriptions').insert([d]).select().single();
+      if (result.error) throw result.error;
+      editingId = result.data.id;
       showAlert('訂閱已新增！');
     }
     
@@ -2816,8 +2818,8 @@ async function saveSub() {
   } catch(e) {
     console.error('saveSub error:', e);
     let errMsg = '儲存失敗：';
-    if (e.message && e.message.includes('column') && e.message.includes('does not exist')) {
-      errMsg += '資料表缺少 bank_account_id 欄位，請在 Supabase 中為 system_subscriptions 表新增此欄位。';
+    if (e.message && e.message.includes('column') && e.message.includes('bank_account_id')) {
+      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位。\n\n請在 Supabase 控制台中，為 system_subscriptions 資料表新增一個欄位：\n- 名稱：bank_account_id\n- 類型：uuid（或 text）\n- 允許 NULL：否\n- 外鍵參照：bank_accounts(id)\n\n完成後再試一次。';
     } else {
       errMsg += e.message;
     }
