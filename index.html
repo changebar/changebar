@@ -10,7 +10,8 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: contain; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: contain; margin:0; padding:0; }
   .hidden { display: none !important; }
   .nav-active { background-color: #374151; font-weight: bold; border-left: 4px solid #3b82f6; }
   .tag-1{background:#f43f5e;color:#fff}.tag-2{background:#ec4899;color:#fff}.tag-3{background:#8b5cf6;color:#fff}
@@ -20,6 +21,7 @@
   .btn-touch { padding: 0.75rem 1rem; font-size: 0.9375rem; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
   .input-field { padding: 0.875rem 1rem; font-size: 1rem; min-height: 44px; }
 
+  /* ===== 側邊欄 ===== */
   .sidebar {
     transition: width 0.3s ease, transform 0.3s ease;
     overflow: hidden;
@@ -70,7 +72,7 @@
   }
   .sidebar-expand-btn:hover { background: rgba(59, 130, 246, 0.9); }
 
-  /* 手機板與平板直式修正 */
+  /* ===== 手機/平板側邊欄 ===== */
   @media (max-width: 1024px) {
     .sidebar { 
       position: fixed; 
@@ -126,11 +128,13 @@
     .modal-content { max-height: 90vh; overflow-y: auto; position: relative; z-index: 60; }
     .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -0.5rem; padding: 0 0.5rem; }
   }
+
   @media (min-width: 769px) and (max-width: 1024px) {
     .main-content { padding: 1rem; padding-top: 4.5rem; }
     .content-card { padding: 1.25rem; }
     .card-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
   }
+
   @media (min-width: 1025px) {
     .mobile-menu-btn { display: none !important; }
     .sidebar-overlay { display: none !important; }
@@ -143,6 +147,8 @@
     .table-container { margin: 0; padding: 0; }
     .sidebar.collapsed ~ .sidebar-expand-btn { display: flex; }
   }
+
+  /* ===== 表格排序與置中 ===== */
   .sortable-header { cursor: pointer; user-select: none; }
   .sortable-header:hover { background-color: #f3f4f6; }
   .sort-icon { display: inline-block; margin-left: 0.25rem; }
@@ -150,6 +156,7 @@
   .table-container {
     border-radius: 0.5rem;
     overflow-x: auto;
+    width: 100%;
   }
   .table-container table {
     min-width: 600px;
@@ -160,6 +167,7 @@
     padding: 0.75rem 1rem;
     white-space: nowrap;
     text-align: center;
+    vertical-align: middle;
   }
   @media (max-width: 640px) {
     .table-container th, .table-container td {
@@ -168,6 +176,7 @@
     }
   }
 
+  /* ===== Modal ===== */
   .modal-fullscreen {
     max-width: 100% !important;
     max-height: 100% !important;
@@ -232,6 +241,7 @@
   #modal-content .space-y-4 > * + * { margin-top: 1.25rem !important; }
   #modal-content .mb-4 { margin-bottom: 1.25rem !important; }
 
+  /* ===== 卡片 ===== */
   .content-card {
     background: #fff;
     border-radius: 0.75rem;
@@ -242,6 +252,8 @@
   @media (max-width: 640px) {
     .content-card { padding: 1rem; }
   }
+
+  /* ===== 老闆查閱 ===== */
   .boss-stat-card {
     background: #fff;
     border-radius: 0.75rem;
@@ -260,29 +272,8 @@
   .boss-stat-card.purple { border-left-color: #8b5cf6; }
   .boss-stat-card.orange { border-left-color: #f59e0b; }
   .boss-stat-card.teal { border-left-color: #14b8a6; }
-  .boss-chart-container {
-    background: #fff;
-    border-radius: 0.75rem;
-    padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-  }
-  .boss-chart-container h3 { font-weight: 700; font-size: 1rem; color: #1f2937; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
-  .boss-chart-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.2rem 0; }
-  .boss-chart-bar .bar-label { width: 60px; font-size: 0.75rem; color: #4b5563; text-align: right; flex-shrink: 0; }
-  .boss-chart-bar .bar-track { flex: 1; height: 20px; background: #f3f4f6; border-radius: 10px; overflow: hidden; position: relative; }
-  .boss-chart-bar .bar-fill { height: 100%; border-radius: 10px; transition: width 0.6s ease; background: linear-gradient(90deg, #3b82f6, #8b5cf6); min-width: 4px; }
-  .boss-chart-bar .bar-value { width: 50px; font-size: 0.75rem; font-weight: 600; color: #1f2937; text-align: right; flex-shrink: 0; }
-  .boss-chart-bar .bar-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
-  .boss-chart-bar .bar-fill.red { background: linear-gradient(90deg, #ef4444, #f87171); }
-  .boss-chart-bar .bar-fill.orange { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-  .boss-chart-bar .bar-fill.purple { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
-  @media (max-width: 640px) {
-    .boss-stat-card .value { font-size: 1.4rem; }
-    .boss-chart-bar .bar-label { width: 40px; font-size: 0.65rem; }
-    .boss-chart-bar .bar-value { width: 40px; font-size: 0.65rem; }
-  }
 
-  /* 自定義下拉搜尋樣式 */
+  /* ===== 搜尋下拉 ===== */
   .prod-search-wrapper { position: relative; }
   .prod-search-wrapper .pu-prod-search {
     width: 100%;
@@ -331,9 +322,8 @@
     padding: 1rem;
   }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
-  .prod-search-wrapper .pu-prod-hidden { display: none; }
 
-  /* 修正對齊 */
+  /* ===== 表單對齊 ===== */
   .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
   .form-row label { margin-bottom: 0 !important; flex-shrink: 0; min-width: 80px; }
   .form-row .form-control { flex: 1; min-width: 120px; }
@@ -341,6 +331,11 @@
   .checkbox-inline { display: flex; align-items: center; gap: 0.5rem; }
   .checkbox-inline input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin: 0; flex-shrink: 0; }
   .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; }
+
+  /* ===== 響應式輔助 ===== */
+  .flex-wrap-custom { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .w-full-mobile { width: 100%; }
+  @media (min-width: 640px) { .w-full-mobile { width: auto; } }
 </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -460,7 +455,11 @@ let sortState = {
   inventory: { field: 'name', asc: true },
   subscription: { field: 'name', asc: true },
   purchase: { field: 'created_at', asc: false },
-  expense: { field: 'payment_date', asc: false }
+  expense: { field: 'payment_date', asc: false },
+  order: { field: 'created_at', asc: false },
+  customer: { field: 'company_name', asc: true },
+  vendor: { field: 'name', asc: true },
+  bank: { field: 'account_name', asc: true }
 };
 
 // ==================== 輔助函式 ====================
@@ -470,7 +469,6 @@ function toggleSidebar() {
   if (!sidebar) return;
 
   if (window.innerWidth <= 1024) {
-    // 手機/平板模式
     const isOpen = sidebar.classList.contains('open');
     if (isOpen) {
       sidebar.classList.remove('open');
@@ -490,14 +488,12 @@ function toggleSidebar() {
       sidebar.classList.add('open');
     }
   } else {
-    // 電腦版
     sidebar.classList.toggle('collapsed');
     const isCollapsed = sidebar.classList.contains('collapsed');
     localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
   }
 }
 
-// 強制關閉側邊欄 (手機用)
 function closeSidebarMobile() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -737,7 +733,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navLinks[i].addEventListener('click', function(e) {
       e.preventDefault();
       switchView(this.dataset.view);
-      // 手機板點選後自動關閉側邊欄
       if (window.innerWidth <= 1024) {
         closeSidebarMobile();
       }
@@ -817,17 +812,6 @@ function switchView(view) {
   document.querySelectorAll('nav a').forEach(el => el.classList.remove('nav-active'));
   const activeLink = document.querySelector(`nav a[data-view="${view}"]`);
   if(activeLink) activeLink.classList.add('nav-active');
-}
-
-function sortTable(tbodyId, colIndex) {
-  const tbody = document.getElementById(tbodyId);
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  rows.sort(function(a, b) {
-    const aText = a.cells[colIndex] ? a.cells[colIndex].textContent || '' : '';
-    const bText = b.cells[colIndex] ? b.cells[colIndex].textContent || '' : '';
-    return aText.localeCompare(bText, 'zh-TW');
-  });
-  for(let i=0; i<rows.length; i++) tbody.appendChild(rows[i]);
 }
 
 function render() {
@@ -923,7 +907,6 @@ function renderBoss(c) {
   let exp = 0;
   for(let i=0; i<monthExpenses.length; i++) exp += monthExpenses[i].amount||0;
 
-  // 計算訂閱每月攤提（分攤到每個月）
   let subMonthlyTotal = 0;
   const targetMonth = bossDateRange.start;
   for(let i=0; i<D.subs.length; i++) {
@@ -1087,9 +1070,9 @@ function renderBoss(c) {
     '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
     '<div><h1 class="text-3xl font-bold">👑 老闆查閱</h1><p class="text-sm text-gray-600 mt-1">查看期間：'+bossDateRange.start+' ~ '+bossDateRange.end+'</p></div>' +
     '<div class="flex flex-wrap gap-2 w-full md:w-auto">' +
-    '<input type="month" value="'+bossDateRange.start+'" onchange="bossDateRange.start=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">' +
+    '<input type="month" value="'+bossDateRange.start+'" onchange="bossDateRange.start=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">' +
     '<span class="flex items-center text-gray-500">至</span>' +
-    '<input type="month" value="'+bossDateRange.end+'" onchange="bossDateRange.end=this.value;render()" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">' +
+    '<input type="month" value="'+bossDateRange.end+'" onchange="bossDateRange.end=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto">' +
     '<button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch">📥 下載 Excel</button>' +
     '</div></div>' +
     '<div class="card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">' +
@@ -1106,27 +1089,166 @@ function renderBoss(c) {
     '<div class="mt-4 p-4 bg-indigo-100 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">庫存總價值</span><span class="text-3xl font-bold text-indigo-600">'+totalInventoryValue.toLocaleString()+'</span></div></div></div></div>';
 }
 
+// ==================== 下載 Excel (多分頁) ====================
 function downloadBossReport() {
+  const startDate = bossDateRange.start;
+  const endDate = bossDateRange.end;
+  const fileName = startDate + '_至_' + endDate + '_養芯ERP資料.xlsx';
   const wb = XLSX.utils.book_new();
-  const orderData = D.orders.map(function(o) {
-    const c = D.customers.find(function(x) { return x.id===o.customer_id; });
-    return {'日期': new Date(o.created_at).toLocaleDateString(), '訂單編號': o.order_no, '客戶': c ? c.company_name || c.contact_person : '-', '總金額': o.total_amount || 0};
+
+  // 1. 客戶管理
+  const custData = D.customers.map(function(c) {
+    const win = D.windows.find(w => w.id === c.primary_contact_window_id);
+    const tags = D.customerTags.filter(ct => ct.customer_id === c.id).map(ct => {
+      const t = D.tags.find(tg => tg.id === ct.tag_id);
+      return t ? t.name : '';
+    }).join(', ');
+    return {
+      '類型': c.type || '',
+      '公司/姓名': c.company_name || c.contact_person || '',
+      '聯絡人': c.contact_person || '',
+      '電話': c.phone || '',
+      '主要窗口': win ? win.name : '',
+      '標籤': tags,
+      '統一編號': c.tax_id || '',
+      '發票抬頭': c.invoice_title || '',
+      'Email': c.email || '',
+      '訂閱': c.is_subscription ? '是 ('+(c.subscription_days||0)+'天)' : '否'
+    };
   });
-  const ws1 = XLSX.utils.json_to_sheet(orderData);
-  XLSX.utils.book_append_sheet(wb, ws1, '訂單出貨');
-  XLSX.writeFile(wb, '老闆查閱報表_'+new Date().toISOString().split('T')[0]+'.xlsx');
+  const ws1 = XLSX.utils.json_to_sheet(custData);
+  XLSX.utils.book_append_sheet(wb, ws1, '客戶管理');
+
+  // 2. 訂單出貨 (依日期範圍)
+  const ordData = D.orders.filter(function(o) {
+    const d = new Date(o.created_at);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2,'0');
+    const dateStr = y + '-' + m;
+    return dateStr >= startDate && dateStr <= endDate;
+  }).map(function(o) {
+    const c = D.customers.find(x => x.id === o.customer_id);
+    const bank = D.banks.find(x => x.id === o.bank_account_id);
+    return {
+      '日期': new Date(o.created_at).toLocaleDateString(),
+      '訂單編號': o.order_no || '',
+      '客戶': c ? c.company_name || c.contact_person : '',
+      '總金額': o.total_amount || 0,
+      '毛利率': o.gross_profit_margin ? o.gross_profit_margin.toFixed(1)+'%' : '',
+      '入帳銀行': bank ? bank.account_name : '',
+      '運費': o.shipping_fee || 0,
+      '訂閱': o.is_subscription_order ? '是' : '否'
+    };
+  });
+  const ws2 = XLSX.utils.json_to_sheet(ordData);
+  XLSX.utils.book_append_sheet(wb, ws2, '訂單出貨');
+
+  // 3. 收支與訂閱
+  const expData = D.expenses.filter(function(e) {
+    if(!e.payment_date) return false;
+    const d = new Date(e.payment_date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2,'0');
+    return (y + '-' + m) >= startDate && (y + '-' + m) <= endDate;
+  }).map(function(e) {
+    const cat = D.expCats.find(c => c.id === e.category_id);
+    const emp = D.emps.find(x => x.id === e.employee_id);
+    return {
+      '日期': e.payment_date || '',
+      '類別': cat ? cat.name : '',
+      '金額': e.amount || 0,
+      '描述': e.description || '',
+      '代墊員工': emp ? emp.name : '',
+      '結帳狀態': e.is_reimbursed ? '已結帳' : '待結帳'
+    };
+  });
+  const ws3 = XLSX.utils.json_to_sheet(expData);
+  XLSX.utils.book_append_sheet(wb, ws3, '收支與訂閱');
+
+  // 4. 採購入庫
+  const purData = D.purchases.filter(function(p) {
+    if(!p.created_at) return false;
+    const d = new Date(p.created_at);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2,'0');
+    return (y + '-' + m) >= startDate && (y + '-' + m) <= endDate;
+  }).map(function(p) {
+    const v = D.vendors.find(x => x.id === p.vendor_id);
+    return {
+      '日期': p.created_at ? new Date(p.created_at).toLocaleDateString() : '',
+      '廠商': v ? v.name : '',
+      '類型': p.is_invoice_purchase ? '購買發票' : '一般採購',
+      '有發票': p.is_invoice_purchase ? '有' : '無',
+      '總金額': p.total_amount || 0
+    };
+  });
+  const ws4 = XLSX.utils.json_to_sheet(purData);
+  XLSX.utils.book_append_sheet(wb, ws4, '採購入庫');
+
+  // 5. 廠商管理
+  const venData = D.vendors.map(function(v) {
+    return {
+      '名稱': v.name || '',
+      '統一編號': v.tax_id || '',
+      '聯絡人': v.contact_person || '',
+      '電話': v.phone || '',
+      '合作狀態': v.cooperation_status === 'paused' ? '暫時無配合' : '正常配合'
+    };
+  });
+  const ws5 = XLSX.utils.json_to_sheet(venData);
+  XLSX.utils.book_append_sheet(wb, ws5, '廠商管理');
+
+  // 6. 庫存盤點
+  const invData = D.products.map(function(p) {
+    let totalQty = 0;
+    const invs = D.warehouseInv.filter(i => i.product_id === p.id);
+    for(let j=0; j<invs.length; j++) totalQty += invs[j].quantity || 0;
+    const initStock = p.initial_stock || 0;
+    const variance = initStock > 0 ? ((totalQty - initStock) / initStock * 100) : 0;
+    return {
+      '產品': p.name || '',
+      'SKU': p.sku || '',
+      '目前庫存': totalQty,
+      '初始庫存': initStock,
+      '誤差率': initStock > 0 ? variance.toFixed(1)+'%' : '-'
+    };
+  });
+  const ws6 = XLSX.utils.json_to_sheet(invData);
+  XLSX.utils.book_append_sheet(wb, ws6, '庫存盤點');
+
+  // 7. 銀行帳戶
+  const bankData = D.banks.map(function(b) {
+    return {
+      '帳戶名稱': b.account_name || '',
+      '銀行名稱': b.bank_name || '',
+      '帳號': b.account_number || '',
+      '餘額': b.balance || 0,
+      '狀態': b.is_active !== false ? '啟用' : '停用'
+    };
+  });
+  const ws7 = XLSX.utils.json_to_sheet(bankData);
+  XLSX.utils.book_append_sheet(wb, ws7, '銀行帳戶');
+
+  XLSX.writeFile(wb, fileName);
   showAlert('Excel 報表已下載！');
 }
-
-// ==================== 客戶管理 ====================
+  // ==================== 客戶管理 ====================
 function renderCRM(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 0)">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 1)">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'cust-tbody\', 2)">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'type\')">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'company_name\')">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'contact_person\')">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  renderCustTable();
+}
+
+let custSortField = 'company_name', custSortAsc = true;
+
+function sortCustTable(field) {
+  if(custSortField === field) custSortAsc = !custSortAsc;
+  else { custSortField = field; custSortAsc = true; }
   renderCustTable();
 }
 
 function renderCustTable() {
   const kw = (document.getElementById('cust-search')?.value || '').toLowerCase();
-  const list = D.customers.filter(function(c) {
+  let list = D.customers.filter(function(c) {
     const basicMatch = ((c.company_name||'')+(c.contact_person||'')+(c.phone||'')).toLowerCase().indexOf(kw) !== -1;
     const custTags = (D.customerTags || []).filter(function(ct) { return ct.customer_id === c.id; });
     let tagMatch = false;
@@ -1137,6 +1259,17 @@ function renderCustTable() {
     }
     return basicMatch || tagMatch;
   });
+
+  list.sort(function(a, b) {
+    let aVal = a[custSortField] || '';
+    let bVal = b[custSortField] || '';
+    if(typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if(typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if(aVal < bVal) return custSortAsc ? -1 : 1;
+    if(aVal > bVal) return custSortAsc ? 1 : -1;
+    return 0;
+  });
+
   let html = '';
   for(let i=0; i<list.length; i++) {
     const c = list[i];
@@ -1172,6 +1305,9 @@ async function viewCustDetail(id) {
     }
   } else { addrHtml = '<p class="text-gray-500">無地址</p>'; }
 
+  // 備註
+  const noteHtml = c.notes ? '<div class="border-t pt-3"><h3 class="font-bold mb-2">📝 備註</h3><p class="text-sm text-gray-700 bg-gray-50 p-3 rounded">'+c.notes+'</p></div>' : '';
+
   const html = '<div class="space-y-4">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">' +
       '<div><b>類型:</b> '+c.type+'</div>' +
@@ -1186,6 +1322,7 @@ async function viewCustDetail(id) {
       '<div class="md:col-span-2 bg-indigo-50 p-2 rounded"><b>訂閱客戶:</b> '+subInfo+'</div>' +
     '</div>' +
     '<div class="border-t pt-3"><h3 class="font-bold mb-2">寄送地址</h3>'+addrHtml+'</div>' +
+    noteHtml +
   '</div>';
   openModal('客戶詳情', html, function(){return Promise.resolve();}, true);
 }
@@ -1211,10 +1348,9 @@ async function openCustModal(id) {
 
   const html = '<input type="hidden" id="c-id" value="'+(id||'')+'">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡窗口名</label><input type="text" id="c-winname" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_window_name||'':'')+'"></div></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">聯絡人 *</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'" oninput="syncAddrContact()"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'" oninput="syncAddrContact()"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div></div>' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.invoice_title||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.tax_id||'':'')+'"></div></div>' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div>' +
     '<div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">' +
       '<h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3>' +
       '<div class="form-row"><label>訂閱客戶</label><div class="checkbox-inline"><input type="checkbox" id="c-is-sub" '+(c&&c.is_subscription?'checked':'')+' onchange="document.getElementById(\'c-sub-days-box\').style.display = this.checked ? \'block\' : \'none\'"><label for="c-is-sub">啟用</label></div></div>' +
@@ -1223,6 +1359,7 @@ async function openCustModal(id) {
       '</div>' +
     '</div>' +
     '<div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">'+tagHtml+'</div></div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">📝 備註</label><textarea id="c-notes" class="w-full px-3 py-2 border rounded input-field" rows="3">'+(c?c.notes||'':'')+'</textarea></div>' +
     '<div class="border-t pt-4"><div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">寄送地址</h3><button type="button" onclick="addAddr()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增地址</button></div><div id="addr-box" class="space-y-3"></div></div>';
 
   openModal(id?'編輯客戶':'新增客戶', html, saveCust);
@@ -1260,7 +1397,17 @@ function addAddr(addrData, isDefault) {
 
 async function saveCust() {
   const id = document.getElementById('c-id').value;
-  const data = { type: document.getElementById('c-type').value, company_name: document.getElementById('c-comp').value||null, contact_person: document.getElementById('c-contact').value, phone: document.getElementById('c-phone').value, contact_window_name: document.getElementById('c-winname').value||null, primary_contact_window_id: document.getElementById('c-win').value||null, invoice_title: document.getElementById('c-title').value||null, tax_id: document.getElementById('c-tax').value||null, email: document.getElementById('c-email').value||null };
+  const data = { 
+    type: document.getElementById('c-type').value, 
+    company_name: document.getElementById('c-comp').value||null, 
+    contact_person: document.getElementById('c-contact').value, 
+    phone: document.getElementById('c-phone').value, 
+    primary_contact_window_id: document.getElementById('c-win').value||null, 
+    invoice_title: document.getElementById('c-title').value||null, 
+    tax_id: document.getElementById('c-tax').value||null, 
+    email: document.getElementById('c-email').value||null,
+    notes: document.getElementById('c-notes').value||null
+  };
   if(!data.contact_person || !data.phone) return showAlert('聯絡人和電話必填！');
   try {
     let cid = id;
@@ -1295,14 +1442,13 @@ async function delWin(id) { if(!confirm('確定刪除？')) return; await sb.fro
 function manageTags() {
   let colorOptions = '';
   for(const k in COLOR_NAMES) colorOptions += '<option value="'+k+'">'+COLOR_NAMES[k]+'</option>';
-  // 修正：顏色選擇框縮小，讓文字輸入框變大
   const html = '<div class="flex flex-wrap gap-2 items-center mb-4"><div class="flex-1 min-w-[150px]"><input type="text" id="t-name" placeholder="標籤名稱" class="w-full px-3 py-2 border rounded input-field"></div><div class="flex-shrink-0"><select id="t-color" class="px-2 py-2 border rounded input-field" style="width:auto;min-width:80px;">'+colorOptions+'</select></div><button onclick="addTag()" class="px-4 py-2 bg-blue-600 text-white rounded btn-touch">新增</button></div><div id="tag-list" class="space-y-2">'+D.tags.map(function(t){return '<div class="flex justify-between items-center p-2 border rounded"><span class="tag-'+t.color+' px-2 py-1 rounded text-sm">'+t.name+'</span><button onclick="delTag(\''+t.id+'\')" class="text-red-600 text-sm btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></div>';}).join('')+'</div>';
   openModal('管理標籤', html, function(){return Promise.resolve();}, true);
 }
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
 
-// ==================== 訂單出貨 ====================
+// ==================== 訂單出貨 (修正 renderOrdTable 未定義) ====================
 function renderOrders(c) {
   c.innerHTML = '<div class="content-card">' +
     '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
@@ -1320,12 +1466,12 @@ function renderOrders(c) {
     '<div class="bg-white rounded-lg shadow overflow-hidden table-container">' +
       '<table class="min-w-full divide-y divide-gray-200">' +
         '<thead class="bg-gray-50">' +
-          '<tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'created_at\')">日期 <span class="sort-icon">↕</span></th>' +
-          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">客戶</th>' +
+          '<tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrdTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th>' +
+          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrdTable(\'customer_name\')">客戶 <span class="sort-icon">↕</span></th>' +
           '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">入帳銀行</th>' +
           '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">運費代墊</th>' +
-          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th>' +
-          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrders(\'gross_profit_margin\')">毛利率 <span class="sort-icon">↕</span></th>' +
+          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrdTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th>' +
+          '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortOrdTable(\'gross_profit_margin\')">毛利率 <span class="sort-icon">↕</span></th>' +
           '<th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr>' +
         '</thead>' +
         '<tbody id="ord-tbody" class="bg-white divide-y divide-gray-200"></tbody>' +
@@ -1334,562 +1480,348 @@ function renderOrders(c) {
   '</div>';
   renderOrdTable();
 }
-  // ==================== 商品與 BOM ====================
-function renderProducts(c) {
-  const tm = {finished: '成品', semi: '半成品', gift_box: '禮盒', outer_box: '外箱子'};
-  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏭 商品與BOM</h1><button onclick="openProdModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增產品</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container mb-8"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 0)">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'prod-tbody\', 1)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">售價</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">成本</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="prod-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4"><h2 class="text-2xl font-bold">BOM 表 (物料清單)</h2><button onclick="openBomModal()" class="bg-purple-600 text-white px-4 py-2 rounded btn-touch">+ 新增 BOM</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">成品</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">物料</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">用量</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bom-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
-  c.innerHTML = html;
-  let prodHtml = '';
-  for(let i=0; i<D.products.length; i++) {
-    const p = D.products[i];
-    prodHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (tm[p.type] || p.type) + '</td><td class="px-4 py-3">' + (p.sell_price || 0) + '</td><td class="px-4 py-3 text-gray-500">' + (p.cost_price || 0) + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openProdModal(\'' + p.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delProd(\'' + p.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
-  }
-  document.getElementById('prod-tbody').innerHTML = prodHtml;
-  let bomHtml = '';
-  for(let i=0; i<D.bom.length; i++) {
-    const b = D.bom[i];
-    const p1 = D.products.find(function(x) { return x.id === b.parent_product_id; });
-    const p2 = D.products.find(function(x) { return x.id === b.child_product_id; });
-    bomHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3">' + (p1 ? p1.name : '-') + '</td><td class="px-4 py-3">' + (p2 ? p2.name : '-') + '</td><td class="px-4 py-3 font-bold">' + b.quantity + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="editBom(\'' + b.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delBom(\'' + b.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
-  }
-  document.getElementById('bom-tbody').innerHTML = bomHtml;
+
+let ordSortField = 'created_at', ordSortAsc = false;
+
+function sortOrdTable(field) {
+  if(ordSortField === field) ordSortAsc = !ordSortAsc;
+  else { ordSortField = field; ordSortAsc = true; }
+  renderOrdTable();
 }
 
-async function openProdModal(id) {
-  editingId = id || null;
-  const p = id ? D.products.find(function(x) { return x.id === id; }) : null;
+function renderOrdTable() {
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
 
-  if(id && p && p.initial_stock > 0) {
-    const confirmed = confirm('⚠️ 警告：此產品已設定初始庫存 (' + p.initial_stock + ')\n\n修改初始庫存會影響庫存誤差率計算！\n\n確定要修改嗎？');
-    if(!confirmed) return;
-  }
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+  const startDate = startDateInput ? startDateInput.value : '';
+  const endDate = endDateInput ? endDateInput.value : '';
 
-  const html = '<input type="hidden" id="p-id" value="' + (id || '') + '">' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
-      '<div><label class="block text-sm font-bold mb-2">SKU *</label><input type="text" id="p-sku" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.sku : '') + '"></div>' +
-      '<div><label class="block text-sm font-bold mb-2">類型</label><select id="p-type" class="w-full px-3 py-2 border rounded input-field"><option value="finished" ' + (p && p.type === 'finished' ? 'selected' : '') + '>成品</option><option value="semi" ' + (p && p.type === 'semi' ? 'selected' : '') + '>半成品</option><option value="gift_box" ' + (p && p.type === 'gift_box' ? 'selected' : '') + '>禮盒</option><option value="outer_box" ' + (p && p.type === 'outer_box' ? 'selected' : '') + '>外箱子</option></select></div>' +
-    '</div>' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">名稱 *</label><input type="text" id="p-name" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.name : '') + '"></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
-      '<div><label class="block text-sm font-bold mb-2">售價</label><input type="number" id="p-sell" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.sell_price : 0) + '"></div>' +
-      '<div><label class="block text-sm font-bold mb-2">成本(進價)</label><input type="number" id="p-cost" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.cost_price : 0) + '"></div>' +
-      '<div><label class="block text-sm font-bold mb-2">初始庫存</label><input type="number" id="p-initial" class="w-full px-3 py-2 border rounded input-field" value="' + (p ? p.initial_stock || 0 : 0) + '"></div>' +
-    '</div>';
-
-  openModal(id ? '編輯產品' : '新增產品', html, saveProd);
-}
-
-async function saveProd() {
-  const id = document.getElementById('p-id').value;
-  const initialStock = parseInt(document.getElementById('p-initial').value) || 0;
-  const d = {
-    sku: document.getElementById('p-sku').value,
-    name: document.getElementById('p-name').value,
-    type: document.getElementById('p-type').value,
-    sell_price: parseFloat(document.getElementById('p-sell').value) || 0,
-    cost_price: parseFloat(document.getElementById('p-cost').value) || 0,
-    initial_stock: initialStock
-  };
-  if(!d.sku || !d.name) return showAlert('SKU與名稱為必填！');
-  try {
-    if(id) {
-      await sb.from('products').update(d).eq('id', id);
-    } else {
-      await sb.from('products').insert([Object.assign({}, d, {current_stock: initialStock})]);
-    }
-    showAlert('已儲存！');
-    window.closeModal();
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('失敗：' + e.message);
-  }
-}
-
-async function delProd(id) {
-  if(!confirm('確定刪除?')) return;
-  try {
-    await sb.from('bom_list').delete().or('parent_product_id.eq.' + id + ',child_product_id.eq.' + id);
-    await sb.from('warehouse_inventory').delete().eq('product_id', id);
-    await sb.from('products').delete().eq('id', id);
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('刪除失敗：' + e.message);
-  }
-}
-
-async function editBom(id) {
-  const b = D.bom.find(function(x) { return x.id === id; });
-  if(!b) return showAlert('找不到 BOM 資料');
-
-  let parentOptions = '';
-  const finishedProducts = D.products.filter(function(p) { return p.type === 'finished'; });
-  for(let i=0; i<finishedProducts.length; i++) {
-    const p = finishedProducts[i];
-    parentOptions += '<option value="' + p.id + '" ' + (p.id === b.parent_product_id ? 'selected' : '') + '>' + p.name + '</option>';
-  }
-  let childOptions = '';
-  const semiProducts = D.products.filter(function(p) { return p.type === 'semi'; });
-  for(let i=0; i<semiProducts.length; i++) {
-    const p = semiProducts[i];
-    childOptions += '<option value="' + p.id + '" ' + (p.id === b.child_product_id ? 'selected' : '') + '>' + p.name + '</option>';
-  }
-
-  const html = '<input type="hidden" id="bom-edit-id" value="' + id + '">' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">成品</label><select id="bom-edit-p" class="w-full px-3 py-2 border rounded input-field">' + parentOptions + '</select></div>' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">物料 (半成品/原料)</label><select id="bom-edit-c" class="w-full px-3 py-2 border rounded input-field">' + childOptions + '</select></div>' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">用量</label><input type="number" id="bom-edit-q" class="w-full px-3 py-2 border rounded input-field" value="' + b.quantity + '"></div>';
-
-  openModal('編輯 BOM', html, async function() {
-    try {
-      const pid = document.getElementById('bom-edit-p').value;
-      const cid = document.getElementById('bom-edit-c').value;
-      const qty = parseFloat(document.getElementById('bom-edit-q').value);
-      if(!pid || !cid || qty <= 0) return showAlert('請完整填寫！');
-      await sb.from('bom_list').update({
-        parent_product_id: pid,
-        child_product_id: cid,
-        quantity: qty
-      }).eq('id', id);
-      showAlert('BOM 已更新！');
-      window.closeModal();
-      await loadAll();
-      render();
-    } catch(e) {
-      showAlert('失敗：' + e.message);
-    }
+  let list = D.orders.map(function(o) {
+    const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+    return Object.assign({}, o, { customer_name: c ? (c.company_name || c.contact_person || '') : '' });
   });
-}
 
-function openBomModal() {
-  let parentOptions = '';
-  const finishedProducts = D.products.filter(function(p) { return p.type === 'finished'; });
-  for(let i=0; i<finishedProducts.length; i++) {
-    const p = finishedProducts[i];
-    parentOptions += '<option value="' + p.id + '">' + p.name + '</option>';
-  }
-  let childOptions = '';
-  const semiProducts = D.products.filter(function(p) { return p.type === 'semi'; });
-  for(let i=0; i<semiProducts.length; i++) {
-    const p = semiProducts[i];
-    childOptions += '<option value="' + p.id + '">' + p.name + '</option>';
-  }
-  const html = '<div class="mb-4"><label class="block text-sm font-bold mb-2">成品</label><select id="b-p" class="w-full px-3 py-2 border rounded input-field">' + parentOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-2">物料 (半成品/原料)</label><select id="b-c" class="w-full px-3 py-2 border rounded input-field">' + childOptions + '</select></div><div class="mb-4"><label class="block text-sm font-bold mb-2">用量</label><input type="number" id="b-q" class="w-full px-3 py-2 border rounded input-field" value="1"></div>';
-  openModal('新增 BOM', html, async function() {
-    try {
-      const pid = document.getElementById('b-p').value;
-      const cid = document.getElementById('b-c').value;
-      const qty = parseFloat(document.getElementById('b-q').value);
-      if(!pid || !cid || qty <= 0) return showAlert('請完整填寫！');
-      await sb.from('bom_list').insert([{ parent_product_id: pid, child_product_id: cid, quantity: qty }]);
-      showAlert('已儲存！');
-      window.closeModal();
-      await loadAll();
-      render();
-    } catch(e) {
-      showAlert('失敗：' + e.message);
-    }
-  });
-}
-
-async function delBom(id) {
-  if(!confirm('確定刪除?')) return;
-  try {
-    await sb.from('bom_list').delete().eq('id', id);
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('失敗：' + e.message);
-  }
-}
-
-// ==================== 倉庫管理 ====================
-function renderWarehouses(c) {
-  let html = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 倉庫管理</h1><button onclick="openWarehouseModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增倉庫</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'wh-tbody\', 0)">倉庫名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">位置</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="wh-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
-  c.innerHTML = html;
-  let whHtml = '';
-  for(let i=0; i<D.warehouses.length; i++) {
-    const w = D.warehouses[i];
-    whHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + w.name + '</td><td class="px-4 py-3 text-sm">' + (w.location || '-') + '</td><td class="px-4 py-3"><span class="px-2 py-1 text-xs rounded-full ' + (w.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800') + '">' + (w.is_active ? '啟用' : '停用') + '</span></td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openWarehouseModal(\'' + w.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delWarehouse(\'' + w.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
-  }
-  document.getElementById('wh-tbody').innerHTML = whHtml;
-}
-
-function openWarehouseModal(id) {
-  editingId = id || null;
-  const w = id ? D.warehouses.find(function(x) { return x.id === id; }) : null;
-  const html = '<input type="hidden" id="wh-id" value="' + (id || '') + '"><div class="mb-4"><label class="block text-sm font-bold mb-2">倉庫名稱 *</label><input type="text" id="wh-name" class="w-full px-3 py-2 border rounded input-field" value="' + (w ? w.name : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">位置</label><input type="text" id="wh-loc" class="w-full px-3 py-2 border rounded input-field" value="' + (w ? w.location : '') + '"></div><div class="mb-4"><label class="block text-sm font-bold mb-2">狀態</label><select id="wh-active" class="w-full px-3 py-2 border rounded input-field"><option value="true" ' + (w && w.is_active !== false ? 'selected' : '') + '>啟用</option><option value="false" ' + (w && w.is_active === false ? 'selected' : '') + '>停用</option></select></div>';
-  openModal(id ? '編輯倉庫' : '新增倉庫', html, saveWarehouse);
-}
-
-async function saveWarehouse() {
-  const name = document.getElementById('wh-name').value.trim();
-  if(!name) return showAlert('倉庫名稱必填！');
-  const data = { name: name, location: document.getElementById('wh-loc').value, is_active: document.getElementById('wh-active').value === 'true' };
-  try {
-    if(editingId) await sb.from('warehouses').update(data).eq('id', editingId);
-    else await sb.from('warehouses').insert([data]);
-    showAlert('倉庫已儲存！');
-    window.closeModal();
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('失敗：' + e.message);
-  }
-}
-
-async function delWarehouse(id) {
-  if(!confirm('確定刪除？')) return;
-  try {
-    await sb.from('warehouse_inventory').delete().eq('warehouse_id', id);
-    await sb.from('warehouses').delete().eq('id', id);
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('刪除失敗：' + e.message);
-  }
-}
-
-// ==================== 庫存盤點 (新增搜索+排序) ====================
-function renderInventory(c) {
-  let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
-  const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
-  for(let i=0; i<activeWh.length; i++) {
-    const w = activeWh[i];
-    tabsHtml += '<button onclick="showWhTab(\'' + w.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + w.id + '">' + w.name + '</button>';
-  }
-  c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div><div class="mb-4"><input type="text" id="inv-search" placeholder="🔍 搜尋產品名稱或SKU..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="showWhTab(document.querySelector(\'.wh-tab.bg-blue-600\')?.dataset.wh || \'all\')"></div><div id="inv-content"></div></div>';
-  showWhTab('all');
-}
-
-function showWhTab(whId) {
-  const tabs = document.querySelectorAll('.wh-tab');
-  for(let i=0; i<tabs.length; i++) {
-    const t = tabs[i];
-    t.className = t.className.replace('bg-blue-600 text-white', 'bg-gray-200 text-gray-700');
-    if(t.dataset.wh === whId) t.className = t.className.replace('bg-gray-200 text-gray-700', 'bg-blue-600 text-white');
-  }
-  const container = document.getElementById('inv-content');
-  const searchKw = (document.getElementById('inv-search')?.value || '').toLowerCase();
-
-  let productList = D.products.slice();
-  if(searchKw) {
-    productList = productList.filter(function(p) {
-      return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
-             (p.sku || '').toLowerCase().indexOf(searchKw) !== -1;
+  if(searchTerm) {
+    list = list.filter(function(o) {
+      const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+      const customerName = c ? (c.company_name || c.contact_person || '').toLowerCase() : '';
+      const customerPhone = c ? (c.phone || '').toLowerCase() : '';
+      return customerName.indexOf(searchTerm) !== -1 ||
+             customerPhone.indexOf(searchTerm) !== -1;
     });
   }
 
-  const sortField = sortState.inventory.field || 'name';
-  const sortAsc = sortState.inventory.asc !== false;
-  productList.sort(function(a, b) {
-    let aVal = a[sortField] || '';
-    let bVal = b[sortField] || '';
-    if(typeof aVal === 'string') aVal = aVal.toLowerCase();
-    if(typeof bVal === 'string') bVal = bVal.toLowerCase();
-    if(aVal < bVal) return sortAsc ? -1 : 1;
-    if(aVal > bVal) return sortAsc ? 1 : -1;
-    return 0;
-  });
-
-  let rows = '';
-  if(whId === 'all') {
-    for(let i=0; i<productList.length; i++) {
-      const p = productList[i];
-      let totalQty = 0;
-      const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
-      for(let j=0; j<invs.length; j++) { totalQty += invs[j].quantity || 0; }
-
-      const initialStock = p.initial_stock || 0;
-      const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
-      const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
-      const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-
-      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3">' + (p.sku || '-') + '</td><td class="px-4 py-3 font-bold text-lg">' + totalQty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
-    }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-  } else {
-    const wh = D.warehouses.find(function(w) { return w.id === whId; });
-    const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
-    for(let i=0; i<productList.length; i++) {
-      const p = productList[i];
-      const wInv = inv.find(function(x) { return x.product_id === p.id; });
-      const qty = wInv ? wInv.quantity : 0;
-
-      const initialStock = p.initial_stock || 0;
-      const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
-      const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
-      const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-
-      rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + p.name + '</td><td class="px-4 py-3 font-bold">' + qty + '</td><td class="px-4 py-3">' + initialStock + '</td><td class="px-4 py-3 ' + varianceClass + ' font-bold">' + varianceText + '</td><td class="px-4 py-3"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
-    }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th><th class="px-4 py-3 text-center text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  if(startDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate >= startDate;
+    });
   }
-}
-
-function sortInvTable(field) {
-  if(sortState.inventory.field === field) {
-    sortState.inventory.asc = !sortState.inventory.asc;
-  } else {
-    sortState.inventory.field = field;
-    sortState.inventory.asc = true;
+  if(endDate) {
+    list = list.filter(function(o) {
+      const orderDate = new Date(o.created_at).toISOString().slice(0, 7);
+      return orderDate <= endDate;
+    });
   }
-  const activeTab = document.querySelector('.wh-tab.bg-blue-600');
-  const whId = activeTab ? activeTab.dataset.wh : 'all';
-  showWhTab(whId);
-}
 
-function saveInvItem(btn, pid, wid) {
-  const tr = btn.closest('tr');
-  const qty = parseInt(tr.querySelector('.inv-qty').value) || 0;
-  const existing = D.warehouseInv.find(function(i) { return i.warehouse_id === wid && i.product_id === pid; });
-  const data = {quantity: qty};
-  const promise = existing ? sb.from('warehouse_inventory').update(data).eq('id', existing.id) : sb.from('warehouse_inventory').insert([{warehouse_id: wid, product_id: pid, quantity: qty, safety_stock: 0}]);
-  promise.then(function() {
-    loadAll().then(function() { showWhTab(wid); showAlert('庫存已更新！'); });
-  }).catch(function(e) { showAlert('失敗：' + e.message); });
-}
-
-// ==================== 採購入庫 (修正類型邏輯 + 商品明細搜尋) ====================
-function renderPurchases(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
-  renderPurTable();
-}
-
-function renderPurTable() {
-  const searchText = (document.getElementById('pur-search')?.value || '').toLowerCase();
-  const startDate = document.getElementById('pur-start-date')?.value || '';
-  const endDate = document.getElementById('pur-end-date')?.value || '';
-
-  let list = D.purchases.map(function(p) {
-    const vendor = D.vendors.find(v => v.id === p.vendor_id);
-    return Object.assign({}, p, { vendor_name: vendor ? vendor.name : '' });
-  }).filter(function(p) {
-    const purchaseDate = p.created_at ? p.created_at.split('T')[0] : '';
-    const matchSearch = !searchText || p.vendor_name.toLowerCase().includes(searchText);
-    const matchStartDate = !startDate || purchaseDate >= startDate;
-    const matchEndDate = !endDate || purchaseDate <= endDate;
-    return matchSearch && matchStartDate && matchEndDate;
-  });
-
-  const sortField = sortState.purchase.field || 'created_at';
-  const sortAsc = sortState.purchase.asc !== false;
+  // 排序
   list.sort(function(a, b) {
-    let aVal = a[sortField] || '';
-    let bVal = b[sortField] || '';
-    if(sortField === 'created_at') {
+    let aVal = a[ordSortField] || '';
+    let bVal = b[ordSortField] || '';
+    if(ordSortField === 'created_at') {
       aVal = new Date(aVal);
       bVal = new Date(bVal);
-    } else if(sortField === 'vendor_name') {
+    } else if(ordSortField === 'customer_name') {
       aVal = aVal.toLowerCase();
       bVal = bVal.toLowerCase();
     }
-    if(aVal < bVal) return sortAsc ? -1 : 1;
-    if(aVal > bVal) return sortAsc ? 1 : -1;
+    if(aVal < bVal) return ordSortAsc ? -1 : 1;
+    if(aVal > bVal) return ordSortAsc ? 1 : -1;
     return 0;
   });
 
   let html = '';
+  let totalAmount = 0;
+  let totalMargin = 0;
+  let count = 0;
+
   for(let i=0; i<list.length; i++) {
-    const p = list[i];
-    const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
-    // 類型根據 is_invoice_purchase 決定
-    const typeLabel = p.is_invoice_purchase ?
-      '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' :
-      '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
-    const invoiceLabel = p.is_invoice_purchase ? '<span class="text-green-600 font-bold">有</span>' : '<span class="text-gray-400">無</span>';
+    const o = list[i];
+    const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+    const emp = o.shipping_advance_employee_id ? D.emps.find(function(x) { return x.id === o.shipping_advance_employee_id; }) : null;
+    const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
 
-    const items = p.items || [];
-    const itemsText = items.map(function(item) {
-      const prod = D.products.find(x => x.id === item.product_id);
-      return (prod?.name || '?') + ' x' + item.quantity;
-    }).join(', ');
+    totalAmount += o.total_amount || 0;
+    if(o.gross_profit_margin !== undefined) { totalMargin += o.gross_profit_margin || 0; count++; }
 
-    let amountDisplay = p.total_amount || 0;
-    let amountHtml = '<span class="font-bold">' + amountDisplay.toLocaleString() + '</span>';
-    if (p.is_invoice_purchase) {
-      amountHtml = '<span class="font-bold text-orange-600">' + amountDisplay.toLocaleString() + '</span>';
+    let marginHtml = '<span class="text-gray-400">-</span>';
+    if(o.gross_profit_margin !== undefined && o.gross_profit_margin !== null) {
+      const color = o.gross_profit_margin >= 0 ? 'text-green-600' : 'text-red-600';
+      marginHtml = '<span class="'+color+' font-bold">'+o.gross_profit_margin.toFixed(1)+'%</span>';
     }
 
-    html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + invoiceLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
+    let advanceHtml = '<span class="text-gray-400">-</span>';
+    if(o.shipping_advance_amount > 0 && emp) {
+      advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">'+emp.name+'</div><div class="font-bold">'+o.shipping_advance_amount.toLocaleString()+'</div></div>';
+    }
+
+    html += '<tr class="hover:bg-gray-50">' +
+      '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
+      '<td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td>' +
+      '<td class="px-4 py-3 text-center">' + advanceHtml + '</td>' +
+      '<td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td>' +
+      '<td class="px-4 py-3 text-center">' + marginHtml + '</td>' +
+      '<td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
+        '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
+        '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
+        '<button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>' +
+      '</td>' +
+    '</tr>';
   }
 
-  const tbody = document.getElementById('pur-tbody');
+  const avgMargin = count > 0 ? (totalMargin / count).toFixed(1) : 0;
+  html += '<tr class="bg-gray-100 font-bold">' +
+    '<td class="px-4 py-3 text-center" colspan="3">總計 ('+list.length+' 單)</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+totalAmount.toLocaleString()+'</td>' +
+    '<td class="px-4 py-3 text-center text-lg">'+avgMargin+'%</td>' +
+    '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
+  '</tr>';
+
+  const tbody = document.getElementById('ord-tbody');
   if(tbody) {
     tbody.innerHTML = html;
   }
 }
 
-function sortPurTable(field) {
-  if(sortState.purchase.field === field) {
-    sortState.purchase.asc = !sortState.purchase.asc;
-  } else {
-    sortState.purchase.field = field;
-    sortState.purchase.asc = true;
-  }
-  renderPurTable();
+function clearOrdFilters() {
+  const searchInput = document.getElementById('ord-search');
+  const startDateInput = document.getElementById('ord-start-date');
+  const endDateInput = document.getElementById('ord-end-date');
+
+  if(searchInput) searchInput.value = '';
+  if(startDateInput) startDateInput.value = '';
+  if(endDateInput) endDateInput.value = '';
+
+  ordSortField = 'created_at';
+  ordSortAsc = false;
+  renderOrdTable();
 }
 
-function viewPurchaseDetail(id) {
-  const p = D.purchases.find(x => x.id === id);
-  if(!p) {
-    showAlert('找不到採購資料');
-    return;
-  }
-  const vendor = D.vendors.find(v => v.id === p.vendor_id);
+async function viewOrdDetail(id) {
+  const o = D.orders.find(function(x) { return x.id === id; });
+  if(!o) return showAlert('找不到訂單');
+  const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+  const w = D.warehouses.find(function(x) { return x.id === o.warehouse_id; });
+  const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
+  const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
+  const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
 
-  sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
-    const items = res.data || [];
-    let itemsHTML = '<div class="space-y-2">';
-    if(items.length === 0) {
-      itemsHTML += '<div class="text-gray-500">無商品明細</div>';
-    } else {
-      items.forEach(function(item) {
-        const product = D.products.find(x => x.id === item.product_id);
-        itemsHTML += '<div class="border-b pb-2">' +
-          '<div class="grid grid-cols-3 gap-2 text-sm">' +
-          '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
-          '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
-          '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
-          '</div>' +
-          '</div>';
-      });
+  const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+  const items = itemsResp.data || [];
+  let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th></tr></thead><tbody>';
+  let totalCost = 0;
+  for(let i=0; i<items.length; i++) {
+    const item = items[i];
+    const p = D.products.find(function(x) { return x.id === item.product_id; });
+    const subtotal = item.quantity * item.unit_price;
+    const cost = p ? (p.cost_price || 0) * item.quantity : 0;
+    totalCost += cost;
+    itemsHtml += '<tr class="border-b"><td class="p-2">'+(p?p.name:'未知')+'</td><td class="p-2 text-right">'+item.quantity+'</td><td class="p-2 text-right">'+item.unit_price+'</td><td class="p-2 text-right">'+subtotal.toLocaleString()+'</td></tr>';
+  }
+  itemsHtml += '</tbody></table>';
+
+  const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
+  const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
+  const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+
+  const html = '<div class="space-y-4 text-sm">' +
+    '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div>' +
+    '<div><b>📮 寄送地址:</b> '+(o.shipping_address || '無')+'</div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div>' +
+    '<div><b>📦 產品明細:</b>'+itemsHtml+'</div>' +
+    '<div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div>' +
+  '</div>';
+  openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
+}
+
+// ========== 新增/編輯訂單 ==========
+async function openOrdModal(id) {
+  editingId = id || null;
+  const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
+  const activeWarehouses = D.warehouses.filter(function(w) { return w.is_active; });
+
+  let whOptions = '<option value="">請選擇倉庫</option>';
+  for(let i=0; i<activeWarehouses.length; i++) { const w = activeWarehouses[i]; whOptions += '<option value="' + w.id + '" ' + (o && o.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>'; }
+
+  let custOptions = '<option value="">請選擇或搜尋客戶...</option>';
+  for(let i=0; i<D.customers.length; i++) { const c = D.customers[i]; custOptions += '<option value="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-phone="' + (c.phone || '') + '" data-title="' + (c.invoice_title || '') + '" data-tax="' + (c.tax_id || '') + '" ' + (o && o.customer_id === c.id ? 'selected' : '') + '>' + (c.company_name || c.contact_person) + ' - ' + c.phone + '</option>'; }
+
+  let chOptions = '<option value="">請選擇通路</option>';
+  for(let i=0; i<D.channels.length; i++) { const ch = D.channels[i]; chOptions += '<option value="' + ch.id + '" data-rate="' + ch.commission_rate + '" ' + (o && o.sales_channel_id === ch.id ? 'selected' : '') + '>' + ch.name + ' (' + ch.commission_rate + '%)</option>'; }
+
+  let pmOptions = '<option value="">請選擇付款方式</option>';
+  for(let i=0; i<D.payments.length; i++) { const pm = D.payments[i]; pmOptions += '<option value="' + pm.id + '" data-rate="' + pm.commission_rate + '" ' + (o && o.payment_method_id === pm.id ? 'selected' : '') + '>' + pm.name + ' (' + pm.commission_rate + '%)</option>'; }
+
+  let bankOptions = '<option value="">請選擇入款銀行</option>';
+  for(let i=0; i<D.banks.length; i++) { const b = D.banks[i]; bankOptions += '<option value="' + b.id + '" ' + (o && o.bank_account_id === b.id ? 'selected' : '') + '>' + b.account_name + '</option>'; }
+
+  let empOptions = '<option value="">無代墊</option>';
+  for(let i=0; i<D.emps.length; i++) { const emp = D.emps[i]; empOptions += '<option value="' + emp.id + '" ' + (o && o.shipping_advance_employee_id === emp.id ? 'selected' : '') + '>' + emp.name + '</option>'; }
+
+  const isSubscription = o ? o.is_subscription_order : false;
+  const subscriptionDays = o ? o.subscription_days : 30;
+  const couponAmount = o ? o.coupon_amount || 0 : 0;
+  const pointsAmount = o ? o.points_amount || 0 : 0;
+
+  // 發票類型預設
+  const invType = o ? o.invoice_type || 'no' : 'no';
+  const invNo = o ? o.invoice_no || '' : '';
+  const invTitle = o ? o.invoice_title || '' : '';
+  const invTax = o ? o.invoice_tax_id || '' : '';
+
+  const html = '<input type="hidden" id="o-id" value="' + (id || '') + '">' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">選擇客戶 *</label><input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field mb-2" placeholder="輸入名稱或電話搜尋..." oninput="searchCustomerInOrder()"><select id="o-cust" class="w-full px-3 py-2 border rounded input-field" onchange="fillCustomerData()">' + custOptions + '</select></div><div><label class="block text-sm font-bold mb-2">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div></div>' +
+    '<div class="bg-gray-50 p-4 rounded-lg mb-4"><h3 class="font-bold mb-3">📮 寄送地址 (自動帶入可修改)</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="o-recv-name" class="w-full px-3 py-2 border rounded input-field"></div><div><label class="block text-xs font-bold mb-1">電話</label><input type="text" id="o-recv-phone" class="w-full px-3 py-2 border rounded input-field"></div><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" id="o-recv-addr" class="w-full px-3 py-2 border rounded input-field"></div></div></div>' +
+    '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" '+(invType==='no'?'selected':'')+'>無發票</option><option value="yes" '+(invType==='yes'?'selected':'')+'>有發票</option><option value="tax_plus" '+(invType==='tax_plus'?'selected':'')+'>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_no||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_title||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_tax_id||'':'')+'"></div></div></div>' +
+    '<div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200"><h3 class="font-bold mb-3">💰 運費、通路與金流</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">運費金額</label><input type="number" id="o-shipping-fee" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.shipping_fee||0:0)+'" oninput="calcOrd()"></div><div><label class="block text-xs font-bold mb-1">運費支付方</label><select id="o-ship-payer" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="company" '+(o&&o.customer_paid_shipping===0?'selected':'')+'>公司吸收</option><option value="customer" '+(o&&o.customer_paid_shipping>0?'selected':'')+'>客戶支付 (加總)</option></select></div><div><label class="block text-xs font-bold mb-1">銷售通路</label><select id="o-channel" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + chOptions + '</select></div><div><label class="block text-xs font-bold mb-1">付款方式</label><select id="o-payment" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + pmOptions + '</select></div><div class="md:col-span-4"><label class="block text-xs font-bold mb-1">入款銀行帳戶 (存檔後自動入帳)</label><select id="o-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div></div></div>' +
+    '<div class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200"><h3 class="font-bold mb-3">🚚 運費代墊管理</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div class="md:col-span-1"><div class="checkbox-inline"><input type="checkbox" id="o-has-advance" '+(o&&o.shipping_advance_employee_id?'checked':'')+' onchange="document.getElementById(\'o-advance-emp-box\').style.display = this.checked ? \'block\' : \'none\'"><label for="o-has-advance">有運費代墊</label></div></div><div class="md:col-span-1" id="o-advance-emp-box" style="display:'+(o&&o.shipping_advance_employee_id?'block':'none')+'"><label class="block text-xs font-bold mb-1">代墊員工</label><select id="o-advance-emp" class="w-full px-3 py-2 border rounded input-field">' + empOptions + '</select></div></div></div>' +
+    '<div class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-200"><h3 class="font-bold mb-3">🔄 訂閱訂單設定</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><div class="checkbox-inline"><input type="checkbox" id="o-is-subscription" '+(isSubscription?'checked':'')+' onchange="calcOrd()"><label for="o-is-subscription">訂閱訂單</label></div><p class="text-xs text-gray-600 mt-1">勾選後會統計到平均月營收</p></div><div><label class="block text-xs font-bold mb-1">訂閱週期</label><select id="o-subscription-days" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="30" '+(subscriptionDays===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(subscriptionDays===45?'selected':'')+'>45 天</option><option value="60" '+(subscriptionDays===60?'selected':'')+'>60 天 (雙月繳)</option></select></div></div></div>' +
+    '<div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200"><h3 class="font-bold mb-3">🎫 折價券與紅利點數</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">折價券金額</label><input type="number" id="o-coupon-amount" class="w-full px-3 py-2 border rounded input-field" value="'+couponAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">官網發放折價券</p></div><div><label class="block text-xs font-bold mb-1">紅利點數折抵</label><input type="number" id="o-points-amount" class="w-full px-3 py-2 border rounded input-field" value="'+pointsAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">紅利點數折抵金額</p></div></div></div>' +
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細</label><div class="flex gap-2 mb-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div></div>' +
+    '<div class="bg-gray-100 p-4 rounded"><div class="flex justify-between items-center flex-wrap gap-2"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
+
+  openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
+
+  if(id && o) {
+    if(o.customer_id) {
+      const cust = D.customers.find(function(c) { return c.id === o.customer_id; });
+      if(cust) {
+        document.getElementById('o-cust').value = cust.id;
+        fillCustomerData();
+      }
     }
-    itemsHTML += '</div>';
+    document.getElementById('o-recv-name').value = o.shipping_recv_name || '';
+    document.getElementById('o-recv-phone').value = o.shipping_recv_phone || '';
+    document.getElementById('o-recv-addr').value = o.shipping_address || '';
 
-    const isInvoice = p.is_invoice_purchase;
-    const totalDisplay = isInvoice ? '稅金' : '總金額';
-    const html = '<div class="space-y-4">' +
-      '<div class="grid grid-cols-2 gap-4">' +
-      '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
-      '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
-      '<div><span class="text-gray-600">類型：</span>' + (isInvoice ? '購買發票' : '一般採購') + '</div>' +
-      '<div><span class="text-gray-600">發票：</span>' + (p.is_invoice_purchase ? '有' : '無') + '</div>' +
-      '<div><span class="text-gray-600">' + totalDisplay + '：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
-      '</div>' +
-      '<div class="border-t pt-4">' +
-      '<h3 class="font-bold mb-2">採購明細</h3>' +
-      itemsHTML +
-      '</div>' +
-      '</div>';
-    openModal('採購詳情', html, null, true);
-  }).catch(function(e) {
-    showAlert('載入明細失敗：' + e.message);
-  });
-}
-
-async function openPurModal(isInvoicePurchase, editId) {
-  editingId = editId || null;
-  const existingData = editId ? D.purchases.find(function(x) { return x.id === editId; }) : null;
-  let vendorOptions = '';
-  for(let i=0; i<D.vendors.length; i++) {
-    const v = D.vendors[i];
-    vendorOptions += '<option value="' + v.id + '" ' + (existingData && existingData.vendor_id === v.id ? 'selected' : '') + '>' + v.name + '</option>';
-  }
-  let whOptions = '';
-  const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
-  for(let i=0; i<activeWh.length; i++) {
-    const w = activeWh[i];
-    whOptions += '<option value="' + w.id + '" ' + (existingData && existingData.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
-  }
-
-  // 發票勾選（僅在一般採購時顯示，勾選不代表類型改變，只是記錄是否有發票）
-  let invoiceCheckHtml = '';
-  if (!isInvoicePurchase) {
-    const checked = existingData && existingData.is_invoice_purchase ? 'checked' : '';
-    invoiceCheckHtml = '<div class="form-row"><label>此採購有發票</label><div class="checkbox-inline"><input type="checkbox" id="pu-has-invoice" ' + checked + '><label for="pu-has-invoice">有</label></div></div>';
-  } else {
-    invoiceCheckHtml = '<input type="hidden" id="pu-has-invoice" value="true">';
-  }
-
-  let calcHtml = '';
-  if (isInvoicePurchase) {
-    calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div class="grid grid-cols-2 gap-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold">0</span></div><div><span class="text-sm text-gray-600">稅金 (5%)：</span><span id="pu-tax" class="font-bold text-orange-600">0</span></div><div class="col-span-2"><span class="text-sm text-gray-600">含稅總金額：</span><span id="pu-total" class="text-xl font-bold text-blue-600">0</span></div></div></div>';
-  } else {
-    calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold text-lg">0</span></div></div>';
-  }
-
-  const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (!isInvoicePurchase ? '<div><label class="block text-sm font-bold mb-2">入庫倉庫</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>' : '<div></div>') + '</div>' + invoiceCheckHtml +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>' +
-    calcHtml;
-
-  openModal(isInvoicePurchase ? '購買發票' : '一般採購入庫', html, savePur);
-  if(editId && existingData) {
-    const itemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
     if(items.length > 0) {
       for(let i=0; i<items.length; i++) {
         const item = items[i];
         const p = D.products.find(function(x) { return x.id === item.product_id; });
-        addPurItem(p, item.quantity, item.unit_price);
+        if(p) {
+          const hasInvoice = item.has_invoice || false;
+          addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice);
+        }
       }
     }
-  } else {
-    addPurItem();
   }
-  calcPur();
+  setTimeout(calcOrd, 100);
 }
 
-// 採購商品明細 - 自定義搜尋下拉
-function addPurItem(prod, qty, price) {
-  const box = document.getElementById('pu-items');
+function searchCustomerInOrder() {
+  const kw = document.getElementById('o-cust-search').value.toLowerCase();
+  const select = document.getElementById('o-cust');
+  const options = select.querySelectorAll('option');
+  for(let i=0; i<options.length; i++) {
+    const opt = options[i];
+    const text = (opt.dataset.name || '').toLowerCase() + ' ' + (opt.dataset.phone || '').toLowerCase();
+    opt.style.display = text.indexOf(kw) !== -1 ? 'block' : 'none';
+  }
+}
+
+function fillCustomerData() {
+  const custId = document.getElementById('o-cust').value;
+  if(!custId) return;
+  const cust = D.customers.find(function(c) { return c.id === custId; });
+  if(!cust) return;
+
+  document.getElementById('o-recv-name').value = cust.contact_person || '';
+  document.getElementById('o-recv-phone').value = cust.phone || '';
+  document.getElementById('o-invoice-title').value = cust.invoice_title || '';
+  document.getElementById('o-invoice-tax').value = cust.tax_id || '';
+
+  loadCustomerDefaultAddress(custId);
+}
+
+async function loadCustomerDefaultAddress(custId) {
+  const resp = await sb.from('customer_addresses').select('*').eq('customer_id', custId).eq('is_default', true).limit(1);
+  if(resp.data && resp.data.length > 0) {
+    const addr = resp.data[0];
+    document.getElementById('o-recv-addr').value = addr.street || addr.cvs_store_name || '';
+  }
+}
+
+// 新增訂單產品行
+function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
+  const box = document.getElementById('o-items');
   const div = document.createElement('div');
   div.className = 'flex flex-wrap gap-2 items-center bg-gray-50 p-3 rounded';
-  const uid = 'pu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const uid = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
   let prodOptionsHtml = '';
-  for(let i=0; i<D.products.length; i++) {
-    const p = D.products[i];
+  const filtered = D.products.filter(p => p.type === typeFilter);
+  for (let i = 0; i < filtered.length; i++) {
+    const p = filtered[i];
     const selected = (prod && prod.id === p.id) ? 'selected' : '';
-    const displayPrice = p.cost_price || 0;
-    prodOptionsHtml += '<div class="opt-item" data-id="' + p.id + '" data-cost="' + displayPrice + '" data-name="' + p.name + '" ' + selected + ' onclick="selectPurProduct(this, \'' + uid + '\')"><span class="opt-name">' + p.name + '</span><span class="opt-cost">(成本: ' + displayPrice + ')</span></div>';
+    const displayPrice = p.sell_price || 0;
+    prodOptionsHtml += `<div class="opt-item" data-id="${p.id}" data-price="${displayPrice}" data-name="${p.name}" ${selected} onclick="selectOrdProduct(this, '${uid}')">
+      <span class="opt-name">${p.name}</span><span class="opt-cost">(售價: ${displayPrice})</span>
+    </div>`;
   }
-  if(!prodOptionsHtml) {
-    prodOptionsHtml = '<div class="opt-item no-match">尚無商品，請先建立</div>';
+  if (!prodOptionsHtml) {
+    prodOptionsHtml = '<div class="opt-item no-match">尚無此類商品</div>';
   }
 
   let defaultName = prod ? prod.name : '';
-  let defaultCost = prod ? (prod.cost_price || 0) : 0;
+  let defaultPrice = prod ? (prod.sell_price || 0) : 0;
+  const isFinished = (typeFilter === 'finished');
+  const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
 
   div.innerHTML = `
     <div class="flex-1 min-w-[150px] prod-search-wrapper">
-      <input type="text" class="pu-prod-search w-full px-3 py-2 border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterPurProdOptions(this, '${uid}')" onfocus="document.getElementById('pu_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('pu_dropdown_${uid}').classList.remove('show')},200)">
-      <div class="pu-prod-select" id="pu_dropdown_${uid}">
+      <input type="text" class="pu-prod-search w-full px-3 py-2 border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},200)">
+      <div class="pu-prod-select" id="ord_dropdown_${uid}">
         ${prodOptionsHtml}
       </div>
       <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
     </div>
-    <div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="${qty || 1}" min="1" oninput="calcPur()"></div>
-    <div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultCost}" step="0.01" oninput="calcPur()"></div>
-    <button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch flex-shrink-0">✕</button>
+    <div class="w-20"><input type="number" class="o-qty w-full px-3 py-2 border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()"></div>
+    <div class="w-28"><input type="number" class="o-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()"></div>
+    ${isFinished ? `<div class="checkbox-inline flex-shrink-0"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()" id="inv_${uid}"><label for="inv_${uid}">有發票</label></div>` : ''}
+    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch flex-shrink-0">✕</button>
   `;
   box.appendChild(div);
 
-  if(prod) {
+  if (prod) {
     const hiddenInput = div.querySelector('.pu-prod-id');
     hiddenInput.value = prod.id;
-    const priceInput = div.querySelector('.pu-price');
-    if(price && price > 0) {
+    const priceInput = div.querySelector('.o-price');
+    if (price !== undefined && price > 0) {
       priceInput.value = price;
     } else {
-      priceInput.value = prod.cost_price || 0;
+      priceInput.value = prod.sell_price || 0;
     }
   }
-  setTimeout(calcPur, 50);
+  setTimeout(calcOrd, 50);
 }
 
-function filterPurProdOptions(input, uid) {
+function filterOrdProdOptions(input, uid) {
   const kw = input.value.toLowerCase();
-  const dropdown = document.getElementById('pu_dropdown_' + uid);
-  if(!dropdown) return;
+  const dropdown = document.getElementById('ord_dropdown_' + uid);
+  if (!dropdown) return;
   const items = dropdown.querySelectorAll('.opt-item');
   let hasMatch = false;
-  for(let i=0; i<items.length; i++) {
+  for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    if(item.classList.contains('no-match')) continue;
+    if (item.classList.contains('no-match')) continue;
     const name = (item.dataset.name || '').toLowerCase();
-    if(name.indexOf(kw) !== -1) {
+    if (name.indexOf(kw) !== -1) {
       item.style.display = 'block';
       hasMatch = true;
     } else {
@@ -1897,8 +1829,8 @@ function filterPurProdOptions(input, uid) {
     }
   }
   let noMatch = dropdown.querySelector('.opt-item.no-match');
-  if(!hasMatch) {
-    if(!noMatch) {
+  if (!hasMatch) {
+    if (!noMatch) {
       noMatch = document.createElement('div');
       noMatch.className = 'opt-item no-match';
       noMatch.textContent = '無符合商品';
@@ -1906,142 +1838,469 @@ function filterPurProdOptions(input, uid) {
     }
     noMatch.style.display = 'block';
   } else {
-    if(noMatch) noMatch.style.display = 'none';
+    if (noMatch) noMatch.style.display = 'none';
   }
   dropdown.classList.add('show');
 }
 
-function selectPurProduct(el, uid) {
+function selectOrdProduct(el, uid) {
   const id = el.dataset.id;
-  const cost = parseFloat(el.dataset.cost) || 0;
+  const price = parseFloat(el.dataset.price) || 0;
   const name = el.dataset.name || '';
-  const wrapper = document.getElementById('pu_dropdown_' + uid)?.closest('.prod-search-wrapper');
-  if(!wrapper) return;
+  const wrapper = document.getElementById('ord_dropdown_' + uid)?.closest('.prod-search-wrapper');
+  if (!wrapper) return;
   const searchInput = wrapper.querySelector('.pu-prod-search');
   const hiddenInput = wrapper.querySelector('.pu-prod-id');
-  const priceInput = wrapper.closest('div.flex')?.querySelector('.pu-price');
-  if(searchInput) searchInput.value = name;
-  if(hiddenInput) hiddenInput.value = id;
-  if(priceInput && !priceInput.dataset.userSet) {
-    priceInput.value = cost;
+  const priceInput = wrapper.closest('div.flex')?.querySelector('.o-price');
+  if (searchInput) searchInput.value = name;
+  if (hiddenInput) hiddenInput.value = id;
+  if (priceInput && !priceInput.dataset.userSet) {
+    priceInput.value = price;
   }
-  const dropdown = document.getElementById('pu_dropdown_' + uid);
-  if(dropdown) dropdown.classList.remove('show');
-  calcPur();
+  const dropdown = document.getElementById('ord_dropdown_' + uid);
+  if (dropdown) dropdown.classList.remove('show');
+  calcOrd();
 }
 
-function calcPur() {
-  let subtotal = 0;
-  const rows = document.querySelectorAll('#pu-items > div');
-  for(let i=0; i<rows.length; i++) {
+function calcOrd() {
+  let productSubtotal = 0;
+  let totalCost = 0;
+  const rows = document.querySelectorAll('#o-items > div');
+  for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
-    const price = parseFloat(r.querySelector('.pu-price').value) || 0;
-    const qty = parseInt(r.querySelector('.pu-qty').value) || 0;
-    subtotal += price * qty;
+    const hiddenInput = r.querySelector('.pu-prod-id');
+    if (!hiddenInput || !hiddenInput.value) continue;
+    const productId = hiddenInput.value;
+    const product = D.products.find(p => p.id === productId);
+    if (!product) continue;
+    const costPrice = product.cost_price || 0;
+    const price = parseFloat(r.querySelector('.o-price').value) || 0;
+    const qty = parseInt(r.querySelector('.o-qty').value) || 0;
+    productSubtotal += price * qty;
+
+    let finalCost = costPrice;
+    const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+    if (hasInvoiceCheck && hasInvoiceCheck.checked && product.type === 'finished') {
+      finalCost = costPrice * 1.05;
+    }
+    totalCost += finalCost * qty;
   }
-  const isInvoiceMode = document.getElementById('pu-invoice-mode')?.value === 'true';
-  document.getElementById('pu-cost').textContent = subtotal.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-  if (isInvoiceMode) {
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
-    document.getElementById('pu-tax').textContent = tax.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-    document.getElementById('pu-total').textContent = total.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 2});
-  }
+
+  const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+  const shipPayer = document.getElementById('o-ship-payer').value;
+  let finalShipping = 0;
+  if (shipPayer === 'customer') finalShipping = shippingFee;
+
+  const invType = document.getElementById('o-invoice-type').value;
+  let taxAmount = 0;
+  if (invType === 'tax_plus') taxAmount = productSubtotal * 0.05;
+
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
+
+  let amountAfterDiscount = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if (amountAfterDiscount < 0) amountAfterDiscount = 0;
+
+  const chSelect = document.getElementById('o-channel');
+  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+  const pmSelect = document.getElementById('o-payment');
+  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+
+  const chCommission = amountAfterDiscount * (chRate / 100);
+  const pmCommission = amountAfterDiscount * (pmRate / 100);
+  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+
+  const grossProfit = amountAfterDiscount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
+
+  document.getElementById('o-total').textContent = Math.round(amountAfterDiscount).toLocaleString();
+  document.getElementById('o-cost').textContent = totalCost.toLocaleString();
+  document.getElementById('o-tax').textContent = Math.round(taxAmount).toLocaleString();
+  document.getElementById('o-coupon-display').textContent = Math.round(couponAmount).toLocaleString();
+  document.getElementById('o-points-display').textContent = Math.round(pointsAmount).toLocaleString();
+  document.getElementById('o-ch-commission').textContent = Math.round(chCommission).toLocaleString();
+  document.getElementById('o-pm-commission').textContent = Math.round(pmCommission).toLocaleString();
+  document.getElementById('o-margin').textContent = margin.toFixed(1) + '%';
+  document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-async function savePur() {
-  let editId = document.getElementById('pu-edit-id').value;
-  const vendorId = document.getElementById('pu-v').value;
-  const isInvoiceMode = document.getElementById('pu-invoice-mode').value === 'true';
-  // 決定是否有發票 (購買發票強制 true，一般採購看勾選)
-  let hasInvoice = isInvoiceMode;
-  if (!isInvoiceMode) {
-    const checkbox = document.getElementById('pu-has-invoice');
-    hasInvoice = checkbox ? checkbox.checked : false;
-  }
+async function saveOrd() {
+  const cid = document.getElementById('o-cust').value;
+  const wid = document.getElementById('o-warehouse').value;
+  const bankId = document.getElementById('o-bank').value;
+  if(!cid) return showAlert('請選擇客戶！');
+  if(!wid) return showAlert('請選擇出貨倉庫！');
+  if(!bankId) return showAlert('請選擇入款銀行！');
 
   const items = [];
-  let subtotal = 0;
-  const rows = document.querySelectorAll('#pu-items > div');
+  let productSubtotal = 0;
+  let totalCost = 0;
+  const rows = document.querySelectorAll('#o-items > div');
   for(let i=0; i<rows.length; i++) {
     const r = rows[i];
     const hiddenInput = r.querySelector('.pu-prod-id');
-    const pid = hiddenInput ? hiddenInput.value : '';
-    const q = parseInt(r.querySelector('.pu-qty').value) || 0;
-    const p = parseFloat(r.querySelector('.pu-price').value) || 0;
+    if (!hiddenInput || !hiddenInput.value) continue;
+    const pid = hiddenInput.value;
+    const q = parseInt(r.querySelector('.o-qty').value) || 0;
+    const p = parseFloat(r.querySelector('.o-price').value) || 0;
     if(pid && q > 0) {
-      items.push({product_id: pid, quantity: q, unit_price: p});
-      subtotal += p * q;
+      const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+      const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
+      items.push({product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice});
+      productSubtotal += p * q;
+      const product = D.products.find(x => x.id === pid);
+      const cost = product ? product.cost_price || 0 : 0;
+      const finalCost = hasInvoice && product && product.type === 'finished' ? cost * 1.05 : cost;
+      totalCost += finalCost * q;
     }
   }
-  if(!items.length) return showAlert('請加入採購商品！');
+  if(!items.length) return showAlert('請加入產品！');
 
-  let totalAmount;
-  if (isInvoiceMode) {
-    totalAmount = Math.round(subtotal * 0.05);
-  } else {
-    totalAmount = Math.round(subtotal);
-  }
+  const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+  const shipPayer = document.getElementById('o-ship-payer').value;
+  const finalShipping = shipPayer === 'customer' ? shippingFee : 0;
+  const invType = document.getElementById('o-invoice-type').value;
+  const taxAmount = invType === 'tax_plus' ? productSubtotal * 0.05 : 0;
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
 
-  const d = {
-    vendor_id: vendorId,
-    is_invoice_purchase: hasInvoice,
-    total_amount: totalAmount,
-    warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null
+  let totalAmountRaw = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if(totalAmountRaw < 0) totalAmountRaw = 0;
+  const totalAmount = Math.round(totalAmountRaw);
+
+  const chSelect = document.getElementById('o-channel');
+  const chId = chSelect.value || null;
+  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+  const pmSelect = document.getElementById('o-payment');
+  const pmId = pmSelect.value || null;
+  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+
+  const chCommission = totalAmount * (chRate / 100);
+  const pmCommission = totalAmount * (pmRate / 100);
+  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+  const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+  const hasAdvance = document.getElementById('o-has-advance').checked;
+  const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
+  const advanceAmount = 0;
+  const advanceStatus = 'pending';
+  const advanceBankId = null;
+
+  const isSubscriptionOrder = document.getElementById('o-is-subscription').checked;
+  const subscriptionDays = parseInt(document.getElementById('o-subscription-days').value) || 30;
+
+  // 獲取訂單日期 (如果編輯則保持原日期，否則用今天)
+  const orderDate = editingId ? new Date().toISOString() : new Date().toISOString();
+
+  const data = {
+    customer_id: cid, warehouse_id: wid, bank_account_id: bankId,
+    total_amount: totalAmount, gross_profit_margin: margin,
+    status: 'shipped', order_no: editingId ? D.orders.find(function(x) { return x.id === editingId; }).order_no : 'ORD-' + Date.now(),
+    invoice_type: invType, invoice_no: document.getElementById('o-invoice-no').value || null,
+    invoice_title: document.getElementById('o-invoice-title').value, invoice_tax_id: document.getElementById('o-invoice-tax').value,
+    shipping_fee: shippingFee, absorbed_shipping_fee: companyShippingCost, customer_paid_shipping: finalShipping,
+    sales_channel_id: chId, payment_method_id: pmId,
+    shipping_recv_name: document.getElementById('o-recv-name').value,
+    shipping_recv_phone: document.getElementById('o-recv-phone').value,
+    shipping_address: document.getElementById('o-recv-addr').value,
+    shipping_advance_employee_id: advanceEmpId,
+    is_subscription_order: isSubscriptionOrder,
+    subscription_days: subscriptionDays,
+    coupon_amount: couponAmount,
+    points_amount: pointsAmount,
+    shipping_advance_amount: advanceAmount,
+    shipping_advance_reimbursed: advanceStatus === 'reimbursed',
+    shipping_advance_bank_id: advanceBankId,
+    shipping_advance_reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+    created_at: orderDate
   };
+
   try {
-    if(editId) {
-      await sb.from('purchase_items').delete().eq('purchase_id', editId);
-      await sb.from('purchases').update(d).eq('id', editId);
+    if(editingId) {
+      const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
+      const oldOrder = oldOrderResp.data;
+
+      if(oldOrder) {
+        const oldBankId = oldOrder.bank_account_id;
+        const bankChanged = (oldBankId !== bankId);
+        if(bankChanged && oldOrder.bank_account_id && oldOrder.total_amount) {
+          const oldBank = D.banks.find(function(b) { return b.id === oldOrder.bank_account_id; });
+          if(oldBank) {
+            await sb.from('bank_accounts').update({
+              balance: (oldBank.balance || 0) - oldOrder.total_amount
+            }).eq('id', oldOrder.bank_account_id);
+          }
+        }
+
+        const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
+        const oldItems = oldItemsResp.data || [];
+
+        for(let i=0; i<oldItems.length; i++) {
+          const oldItem = oldItems[i];
+          const oldProduct = D.products.find(function(p) { return p.id === oldItem.product_id; });
+          if(!oldProduct) continue;
+
+          if(oldProduct.type === 'finished' || oldProduct.type === 'gift_box' || oldProduct.type === 'outer_box') {
+            const existingInv = await sb.from('warehouse_inventory')
+              .select('id, quantity')
+              .eq('warehouse_id', oldOrder.warehouse_id)
+              .eq('product_id', oldProduct.id)
+              .single();
+
+            if(existingInv.data) {
+              await sb.from('warehouse_inventory').update({
+                quantity: (existingInv.data.quantity || 0) + oldItem.quantity
+              }).eq('id', existingInv.data.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{
+                warehouse_id: oldOrder.warehouse_id,
+                product_id: oldProduct.id,
+                quantity: oldItem.quantity,
+                safety_stock: 0
+              }]);
+            }
+          }
+
+          const oldBomItems = D.bom.filter(function(b) { return b.parent_product_id === oldProduct.id; });
+          if(oldBomItems.length > 0) {
+            for(let j=0; j<oldBomItems.length; j++) {
+              const oldBom = oldBomItems[j];
+              const restoreQty = oldBom.quantity * oldItem.quantity;
+
+              const materialInv = await sb.from('warehouse_inventory')
+                .select('id, quantity, warehouse_id')
+                .eq('product_id', oldBom.child_product_id);
+
+              if(materialInv.data && materialInv.data.length > 0) {
+                let targetInv = materialInv.data.find(function(inv) {
+                  return inv.warehouse_id === oldOrder.warehouse_id;
+                });
+                if(!targetInv) targetInv = materialInv.data[0];
+
+                await sb.from('warehouse_inventory').update({
+                  quantity: (targetInv.quantity || 0) + restoreQty
+                }).eq('id', targetInv.id);
+              } else {
+                await sb.from('warehouse_inventory').insert([{
+                  warehouse_id: oldOrder.warehouse_id,
+                  product_id: oldBom.child_product_id,
+                  quantity: restoreQty,
+                  safety_stock: 0
+                }]);
+              }
+            }
+          }
+        }
+
+        await sb.from('expenses').delete().eq('related_order_id', editingId);
+      }
+
+      const oldBankId = oldOrder.bank_account_id;
+      const newBankId = bankId;
+
+      if(oldBankId !== newBankId) {
+        const newBank = D.banks.find(function(b) { return b.id === newBankId; });
+        if(newBank) {
+          await sb.from('bank_accounts').update({
+            balance: (newBank.balance || 0) + totalAmount
+          }).eq('id', newBankId);
+        }
+      }
+
+      await sb.from('orders').update(data).eq('id', editingId);
+      await sb.from('order_items').delete().eq('order_id', editingId);
     } else {
-      d.purchase_no = 'PUR-' + Date.now();
-      d.status = 'completed';
-      const r = await sb.from('purchases').insert([d]).select().single();
-      editId = r.data.id;
-    }
-    await sb.from('purchase_items').insert(items.map(function(i) { return Object.assign({}, i, {purchase_id: editId}); }));
-    if (!isInvoiceMode && d.warehouse_id) {
-      for(let i=0; i<items.length; i++) {
-        const item = items[i];
-        const existing = D.warehouseInv.find(function(w) { return w.warehouse_id === d.warehouse_id && w.product_id === item.product_id; });
-        if(existing) await sb.from('warehouse_inventory').update({quantity: (existing.quantity || 0) + item.quantity}).eq('id', existing.id);
-        else await sb.from('warehouse_inventory').insert([{warehouse_id: d.warehouse_id, product_id: item.product_id, quantity: item.quantity, safety_stock: 0}]);
-        const prod = D.products.find(function(x) { return x.id === item.product_id; });
-        if(prod) await sb.from('products').update({current_stock: (prod.current_stock || 0) + item.quantity}).eq('id', item.product_id);
+      const r = await sb.from('orders').insert([data]).select().single();
+      editingId = r.data.id;
+
+      const bank = D.banks.find(function(b) { return b.id === bankId; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) + totalAmount
+        }).eq('id', bankId);
       }
     }
-    showAlert('採購已儲存！');
+
+    await sb.from('order_items').insert(items.map(function(i) {
+      return Object.assign({}, i, {order_id: editingId});
+    }));
+
+    for(let i=0; i<items.length; i++) {
+      const item = items[i];
+      const product = D.products.find(function(p) { return p.id === item.product_id; });
+      if(!product) continue;
+
+      if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', wid)
+          .eq('product_id', product.id)
+          .single();
+
+        if(existingInv.data) {
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) - item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: wid,
+            product_id: product.id,
+            quantity: -item.quantity,
+            safety_stock: 0
+          }]);
+        }
+      }
+
+      const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
+      if(bomItems.length > 0) {
+        for(let j=0; j<bomItems.length; j++) {
+          const bom = bomItems[j];
+          const requiredQty = bom.quantity * item.quantity;
+
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
+
+          if(materialInv.data && materialInv.data.length > 0) {
+            let targetInv = materialInv.data.find(function(inv) {
+              return inv.warehouse_id === wid;
+            });
+            if(!targetInv) targetInv = materialInv.data[0];
+
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) - requiredQty
+            }).eq('id', targetInv.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: wid,
+              product_id: bom.child_product_id,
+              quantity: -requiredQty,
+              safety_stock: 0
+            }]);
+          }
+        }
+      }
+    }
+
+    if(hasAdvance && advanceEmpId && advanceAmount > 0) {
+      await sb.from('expenses').insert([{
+        category_id: (D.expCats.find(function(c) { return c.name === '運費'; }) || {}).id,
+        amount: advanceAmount,
+        description: '訂單 '+data.order_no+' 運費代墊',
+        payment_date: new Date().toISOString().split('T')[0],
+        employee_id: advanceEmpId,
+        is_reimbursed: advanceStatus === 'reimbursed',
+        reimbursement_bank_id: advanceBankId,
+        reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+        related_order_id: editingId
+      }]);
+    }
+
+    showAlert('出貨單已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
     showAlert('失敗：' + e.message);
+    console.error('saveOrd error:', e);
   }
 }
 
-async function delPur(id) {
-  if(!confirm('確定刪除?')) return;
+async function delOrd(id) {
+  if(!confirm('確定刪除？')) return;
   try {
-    await sb.from('purchase_items').delete().eq('purchase_id', id);
-    await sb.from('purchases').delete().eq('id', id);
+    const orderResp = await sb.from('orders').select('*').eq('id', id).single();
+    const o = orderResp.data;
+
+    if(!o) {
+      showAlert('找不到訂單！');
+      return;
+    }
+
+    if(o.bank_account_id && o.total_amount) {
+      const bank = D.banks.find(function(b) { return b.id === o.bank_account_id; });
+      if(bank) {
+        await sb.from('bank_accounts').update({
+          balance: (bank.balance || 0) - o.total_amount
+        }).eq('id', o.bank_account_id);
+      }
+    }
+
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+
+    for(let i=0; i<items.length; i++) {
+      const item = items[i];
+      const product = D.products.find(function(p) { return p.id === item.product_id; });
+      if(!product) continue;
+
+      if(product.type === 'finished' || product.type === 'gift_box' || product.type === 'outer_box') {
+        const existingInv = await sb.from('warehouse_inventory')
+          .select('id, quantity')
+          .eq('warehouse_id', o.warehouse_id)
+          .eq('product_id', product.id)
+          .single();
+
+        if(existingInv.data) {
+          await sb.from('warehouse_inventory').update({
+            quantity: (existingInv.data.quantity || 0) + item.quantity
+          }).eq('id', existingInv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{
+            warehouse_id: o.warehouse_id,
+            product_id: product.id,
+            quantity: item.quantity,
+            safety_stock: 0
+          }]);
+        }
+      }
+
+      const bomItems = D.bom.filter(function(b) { return b.parent_product_id === product.id; });
+      if(bomItems.length > 0) {
+        for(let j=0; j<bomItems.length; j++) {
+          const bom = bomItems[j];
+          const restoreQty = bom.quantity * item.quantity;
+
+          const materialInv = await sb.from('warehouse_inventory')
+            .select('id, quantity, warehouse_id')
+            .eq('product_id', bom.child_product_id);
+
+          if(materialInv.data && materialInv.data.length > 0) {
+            let targetInv = materialInv.data.find(function(inv) {
+              return inv.warehouse_id === o.warehouse_id;
+            });
+            if(!targetInv) targetInv = materialInv.data[0];
+
+            await sb.from('warehouse_inventory').update({
+              quantity: (targetInv.quantity || 0) + restoreQty
+            }).eq('id', targetInv.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{
+              warehouse_id: o.warehouse_id,
+              product_id: bom.child_product_id,
+              quantity: restoreQty,
+              safety_stock: 0
+            }]);
+          }
+        }
+      }
+    }
+
+    await sb.from('expenses').delete().eq('related_order_id', id);
+    await sb.from('order_items').delete().eq('order_id', id);
+    await sb.from('orders').delete().eq('id', id);
+
+    showAlert('訂單已刪除！');
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('刪除失敗：' + e.message);
+    console.error('delOrd error:', e);
   }
 }
-
-function clearPurFilters() {
-  const searchInput = document.getElementById('pur-search');
-  const startDateInput = document.getElementById('pur-start-date');
-  const endDateInput = document.getElementById('pur-end-date');
-  if(searchInput) searchInput.value = '';
-  if(startDateInput) startDateInput.value = '';
-  if(endDateInput) endDateInput.value = '';
-  renderPurTable();
-}
-
-// ==================== 廠商管理 ====================
+  // ==================== 廠商管理 ====================
 function renderVendors(c) {
   const sortedVendors = [...D.vendors].sort(function(a, b) {
     const statusA = a.cooperation_status || 'normal';
@@ -2050,10 +2309,33 @@ function renderVendors(c) {
     if (statusA === 'paused' && statusB === 'normal') return 1;
     return 0;
   });
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'ven-tbody\', 0)">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏢 廠商管理</h1><button onclick="openVenModal()" class="bg-teal-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增廠商</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortVenTable(\'name\')">名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">聯絡人</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">合作狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="ven-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  renderVenTable();
+}
+
+let venSortField = 'name', venSortAsc = true;
+
+function sortVenTable(field) {
+  if(venSortField === field) venSortAsc = !venSortAsc;
+  else { venSortField = field; venSortAsc = true; }
+  renderVenTable();
+}
+
+function renderVenTable() {
+  let list = [...D.vendors];
+  list.sort(function(a, b) {
+    let aVal = a[venSortField] || '';
+    let bVal = b[venSortField] || '';
+    if(typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if(typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if(aVal < bVal) return venSortAsc ? -1 : 1;
+    if(aVal > bVal) return venSortAsc ? 1 : -1;
+    return 0;
+  });
+
   let html = '';
-  for(let i=0; i<sortedVendors.length; i++) {
-    const v = sortedVendors[i];
+  for(let i=0; i<list.length; i++) {
+    const v = list[i];
     const status = v.cooperation_status || 'normal';
     const statusHtml = status === 'paused' ? '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">暫時無配合</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">正常配合</span>';
     html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + v.name + '</td><td class="px-4 py-3">' + (v.tax_id || '-') + '</td><td class="px-4 py-3">' + (v.contact_person || '-') + '</td><td class="px-4 py-3">' + (v.phone || '-') + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openVenModal(\'' + v.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delVen(\'' + v.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
@@ -2108,6 +2390,14 @@ function renderFinance(c) {
   renderSubTable();
 }
 
+let expSortField = 'payment_date', expSortAsc = false;
+
+function sortExpTable(field) {
+  if(expSortField === field) expSortAsc = !expSortAsc;
+  else { expSortField = field; expSortAsc = true; }
+  renderExpTable();
+}
+
 function renderExpTable() {
   const monthVal = document.getElementById('exp-month').value;
   const kw = (document.getElementById('exp-search') ? document.getElementById('exp-search').value || '' : '').toLowerCase();
@@ -2122,22 +2412,20 @@ function renderExpTable() {
     return matchMonth && matchKw;
   });
 
-  const sortField = sortState.expense.field || 'payment_date';
-  const sortAsc = sortState.expense.asc !== false;
   list.sort(function(a, b) {
-    let aVal = a[sortField] || '';
-    let bVal = b[sortField] || '';
-    if(sortField === 'payment_date') {
+    let aVal = a[expSortField] || '';
+    let bVal = b[expSortField] || '';
+    if(expSortField === 'payment_date') {
       aVal = new Date(aVal);
       bVal = new Date(bVal);
-    } else if(sortField === 'category_name') {
+    } else if(expSortField === 'category_name') {
       const catA = D.expCats.find(function(c) { return c.id === a.category_id; });
       const catB = D.expCats.find(function(c) { return c.id === b.category_id; });
       aVal = (catA ? catA.name : '').toLowerCase();
       bVal = (catB ? catB.name : '').toLowerCase();
     }
-    if(aVal < bVal) return sortAsc ? -1 : 1;
-    if(aVal > bVal) return sortAsc ? 1 : -1;
+    if(aVal < bVal) return expSortAsc ? -1 : 1;
+    if(aVal > bVal) return expSortAsc ? 1 : -1;
     return 0;
   });
 
@@ -2152,27 +2440,23 @@ function renderExpTable() {
   document.getElementById('exp-tbody').innerHTML = html;
 }
 
-function sortExpTable(field) {
-  if(sortState.expense.field === field) {
-    sortState.expense.asc = !sortState.expense.asc;
-  } else {
-    sortState.expense.field = field;
-    sortState.expense.asc = true;
-  }
-  renderExpTable();
+let subSortField = 'name', subSortAsc = true;
+
+function sortSubTable(field) {
+  if(subSortField === field) subSortAsc = !subSortAsc;
+  else { subSortField = field; subSortAsc = true; }
+  renderSubTable();
 }
 
 function renderSubTable() {
   let list = D.subs.slice();
-  const sortField = sortState.subscription.field || 'name';
-  const sortAsc = sortState.subscription.asc !== false;
   list.sort(function(a, b) {
-    let aVal = a[sortField] || '';
-    let bVal = b[sortField] || '';
+    let aVal = a[subSortField] || '';
+    let bVal = b[subSortField] || '';
     if(typeof aVal === 'string') aVal = aVal.toLowerCase();
     if(typeof bVal === 'string') bVal = bVal.toLowerCase();
-    if(aVal < bVal) return sortAsc ? -1 : 1;
-    if(aVal > bVal) return sortAsc ? 1 : -1;
+    if(aVal < bVal) return subSortAsc ? -1 : 1;
+    if(aVal > bVal) return subSortAsc ? 1 : -1;
     return 0;
   });
 
@@ -2192,16 +2476,6 @@ function renderSubTable() {
     subHtml += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + s.name + '</td><td class="px-4 py-3">' + (s.provider || '-') + '</td><td class="px-4 py-3">' + (s.start_date || '-') + ' ~ ' + (s.end_date || '-') + '</td><td class="px-4 py-3 font-bold">' + (s.amount || 0).toLocaleString() + '</td><td class="px-4 py-3 font-bold text-blue-600">' + monthlyText + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openSubModal(\'' + s.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delSub(\'' + s.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
   }
   document.getElementById('sub-tbody').innerHTML = subHtml;
-}
-
-function sortSubTable(field) {
-  if(sortState.subscription.field === field) {
-    sortState.subscription.asc = !sortState.subscription.asc;
-  } else {
-    sortState.subscription.field = field;
-    sortState.subscription.asc = true;
-  }
-  renderSubTable();
 }
 
 async function openExpModal(id) {
@@ -2479,10 +2753,33 @@ async function delSub(id) {
 
 // ==================== 銀行帳戶 ====================
 function renderBanks(c) {
-  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 0)">帳戶名稱 <span class="sort-icon"></span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortTable(\'bank-tbody\', 3)">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🏦 銀行帳戶</h1><button onclick="openBankModal()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 新增帳戶</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortBankTable(\'account_name\')">帳戶名稱 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">銀行名稱</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortBankTable(\'balance\')">餘額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="bank-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
+  renderBankTable();
+}
+
+let bankSortField = 'account_name', bankSortAsc = true;
+
+function sortBankTable(field) {
+  if(bankSortField === field) bankSortAsc = !bankSortAsc;
+  else { bankSortField = field; bankSortAsc = true; }
+  renderBankTable();
+}
+
+function renderBankTable() {
+  let list = [...D.banks];
+  list.sort(function(a, b) {
+    let aVal = a[bankSortField] || '';
+    let bVal = b[bankSortField] || '';
+    if(typeof aVal === 'string') aVal = aVal.toLowerCase();
+    if(typeof bVal === 'string') bVal = bVal.toLowerCase();
+    if(aVal < bVal) return bankSortAsc ? -1 : 1;
+    if(aVal > bVal) return bankSortAsc ? 1 : -1;
+    return 0;
+  });
+
   let html = '';
-  for(let i=0; i<D.banks.length; i++) {
-    const b = D.banks[i];
+  for(let i=0; i<list.length; i++) {
+    const b = list[i];
     const statusHtml = b.is_active ? '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">啟用</span>' : '<span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">停用</span>';
     html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 font-medium">' + b.account_name + '</td><td class="px-4 py-3">' + (b.bank_name || '-') + '</td><td class="px-4 py-3">' + (b.account_number || '-') + '</td><td class="px-4 py-3 font-bold text-green-600">' + (b.balance || 0).toLocaleString() + '</td><td class="px-4 py-3">' + statusHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="openBankModal(\'' + b.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button><button onclick="delBank(\'' + b.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button></td></tr>';
   }
