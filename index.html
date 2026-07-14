@@ -310,52 +310,63 @@
   .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
     align-items: center;
     background: #f9fafb;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 0.5rem;
     width: 100%;
     overflow: visible;
-  }
-  .ord-item-row .prod-search-wrapper { flex: 1 1 120px; min-width: 100px; }
-  .ord-item-row .prod-search-wrapper .pu-prod-search { padding: 0.4rem 0.6rem; font-size: 0.9rem; }
-  .ord-item-row .o-qty {
-    width: 60px;
+}
+.ord-item-row .prod-search-wrapper {
+    flex: 1 1 100px;
+    min-width: 80px;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-search {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.85rem;
+    height: 32px;
+}
+.ord-item-row .o-qty {
+    width: 55px;
     flex-shrink: 0;
     text-align: center;
-    padding: 0.4rem 0.2rem;
-  }
-  .ord-item-row .o-price {
-    width: 80px;
+    padding: 0.3rem 0.2rem;
+    height: 32px;
+}
+.ord-item-row .o-price {
+    width: 75px;
     flex-shrink: 0;
     text-align: center;
-    padding: 0.4rem 0.2rem;
-  }
-  .ord-item-row .invoice-check {
+    padding: 0.3rem 0.2rem;
+    height: 32px;
+}
+.ord-item-row .invoice-check {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
     margin-right: 0.1rem;
-  }
-  .ord-item-row .invoice-check label {
+}
+.ord-item-row .invoice-check label {
     font-size: 0.8rem;
     cursor: pointer;
     margin: 0;
-  }
-  .ord-item-row .del-btn {
+}
+.ord-item-row .del-btn {
     flex-shrink: 0;
-    padding: 0.2rem 0.5rem;
+    padding: 0.15rem 0.4rem;
     margin-left: 0.1rem;
     min-height: auto;
     font-size: 0.8rem;
-  }
-  @media (max-width: 640px) {
-    .ord-item-row .prod-search-wrapper { flex: 1 1 80px; min-width: 70px; }
-    .ord-item-row .o-qty { width: 50px; }
-    .ord-item-row .o-price { width: 65px; }
-  }
+    height: 28px;
+    line-height: 1;
+}
+@media (max-width: 640px) {
+    .ord-item-row .prod-search-wrapper { flex: 1 1 70px; min-width: 60px; }
+    .ord-item-row .o-qty { width: 45px; }
+    .ord-item-row .o-price { width: 60px; }
+}
 
   .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
   .form-row label { margin-bottom: 0 !important; flex-shrink: 0; min-width: 80px; }
@@ -1705,16 +1716,16 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
 
   div.innerHTML = `
     <div class="prod-search-wrapper">
-      <input type="text" class="pu-prod-search w-full px-2 py-1 border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
+      <input type="text" class="pu-prod-search w-full border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
       <div class="pu-prod-select" id="ord_dropdown_${uid}">
         ${prodOptionsHtml}
       </div>
       <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
     </div>
-    <input type="number" class="o-qty px-2 py-1 border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()" style="width:60px; flex-shrink:0; text-align:center;">
-    <input type="number" class="o-price px-2 py-1 border rounded input-field" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()" style="width:80px; flex-shrink:0; text-align:center;">
-    ${isFinished ? `<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()" id="inv_${uid}"><label for="inv_${uid}">有發票</label></div>` : ''}
-    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn px-2 py-1 bg-red-100 text-red-600 rounded btn-touch">✕</button>
+    <input type="number" class="o-qty border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()">
+    <input type="number" class="o-price border rounded input-field" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()">
+    ${isFinished ? `<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()" id="inv_${uid}"><label for="inv_${uid}">有</label></div>` : ''}
+    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn bg-red-100 text-red-600 rounded btn-touch">✕</button>
   `;
   box.appendChild(div);
 
@@ -1957,7 +1968,7 @@ async function saveOrd() {
           const prod = D.products.find(p => p.id === item.product_id);
           if (!prod) continue;
           if (['finished','gift_box','outer_box'].includes(prod.type)) {
-            const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).single();
+            const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
             if (inv.data) {
               await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
             } else {
@@ -2020,7 +2031,7 @@ async function saveOrd() {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
       if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).single();
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
         if (inv.data) {
           await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
         } else {
@@ -2128,7 +2139,7 @@ async function delOrd(id) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
       if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).single();
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
         if (inv.data) {
           await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
         } else {
