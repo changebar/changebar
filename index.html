@@ -3229,7 +3229,6 @@ async function delEmp(id) {
   if(!confirm('確定刪除?')) return;
   try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
 }
-<script>
 // ==================== 系統啟動初始化 ====================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 養芯健康 ERP 系統初始化中...');
