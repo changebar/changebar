@@ -307,7 +307,7 @@
   }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
-  .ord-item-row {
+ .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
     gap: 0.3rem;
@@ -326,6 +326,7 @@
     padding: 0.3rem 0.5rem;
     font-size: 0.85rem;
     height: 32px;
+    border-radius: 0.375rem;
 }
 .ord-item-row .o-qty {
     width: 55px;
@@ -333,6 +334,7 @@
     text-align: center;
     padding: 0.3rem 0.2rem;
     height: 32px;
+    border-radius: 0.375rem;
 }
 .ord-item-row .o-price {
     width: 75px;
@@ -340,6 +342,7 @@
     text-align: center;
     padding: 0.3rem 0.2rem;
     height: 32px;
+    border-radius: 0.375rem;
 }
 .ord-item-row .invoice-check {
     flex-shrink: 0;
@@ -361,6 +364,7 @@
     font-size: 0.8rem;
     height: 28px;
     line-height: 1;
+    border-radius: 0.375rem;
 }
 @media (max-width: 640px) {
     .ord-item-row .prod-search-wrapper { flex: 1 1 70px; min-width: 60px; }
@@ -1951,17 +1955,20 @@ async function saveOrd() {
 
   try {
     let orderId = editingId;
+    let oldOrder = null; // 在這裡定義 oldOrder
 
     if (editingId) {
-      const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
-      const oldOrder = oldOrderResp.data;
+      const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
+      oldOrder = oldOrderResp.data;
       if (oldOrder) {
+        // 還原舊銀行
         if (oldOrder.bank_account_id && oldOrder.total_amount) {
           const oldBank = D.banks.find(b => b.id === oldOrder.bank_account_id);
           if (oldBank) {
             await sb.from('bank_accounts').update({ balance: (oldBank.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
           }
         }
+        // 還原庫存（先刪除舊的 order_items）
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         for (let item of oldItems) {
@@ -1975,6 +1982,7 @@ async function saveOrd() {
               await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
             }
           }
+          // BOM 還原
           const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
           for (let bom of bomItems) {
             const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
@@ -1990,8 +1998,10 @@ async function saveOrd() {
         await sb.from('order_items').delete().eq('order_id', editingId);
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
+      // 更新訂單
       await sb.from('orders').update(data).eq('id', editingId);
     } else {
+      // 新增訂單
       const insertResult = await sb.from('orders').insert([data]).select().single();
       if (insertResult.error) {
         console.error('訂單插入錯誤：', insertResult.error);
@@ -2001,37 +2011,40 @@ async function saveOrd() {
       editingId = orderId;
     }
 
+    // ---- 寫入 order_items ----
     if (items.length > 0) {
-        try {
-            const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
-            const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
-            if (itemResult.error) throw itemResult.error;
-        } catch (itemError) {
-            if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
-                console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
-                const itemsWithoutInvoice = items.map(i => {
-                    const { has_invoice, ...rest } = i;
-                    return { ...rest, order_id: orderId };
-                });
-                const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
-                if (retryResult.error) throw retryResult.error;
-                showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
-            } else {
-                throw itemError;
-            }
+      try {
+        const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
+        const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
+        if (itemResult.error) throw itemResult.error;
+      } catch (itemError) {
+        if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
+          console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
+          const itemsWithoutInvoice = items.map(i => {
+            const { has_invoice, ...rest } = i;
+            return { ...rest, order_id: orderId };
+          });
+          const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
+          if (retryResult.error) throw retryResult.error;
+          showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
+        } else {
+          throw itemError;
         }
+      }
     }
 
+    // ---- 入帳銀行 ----
     const targetBank = D.banks.find(b => b.id === bankId);
     if (targetBank) {
       await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
     }
 
+    // ---- 扣庫存 + BOM 扣料 ----
     for (let item of items) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
       if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
         if (inv.data) {
           await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
         } else {
@@ -2052,6 +2065,7 @@ async function saveOrd() {
       }
     }
 
+    // ---- 運費代墊 expense ----
     if (hasAdvance && advanceEmpId && advanceAmount > 0) {
       await sb.from('expenses').insert([{
         category_id: (D.expCats.find(c => c.name === '運費') || {}).id,
@@ -2080,7 +2094,6 @@ async function saveOrd() {
     showAlert('儲存失敗：' + (e.message || '未知錯誤'));
   }
 }
-
 async function viewOrdDetail(id) {
   const o = D.orders.find(function(x) { return x.id === id; });
   if(!o) return showAlert('找不到訂單');
@@ -2122,14 +2135,14 @@ async function viewOrdDetail(id) {
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
-    const orderResp = await sb.from('orders').select('*').eq('id', id).single();
-    const o = orderResp.data;
-    if(!o) return showAlert('找不到訂單！');
+    const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
+    const order = orderResp.data; // 改名為 order
+    if(!order) return showAlert('找不到訂單！');
 
-    if(o.bank_account_id && o.total_amount) {
-      const bank = D.banks.find(b => b.id === o.bank_account_id);
+    if(order.bank_account_id && order.total_amount) {
+      const bank = D.banks.find(b => b.id === order.bank_account_id);
       if(bank) {
-        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
+        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - order.total_amount }).eq('id', order.bank_account_id);
       }
     }
 
@@ -2139,11 +2152,11 @@ async function delOrd(id) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
       if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', order.warehouse_id).eq('product_id', prod.id).maybeSingle();
         if (inv.data) {
           await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
         } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: order.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
         }
       }
       const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
@@ -2151,11 +2164,11 @@ async function delOrd(id) {
         const restoreQty = bom.quantity * item.quantity;
         const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
         if (matInv.data && matInv.data.length > 0) {
-          let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
+          let target = matInv.data.find(inv => inv.warehouse_id === order.warehouse_id);
           if (!target) target = matInv.data[0];
           await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
         } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: order.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
         }
       }
     }
@@ -3428,7 +3441,17 @@ async function openPaymentModal() {
 
 async function delPayment(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try {
+    await sb.from('payment_methods').delete().eq('id', id);
+    await loadAll();
+    render();
+  } catch(e) {
+    if (e.code === '409') {
+      showAlert('無法刪除：此付款方式已被訂單使用，請先移除相關訂單的引用。');
+    } else {
+      showAlert('失敗：' + e.message);
+    }
+  }
 }
 
 async function openEmpModal() {
