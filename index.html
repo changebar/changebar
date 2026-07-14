@@ -21,74 +21,20 @@
   .btn-touch { padding: 0.75rem 1rem; font-size: 0.9375rem; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
   .input-field { padding: 0.875rem 1rem; font-size: 1rem; min-height: 44px; }
 
-  .sidebar {
-    transition: width 0.3s ease, transform 0.3s ease;
-    overflow: hidden;
-    flex-shrink: 0;
-  }
-  .sidebar.collapsed {
-    width: 0 !important;
-    padding: 0 !important;
-    overflow: hidden;
-    border: none;
-  }
+  .sidebar { transition: width 0.3s ease, transform 0.3s ease; overflow: hidden; flex-shrink: 0; }
+  .sidebar.collapsed { width: 0 !important; padding: 0 !important; overflow: hidden; border: none; }
   .sidebar.collapsed * { visibility: hidden; }
-  .sidebar-toggle-btn {
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    color: #fff;
-    font-size: 1.2rem;
-    padding: 0.25rem 0.5rem;
-    transition: transform 0.3s ease;
-  }
+  .sidebar-toggle-btn { cursor: pointer; background: transparent; border: none; color: #fff; font-size: 1.2rem; padding: 0.25rem 0.5rem; transition: transform 0.3s ease; }
   .sidebar-toggle-btn:hover { color: #ccc; }
   .sidebar.collapsed .sidebar-toggle-btn { transform: rotate(180deg); }
-  .sidebar-expand-btn {
-    position: fixed;
-    top: 0.75rem;
-    left: 0.75rem;
-    z-index: 60;
-    background: rgba(59, 130, 246, 0.7);
-    backdrop-filter: blur(4px);
-    padding: 0.5rem;
-    min-height: 36px;
-    width: 36px;
-    height: 36px;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    display: none;
-    border: none;
-    color: #fff;
-    font-size: 1.2rem;
-    align-items: center;
-    justify-content: center;
-  }
+  .sidebar-expand-btn { position: fixed; top: 0.75rem; left: 0.75rem; z-index: 60; background: rgba(59, 130, 246, 0.7); backdrop-filter: blur(4px); padding: 0.5rem; min-height: 36px; width: 36px; height: 36px; border-radius: 0.5rem; cursor: pointer; display: none; border: none; color: #fff; font-size: 1.2rem; align-items: center; justify-content: center; }
   .sidebar-expand-btn:hover { background: rgba(59, 130, 246, 0.9); }
 
   @media (max-width: 1024px) {
-    .sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 50;
-      height: 100vh;
-      width: 280px;
-      transform: translateX(-100%);
-      transition: transform 0.3s ease;
-    }
+    .sidebar { position: fixed; top: 0; left: 0; z-index: 50; height: 100vh; width: 280px; transform: translateX(-100%); transition: transform 0.3s ease; }
     .sidebar.open { transform: translateX(0) !important; }
     .sidebar.collapsed { transform: translateX(-100%) !important; }
-    .sidebar-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 40;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-      display: none;
-    }
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 40; opacity: 0; transition: opacity 0.3s; pointer-events: none; display: none; }
     .sidebar-overlay.show { opacity: 1; pointer-events: auto; display: block !important; }
     .mobile-menu-btn { display: flex !important; position: fixed; top: 0.75rem; left: 0.75rem; z-index: 60; background: rgba(59, 130, 246, 0.7); backdrop-filter: blur(4px); padding: 0.5rem; min-height: 36px; width: 36px; height: 36px; border-radius: 0.5rem; cursor: pointer; }
     .mobile-menu-btn:hover { background: rgba(59, 130, 246, 0.9); }
@@ -97,19 +43,10 @@
     .content-card { padding: 1rem; }
     .card-grid { grid-template-columns: 1fr; gap: 0.75rem; }
     .modal-content { max-height: 90vh; overflow-y: auto; position: relative; z-index: 60; }
-    .table-container {
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      margin: 0 -0.5rem;
-      padding: 0 0.5rem;
-      width: 100%;
-      display: block;
-      white-space: nowrap;
-    }
+    .table-container { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; margin: 0 -0.5rem; padding: 0 0.5rem; width: 100%; display: block; white-space: nowrap; }
     .table-container table { min-width: 700px; width: auto; display: table; }
     .table-container th, .table-container td { white-space: nowrap; }
   }
-
   @media (min-width: 769px) and (max-width: 1024px) {
     .main-content { padding: 1rem; padding-top: 4.5rem; }
     .content-card { padding: 1.25rem; }
@@ -117,7 +54,6 @@
     .table-container { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
     .table-container table { min-width: 700px; }
   }
-
   @media (min-width: 1025px) {
     .mobile-menu-btn { display: none !important; }
     .sidebar-overlay { display: none !important; }
@@ -135,112 +71,34 @@
   .sortable-header:hover { background-color: #f3f4f6; }
   .sort-icon { display: inline-block; margin-left: 0.25rem; }
 
-  .table-container {
-    border-radius: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    display: block;
-  }
-  .table-container table {
-    min-width: 700px;
-    width: 100%;
-    border-collapse: collapse;
-    display: table;
-  }
-  .table-container th, .table-container td {
-    padding: 0.75rem 1rem;
-    white-space: nowrap;
-    text-align: center;
-    vertical-align: middle;
-  }
+  .table-container { border-radius: 0.5rem; overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; display: block; }
+  .table-container table { min-width: 700px; width: 100%; border-collapse: collapse; display: table; }
+  .table-container th, .table-container td { padding: 0.75rem 1rem; white-space: nowrap; text-align: center; vertical-align: middle; }
   @media (max-width: 640px) {
-    .table-container th, .table-container td {
-      padding: 0.5rem 0.6rem;
-      font-size: 0.8rem;
-    }
+    .table-container th, .table-container td { padding: 0.5rem 0.6rem; font-size: 0.8rem; }
     .table-container table { min-width: 600px; }
   }
 
-  .modal-fullscreen {
-    max-width: 100% !important;
-    max-height: 100% !important;
-    height: 100vh !important;
-    width: 100vw !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-  }
-  .modal-fullscreen .modal-content {
-    height: 100%;
-    border-radius: 0 !important;
-    max-height: 100vh !important;
-  }
-  .modal-fullscreen #modal-content {
-    flex: 1;
-    overflow-y: auto !important;
-    padding: 1.5rem 2rem !important;
-  }
-  .modal-fullscreen-btn {
-    background: transparent;
-    border: none;
-    color: #6b7280;
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 0.25rem 0.6rem;
-    border-radius: 0.25rem;
-  }
+  .modal-fullscreen { max-width: 100% !important; max-height: 100% !important; height: 100vh !important; width: 100vw !important; border-radius: 0 !important; margin: 0 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; }
+  .modal-fullscreen .modal-content { height: 100%; border-radius: 0 !important; max-height: 100vh !important; }
+  .modal-fullscreen #modal-content { flex: 1; overflow-y: auto !important; padding: 1.5rem 2rem !important; }
+  .modal-fullscreen-btn { background: transparent; border: none; color: #6b7280; font-size: 1.1rem; cursor: pointer; padding: 0.25rem 0.6rem; border-radius: 0.25rem; }
   .modal-fullscreen-btn:hover { background: #e5e7eb; color: #1f2937; }
 
   #modal-content .grid { gap: 1.25rem !important; }
-  #modal-content input, #modal-content select, #modal-content textarea {
-    padding: 0.75rem 1rem !important;
-    margin-bottom: 0.5rem !important;
-    border-radius: 0.375rem !important;
-    border: 1px solid #d1d5db !important;
-    width: 100% !important;
-    font-size: 1rem !important;
-  }
-  #modal-content label {
-    margin-bottom: 0.5rem !important;
-    display: block !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    color: #1f2937 !important;
-  }
+  #modal-content input, #modal-content select, #modal-content textarea { padding: 0.75rem 1rem !important; margin-bottom: 0.5rem !important; border-radius: 0.375rem !important; border: 1px solid #d1d5db !important; width: 100% !important; font-size: 1rem !important; }
+  #modal-content label { margin-bottom: 0.5rem !important; display: block !important; font-weight: 600 !important; font-size: 0.95rem !important; color: #1f2937 !important; }
   #modal-content .grid > div { padding: 0.25rem 0 !important; }
-  #modal-content .bg-gray-50, #modal-content .bg-blue-50, #modal-content .bg-yellow-50,
-  #modal-content .bg-orange-50, #modal-content .bg-green-50, #modal-content .bg-indigo-50 {
-    padding: 1rem 1.25rem !important;
-    border-radius: 0.5rem !important;
-  }
+  #modal-content .bg-gray-50, #modal-content .bg-blue-50, #modal-content .bg-yellow-50, #modal-content .bg-orange-50, #modal-content .bg-green-50, #modal-content .bg-indigo-50 { padding: 1rem 1.25rem !important; border-radius: 0.5rem !important; }
   #modal-content .border { border-color: #e5e7eb !important; }
   #modal-content .space-y-2 > * + * { margin-top: 0.75rem !important; }
   #modal-content .space-y-4 > * + * { margin-top: 1.25rem !important; }
   #modal-content .mb-4 { margin-bottom: 1.25rem !important; }
 
-  .content-card {
-    background: #fff;
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    overflow: hidden;
-  }
+  .content-card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1.5rem; overflow: hidden; }
   @media (max-width: 640px) { .content-card { padding: 1rem; } }
 
-  .boss-stat-card {
-    background: #fff;
-    border-radius: 0.75rem;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    border-left: 4px solid #3b82f6;
-    transition: transform 0.2s;
-  }
+  .boss-stat-card { background: #fff; border-radius: 0.75rem; padding: 1.25rem 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-left: 4px solid #3b82f6; transition: transform 0.2s; }
   .boss-stat-card:hover { transform: translateY(-2px); }
   .boss-stat-card .label { font-size: 0.8rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
   .boss-stat-card .value { font-size: 1.8rem; font-weight: 800; margin-top: 0.25rem; line-height: 1.2; }
@@ -252,156 +110,101 @@
   .boss-stat-card.orange { border-left-color: #f59e0b; }
   .boss-stat-card.teal { border-left-color: #14b8a6; }
 
-  .prod-search-wrapper {
-    position: relative;
-    flex: 1 1 120px;
-    min-width: 100px;
-  }
-  .prod-search-wrapper .pu-prod-search {
-    width: 100%;
-    padding: 0.4rem 0.6rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.9rem;
-    background: #fff;
-  }
-  .prod-search-wrapper .pu-prod-search:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
-  }
-  .prod-search-wrapper .pu-prod-select {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    max-height: 200px;
-    overflow-y: auto;
-    background: #fff;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    z-index: 9999 !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    margin-top: 2px;
-  }
+  /* 產品搜尋下拉 */
+  .prod-search-wrapper { position: relative; flex: 0 1 120px; min-width: 80px; }
+  .prod-search-wrapper .pu-prod-search { width: 100%; padding: 0.25rem 0.4rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.8rem; height: 30px; background: #fff; }
+  .prod-search-wrapper .pu-prod-search:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+  .prod-search-wrapper .pu-prod-select { display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #d1d5db; border-radius: 0.25rem; z-index: 9999 !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 2px; }
   .prod-search-wrapper .pu-prod-select.show { display: block; }
-  .prod-search-wrapper .pu-prod-select .opt-item {
-    padding: 0.6rem 1rem;
-    cursor: pointer;
-    border-bottom: 1px solid #f3f4f6;
-    transition: background 0.15s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
+  .prod-search-wrapper .pu-prod-select .opt-item { padding: 0.4rem 0.6rem; cursor: pointer; border-bottom: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
   .prod-search-wrapper .pu-prod-select .opt-item:hover { background: #eff6ff; }
   .prod-search-wrapper .pu-prod-select .opt-item .opt-name { font-weight: 500; }
-  .prod-search-wrapper .pu-prod-select .opt-item .opt-cost { font-size: 0.75rem; color: #6b7280; margin-left: 0.5rem; }
-  .prod-search-wrapper .pu-prod-select .opt-item.no-match {
-    color: #9ca3af;
-    cursor: default;
-    text-align: center;
-    padding: 1rem;
-    justify-content: center;
-  }
+  .prod-search-wrapper .pu-prod-select .opt-item .opt-cost { font-size: 0.7rem; color: #6b7280; margin-left: 0.3rem; }
+  .prod-search-wrapper .pu-prod-select .opt-item.no-match { color: #9ca3af; cursor: default; text-align: center; padding: 0.6rem; justify-content: center; }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
- .ord-item-row {
+  /* 訂單產品明細 - 圖三風格（緊湊） */
+  .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.3rem;
+    gap: 0.2rem;
     align-items: center;
     background: #f9fafb;
-    padding: 0.3rem 0.5rem;
-    border-radius: 0.5rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.3rem;
     width: 100%;
     overflow: visible;
-}
-.ord-item-row .prod-search-wrapper {
-    flex: 1 1 100px;
-    min-width: 80px;
-}
-.ord-item-row .prod-search-wrapper .pu-prod-search {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.85rem;
-    height: 32px;
-    border-radius: 0.375rem;
-}
-.ord-item-row .o-qty {
-    width: 55px;
+  }
+  .ord-item-row .prod-search-wrapper { flex: 0 1 100px; min-width: 70px; }
+  .ord-item-row .prod-search-wrapper .pu-prod-search { height: 28px; font-size: 0.75rem; padding: 0.15rem 0.3rem; }
+  .ord-item-row .o-qty {
+    width: 48px;
     flex-shrink: 0;
     text-align: center;
-    padding: 0.3rem 0.2rem;
-    height: 32px;
-    border-radius: 0.375rem;
-}
-.ord-item-row .o-price {
-    width: 75px;
+    height: 28px;
+    padding: 0.1rem 0.2rem;
+    font-size: 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+  }
+  .ord-item-row .o-price {
+    width: 70px;
     flex-shrink: 0;
     text-align: center;
-    padding: 0.3rem 0.2rem;
-    height: 32px;
-    border-radius: 0.375rem;
-}
-.ord-item-row .invoice-check {
+    height: 28px;
+    padding: 0.1rem 0.2rem;
+    font-size: 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+  }
+  .ord-item-row .invoice-check {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 0.15rem;
-    margin-right: 0.1rem;
-}
-.ord-item-row .invoice-check label {
-    font-size: 0.8rem;
+    gap: 0.1rem;
+    margin-right: 0.05rem;
+  }
+  .ord-item-row .invoice-check label {
+    font-size: 0.75rem;
     cursor: pointer;
     margin: 0;
-}
-.ord-item-row .del-btn {
+  }
+  .ord-item-row .del-btn {
     flex-shrink: 0;
-    padding: 0.15rem 0.4rem;
-    margin-left: 0.1rem;
+    padding: 0.1rem 0.3rem;
+    margin-left: 0.05rem;
     min-height: auto;
-    font-size: 0.8rem;
-    height: 28px;
+    font-size: 0.75rem;
+    height: 24px;
     line-height: 1;
-    border-radius: 0.375rem;
-}
-@media (max-width: 640px) {
-    .ord-item-row .prod-search-wrapper { flex: 1 1 70px; min-width: 60px; }
-    .ord-item-row .o-qty { width: 45px; }
-    .ord-item-row .o-price { width: 60px; }
-}
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+  }
+  .ord-item-row .del-btn:hover { background: #fecaca; }
+  @media (max-width: 640px) {
+    .ord-item-row .prod-search-wrapper { flex: 0 1 70px; min-width: 55px; }
+    .ord-item-row .o-qty { width: 40px; }
+    .ord-item-row .o-price { width: 55px; }
+  }
 
   .form-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
   .form-row label { margin-bottom: 0 !important; flex-shrink: 0; min-width: 80px; }
   .form-row .form-control { flex: 1; min-width: 120px; }
-  .form-row .form-control-sm { flex: 0 0 auto; width: auto; }
   .checkbox-inline { display: flex; align-items: center; gap: 0.5rem; }
   .checkbox-inline input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin: 0; flex-shrink: 0; }
   .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; }
 
-  .ord-total-sticky {
-    position: sticky;
-    bottom: 0;
-    background: #f3f4f6;
-    padding: 1rem;
-    border-radius: 0.5rem;
-    margin-top: 1rem;
-    z-index: 10;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-  }
+  .ord-total-sticky { position: sticky; bottom: 0; background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 0.75rem; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
 
   .flex-wrap-custom { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
   .w-full-mobile { width: 100%; }
   @media (min-width: 640px) { .w-full-mobile { width: auto; } }
 
-  #modal-content {
-    overflow-y: auto !important;
-    overflow-x: visible !important;
-  }
-  #modal-container {
-    overflow: visible !important;
-  }
+  #modal-content { overflow-y: auto !important; overflow-x: visible !important; }
+  #modal-container { overflow: visible !important; }
 </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -767,7 +570,7 @@ function sortTable(tbodyId, colIndex) {
   for(let i=0; i<rows.length; i++) tbody.appendChild(rows[i]);
 }
 
-// ==================== 資料載入 ====================
+// ==================== 資料載入（修正 .maybeSingle() 避免 406） ====================
 async function loadAll() {
     try {
         const [
@@ -1429,7 +1232,8 @@ function manageTags() {
 }
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
-
+</script>
+<script>
 // ==================== 訂單出貨 ====================
 function renderOrders(c) {
   c.innerHTML = '<div class="content-card">' +
@@ -1584,7 +1388,7 @@ function clearOrdFilters() {
   renderOrdTable();
 }
 
-// ========== 新增/編輯訂單 ==========
+// ========== 新增/編輯訂單（UI 已調整為圖三風格） ==========
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1693,6 +1497,7 @@ async function loadCustomerDefaultAddress(custId) {
   }
 }
 
+// ===== 新增產品明細（圖三風格：緊湊、小字、短欄位） =====
 function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
@@ -1720,16 +1525,16 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
 
   div.innerHTML = `
     <div class="prod-search-wrapper">
-      <input type="text" class="pu-prod-search w-full border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
+      <input type="text" class="pu-prod-search" placeholder="搜" value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
       <div class="pu-prod-select" id="ord_dropdown_${uid}">
         ${prodOptionsHtml}
       </div>
       <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
     </div>
-    <input type="number" class="o-qty border rounded input-field" value="${qty || 1}" min="1" oninput="calcOrd()">
-    <input type="number" class="o-price border rounded input-field" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()">
+    <input type="number" class="o-qty" value="${qty || 1}" min="1" oninput="calcOrd()">
+    <input type="number" class="o-price" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()">
     ${isFinished ? `<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()" id="inv_${uid}"><label for="inv_${uid}">有</label></div>` : ''}
-    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn bg-red-100 text-red-600 rounded btn-touch">✕</button>
+    <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn">✕</button>
   `;
   box.appendChild(div);
 
@@ -1844,7 +1649,7 @@ function calcOrd() {
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ===== 存檔訂單（修正後） =====
+// ===== 存檔訂單（修正 oldOrder 未定義錯誤，全部改為 .maybeSingle()） =====
 async function saveOrd() {
   const cid = document.getElementById('o-cust').value;
   const wid = document.getElementById('o-warehouse').value;
@@ -1955,20 +1760,18 @@ async function saveOrd() {
 
   try {
     let orderId = editingId;
-    let oldOrder = null; // 在這裡定義 oldOrder
+    let oldOrder = null;
 
     if (editingId) {
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
       oldOrder = oldOrderResp.data;
       if (oldOrder) {
-        // 還原舊銀行
         if (oldOrder.bank_account_id && oldOrder.total_amount) {
           const oldBank = D.banks.find(b => b.id === oldOrder.bank_account_id);
           if (oldBank) {
             await sb.from('bank_accounts').update({ balance: (oldBank.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
           }
         }
-        // 還原庫存（先刪除舊的 order_items）
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         for (let item of oldItems) {
@@ -1982,7 +1785,6 @@ async function saveOrd() {
               await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
             }
           }
-          // BOM 還原
           const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
           for (let bom of bomItems) {
             const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
@@ -1998,10 +1800,8 @@ async function saveOrd() {
         await sb.from('order_items').delete().eq('order_id', editingId);
         await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
-      // 更新訂單
       await sb.from('orders').update(data).eq('id', editingId);
     } else {
-      // 新增訂單
       const insertResult = await sb.from('orders').insert([data]).select().single();
       if (insertResult.error) {
         console.error('訂單插入錯誤：', insertResult.error);
@@ -2011,35 +1811,32 @@ async function saveOrd() {
       editingId = orderId;
     }
 
-    // ---- 寫入 order_items ----
     if (items.length > 0) {
-      try {
-        const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
-        const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
-        if (itemResult.error) throw itemResult.error;
-      } catch (itemError) {
-        if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
-          console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
-          const itemsWithoutInvoice = items.map(i => {
-            const { has_invoice, ...rest } = i;
-            return { ...rest, order_id: orderId };
-          });
-          const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
-          if (retryResult.error) throw retryResult.error;
-          showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
-        } else {
-          throw itemError;
+        try {
+            const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
+            const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
+            if (itemResult.error) throw itemResult.error;
+        } catch (itemError) {
+            if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
+                console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
+                const itemsWithoutInvoice = items.map(i => {
+                    const { has_invoice, ...rest } = i;
+                    return { ...rest, order_id: orderId };
+                });
+                const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
+                if (retryResult.error) throw retryResult.error;
+                showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
+            } else {
+                throw itemError;
+            }
         }
-      }
     }
 
-    // ---- 入帳銀行 ----
     const targetBank = D.banks.find(b => b.id === bankId);
     if (targetBank) {
       await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
     }
 
-    // ---- 扣庫存 + BOM 扣料 ----
     for (let item of items) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
@@ -2065,7 +1862,6 @@ async function saveOrd() {
       }
     }
 
-    // ---- 運費代墊 expense ----
     if (hasAdvance && advanceEmpId && advanceAmount > 0) {
       await sb.from('expenses').insert([{
         category_id: (D.expCats.find(c => c.name === '運費') || {}).id,
@@ -2094,6 +1890,7 @@ async function saveOrd() {
     showAlert('儲存失敗：' + (e.message || '未知錯誤'));
   }
 }
+
 async function viewOrdDetail(id) {
   const o = D.orders.find(function(x) { return x.id === id; });
   if(!o) return showAlert('找不到訂單');
@@ -2132,17 +1929,18 @@ async function viewOrdDetail(id) {
   openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
 
+// ===== 刪除訂單（修正 oldOrder 未定義） =====
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
     const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
-    const order = orderResp.data; // 改名為 order
-    if(!order) return showAlert('找不到訂單！');
+    const o = orderResp.data;
+    if(!o) return showAlert('找不到訂單！');
 
-    if(order.bank_account_id && order.total_amount) {
-      const bank = D.banks.find(b => b.id === order.bank_account_id);
+    if(o.bank_account_id && o.total_amount) {
+      const bank = D.banks.find(b => b.id === o.bank_account_id);
       if(bank) {
-        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - order.total_amount }).eq('id', order.bank_account_id);
+        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
       }
     }
 
@@ -2152,11 +1950,11 @@ async function delOrd(id) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
       if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', order.warehouse_id).eq('product_id', prod.id).maybeSingle();
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
         if (inv.data) {
           await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
         } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: order.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
         }
       }
       const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
@@ -2164,11 +1962,11 @@ async function delOrd(id) {
         const restoreQty = bom.quantity * item.quantity;
         const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
         if (matInv.data && matInv.data.length > 0) {
-          let target = matInv.data.find(inv => inv.warehouse_id === order.warehouse_id);
+          let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
           if (!target) target = matInv.data[0];
           await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
         } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: order.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
         }
       }
     }
@@ -3441,17 +3239,7 @@ async function openPaymentModal() {
 
 async function delPayment(id) {
   if(!confirm('確定刪除?')) return;
-  try {
-    await sb.from('payment_methods').delete().eq('id', id);
-    await loadAll();
-    render();
-  } catch(e) {
-    if (e.code === '409') {
-      showAlert('無法刪除：此付款方式已被訂單使用，請先移除相關訂單的引用。');
-    } else {
-      showAlert('失敗：' + e.message);
-    }
-  }
+  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
 }
 
 async function openEmpModal() {
