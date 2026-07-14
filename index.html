@@ -145,16 +145,17 @@
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
-    overflow: visible !important;  /* 讓下拉選單不被裁切 */
+    overflow: visible !important;  /* 保持 visible 讓下拉顯示 */
+    position: relative;           /* 新增，確保下拉定位正確 */
 }
 
 /* 品項搜尋框 - 佔比多一點 (flex: 2 1 150px) 參考採購入庫 */
 .ord-item-row .prod-search-wrapper {
-    flex: 2 1 150px;   /* 佔比 2，比採購的 1 更多 */
-    min-width: 120px;
-    max-width: 280px;
+    flex: 3 1 180px;   /* 從 2 改為 3，讓搜尋框佔比更大 */
+    min-width: 140px;  /* 從 120px 改為 140px */
+    max-width: 320px;  /* 從 280px 改為 320px，讓它更寬 */
     box-sizing: border-box;
-    position: relative;  /* 確保下拉選單定位正確 */
+    position: relative;
 }
 .ord-item-row .prod-search-wrapper .pu-prod-search {
     width: 100%;
@@ -212,9 +213,9 @@
 
 /* 數量 - 稍微大一點 75px（原本 70px） */
 .ord-item-row .o-qty {
-    width: 80px;
+    width: 60px;
     flex-shrink: 1;
-    min-width: 50px;
+    min-width: 40px;
     text-align: center;
     height: 38px;
     padding: 0.3rem 0.2rem;
@@ -226,9 +227,9 @@
 
 /* 金額 - 稍微大一點 105px（原本 100px） */
 .ord-item-row .o-price {
-    width: 110px;
+    width: 85px;
     flex-shrink: 1;
-    min-width: 70px;
+    min-width: 55px;
     text-align: center;
     height: 38px;
     padding: 0.3rem 0.2rem;
@@ -289,13 +290,33 @@
     .ord-item-row .del-btn { font-size: 0.7rem; height: 26px; padding: 0.1rem 0.3rem; }
 }
 
- .form-row { display: flex; flex-wrap: nowrap; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-  .form-row label { margin-bottom: 0 !important; flex-shrink: 0; min-width: 80px; }
+.form-row {
+    display: flex;
+    flex-wrap: wrap;        /* 從 nowrap 改回 wrap，讓它自動換行 */
+    align-items: center;
+    gap: 0.3rem 0.5rem;    /* 調整間距 */
+    margin-bottom: 0.75rem;
+} 
+ .form-row label { margin-bottom: 0 !important; flex-shrink: 0; min-width: 80px; }
   .form-row .form-control { flex: 1; min-width: 120px; }
-  .checkbox-inline { display: flex; align-items: center; gap: 0.5rem; }
-  .checkbox-inline input[type="checkbox"] { width: 1.2rem; height: 1.2rem; margin: 0; flex-shrink: 0; }
-  .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; }
-
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;    /* 新增：強制不換行 */
+}
+.checkbox-inline input[type="checkbox"] {
+    width: 1rem;           /* 從 1.2rem 改為 1rem，縮小一點 */
+    height: 1rem;
+    margin: 0;
+    flex-shrink: 0;
+}
+.checkbox-inline label {
+    margin: 0 !important;
+    font-weight: 400 !important;
+    cursor: pointer;
+    font-size: 0.9rem;     /* 新增：統一文字大小 */
+}
   .ord-total-sticky { position: sticky; bottom: 0; background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 0.75rem; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
 
   .flex-wrap-custom { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
