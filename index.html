@@ -1733,7 +1733,7 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
     else { priceInput.value = prod.sell_price || 0; }
   }
   setTimeout(calcOrd, 50);
-}
+} // <-- 這個花括號是函數結尾，務必保留
 
 function filterOrdProdOptions(input, uid) {
   const kw = input.value.toLowerCase();
@@ -1838,57 +1838,244 @@ function calcOrd() {
 
 // ===== 存檔訂單（修正後） =====
 async function saveOrd() {
-async function viewOrdDetail(id) {
-  const o = D.orders.find(function(x) { return x.id === id; });
-  if(!o) return showAlert('找不到訂單');
-  const c = D.customers.find(function(x) { return x.id === o.customer_id; });
-  const w = D.warehouses.find(function(x) { return x.id === o.warehouse_id; });
-  const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
-  const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
-  const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
+  const cid = document.getElementById('o-cust').value;
+  const wid = document.getElementById('o-warehouse').value;
+  const bankId = document.getElementById('o-bank').value;
+  if(!cid) return showAlert('請選擇客戶！');
+  if(!wid) return showAlert('請選擇出貨倉庫！');
+  if(!bankId) return showAlert('請選擇入款銀行！');
 
-  const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
-  const items = itemsResp.data || [];
-  let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th></tr></thead><tbody>';
+  const items = [];
+  let productSubtotal = 0;
   let totalCost = 0;
-  for(let i=0; i<items.length; i++) {
-    const item = items[i];
-    const p = D.products.find(function(x) { return x.id === item.product_id; });
-    const subtotal = item.quantity * item.unit_price;
-    const cost = p ? (p.cost_price || 0) * item.quantity : 0;
-    totalCost += cost;
-    itemsHtml += '<tr class="border-b"><td class="p-2">'+(p?p.name:'未知')+'</td><td class="p-2 text-right">'+item.quantity+'</td><td class="p-2 text-right">'+item.unit_price+'</td><td class="p-2 text-right">'+subtotal.toLocaleString()+'</td></tr>';
+  const rows = document.querySelectorAll('#o-items .ord-item-row');
+  for(let i=0; i<rows.length; i++) {
+    const r = rows[i];
+    const hiddenInput = r.querySelector('.pu-prod-id');
+    if (!hiddenInput || !hiddenInput.value) continue;
+    const pid = hiddenInput.value;
+    const q = parseInt(r.querySelector('.o-qty').value) || 0;
+    const p = parseFloat(r.querySelector('.o-price').value) || 0;
+    if(pid && q > 0) {
+      const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+      const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
+      items.push({product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice});
+      productSubtotal += p * q;
+      const product = D.products.find(x => x.id === pid);
+      const cost = product ? product.cost_price || 0 : 0;
+      const finalCost = hasInvoice && product && product.type === 'finished' ? cost * 1.05 : cost;
+      totalCost += finalCost * q;
+    }
   }
-  itemsHtml += '</tbody></table>';
+  if(!items.length) return showAlert('請加入產品！');
 
-  const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
-  const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
-  const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+  const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+  const shipPayer = document.getElementById('o-ship-payer').value;
+  const finalShipping = shipPayer === 'customer' ? shippingFee : 0;
+  const invType = document.getElementById('o-invoice-type').value;
+  const taxAmount = invType === 'tax_plus' ? productSubtotal * 0.05 : 0;
+  const couponAmount = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
+  const pointsAmount = parseFloat(document.getElementById('o-points-amount').value) || 0;
+  const totalDiscount = couponAmount + pointsAmount;
 
-  const html = '<div class="space-y-4 text-sm">' +
-    '<div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div>' +
-    '<div><b>📮 寄送地址:</b> '+(o.shipping_address || '無')+'</div>' +
-    '<div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div>' +
-    '<div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div>' +
-    '<div><b>📦 產品明細:</b>'+itemsHtml+'</div>' +
-    '<div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div>' +
-  '</div>';
-  openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
-}
+  let totalAmountRaw = productSubtotal + finalShipping + taxAmount - totalDiscount;
+  if(totalAmountRaw < 0) totalAmountRaw = 0;
+  const totalAmount = Math.round(totalAmountRaw);
 
-async function delOrd(id) {
-  if(!confirm('確定刪除？')) return;
+  const chSelect = document.getElementById('o-channel');
+  const chId = chSelect.value || null;
+  const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
+  const pmSelect = document.getElementById('o-payment');
+  const pmId = pmSelect.value || null;
+  const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
+
+  const chCommission = totalAmount * (chRate / 100);
+  const pmCommission = totalAmount * (pmRate / 100);
+  const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+  const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
+  const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+  const hasAdvance = document.getElementById('o-has-advance').checked;
+  const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
+  const advanceAmount = 0;
+  const advanceStatus = 'pending';
+  const advanceBankId = null;
+
+  const isSubscriptionOrder = document.getElementById('o-is-subscription').checked;
+  const subscriptionDays = parseInt(document.getElementById('o-subscription-days').value) || 30;
+
+  let orderNo;
+  if (editingId) {
+    const old = D.orders.find(x => x.id === editingId);
+    orderNo = old ? old.order_no : 'ORD-' + Date.now();
+  } else {
+    orderNo = 'ORD-' + Date.now();
+  }
+
+  const orderDate = new Date().toISOString();
+
+  const data = {
+    customer_id: cid,
+    warehouse_id: wid,
+    bank_account_id: bankId,
+    total_amount: totalAmount,
+    gross_profit_margin: margin,
+    status: 'shipped',
+    order_no: orderNo,
+    invoice_type: invType,
+    invoice_no: document.getElementById('o-invoice-no').value || null,
+    invoice_title: document.getElementById('o-invoice-title').value || null,
+    invoice_tax_id: document.getElementById('o-invoice-tax').value || null,
+    shipping_fee: shippingFee,
+    absorbed_shipping_fee: companyShippingCost,
+    customer_paid_shipping: finalShipping,
+    sales_channel_id: chId,
+    payment_method_id: pmId,
+    shipping_recv_name: document.getElementById('o-recv-name').value || null,
+    shipping_recv_phone: document.getElementById('o-recv-phone').value || null,
+    shipping_address: document.getElementById('o-recv-addr').value || null,
+    shipping_advance_employee_id: advanceEmpId,
+    is_subscription_order: isSubscriptionOrder,
+    subscription_days: subscriptionDays,
+    coupon_amount: couponAmount,
+    points_amount: pointsAmount,
+    shipping_advance_amount: advanceAmount,
+    shipping_advance_reimbursed: advanceStatus === 'reimbursed',
+    shipping_advance_bank_id: advanceBankId,
+    shipping_advance_reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+    created_at: orderDate
+  };
+
   try {
-    const orderResp = await sb.from('orders').select('*').eq('id', id).single();
-    const o = orderResp.data;
-    if(!o) return showAlert('找不到訂單！');
+    let orderId = editingId;
 
-    if(o.bank_account_id && o.total_amount) {
-      const bank = D.banks.find(b => b.id === o.bank_account_id);
-      if(bank) {
-        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
+    if (editingId) {
+      const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).single();
+      const oldOrder = oldOrderResp.data;
+      if (oldOrder) {
+        if (oldOrder.bank_account_id && oldOrder.total_amount) {
+          const oldBank = D.banks.find(b => b.id === oldOrder.bank_account_id);
+          if (oldBank) {
+            await sb.from('bank_accounts').update({ balance: (oldBank.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
+          }
+        }
+        const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
+        const oldItems = oldItemsResp.data || [];
+        for (let item of oldItems) {
+          const prod = D.products.find(p => p.id === item.product_id);
+          if (!prod) continue;
+          if (['finished','gift_box','outer_box'].includes(prod.type)) {
+            const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).single();
+            if (inv.data) {
+              await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+            }
+          }
+          const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+          for (let bom of bomItems) {
+            const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+            if (matInv.data && matInv.data.length > 0) {
+              let target = matInv.data.find(inv => inv.warehouse_id === oldOrder.warehouse_id);
+              if (!target) target = matInv.data[0];
+              await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + (bom.quantity * item.quantity) }).eq('id', target.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: bom.child_product_id, quantity: bom.quantity * item.quantity, safety_stock: 0 }]);
+            }
+          }
+        }
+        await sb.from('order_items').delete().eq('order_id', editingId);
+        await sb.from('expenses').delete().eq('related_order_id', editingId);
+      }
+      await sb.from('orders').update(data).eq('id', editingId);
+    } else {
+      const insertResult = await sb.from('orders').insert([data]).select().single();
+      if (insertResult.error) {
+        console.error('訂單插入錯誤：', insertResult.error);
+        return showAlert('訂單插入失敗：' + insertResult.error.message);
+      }
+      orderId = insertResult.data.id;
+      editingId = orderId;
+    }
+
+    if (items.length > 0) {
+        try {
+            const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
+            const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
+            if (itemResult.error) throw itemResult.error;
+        } catch (itemError) {
+            if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
+                console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
+                const itemsWithoutInvoice = items.map(i => {
+                    const { has_invoice, ...rest } = i;
+                    return { ...rest, order_id: orderId };
+                });
+                const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
+                if (retryResult.error) throw retryResult.error;
+                showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
+            } else {
+                throw itemError;
+            }
+        }
+    }
+
+    const targetBank = D.banks.find(b => b.id === bankId);
+    if (targetBank) {
+      await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
+    }
+
+    for (let item of items) {
+      const prod = D.products.find(p => p.id === item.product_id);
+      if (!prod) continue;
+      if (['finished','gift_box','outer_box'].includes(prod.type)) {
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).single();
+        if (inv.data) {
+          await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+        }
+      }
+      const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+      for (let bom of bomItems) {
+        const required = bom.quantity * item.quantity;
+        const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+        if (matInv.data && matInv.data.length > 0) {
+          let target = matInv.data.find(inv => inv.warehouse_id === wid);
+          if (!target) target = matInv.data[0];
+          await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
+        }
       }
     }
+
+    if (hasAdvance && advanceEmpId && advanceAmount > 0) {
+      await sb.from('expenses').insert([{
+        category_id: (D.expCats.find(c => c.name === '運費') || {}).id,
+        amount: advanceAmount,
+        description: '訂單 ' + orderNo + ' 運費代墊',
+        payment_date: new Date().toISOString().split('T')[0],
+        employee_id: advanceEmpId,
+        is_reimbursed: advanceStatus === 'reimbursed',
+        reimbursement_bank_id: advanceBankId,
+        reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+        related_order_id: orderId
+      }]);
+    }
+
+    showAlert('出貨單已儲存！');
+    window.closeModal();
+    await loadAll();
+    
+    if (currentView === 'orders') {
+        renderOrders(document.getElementById('main-content'));
+    } else {
+        render();
+    }
+  } catch(e) {
+    console.error('saveOrd 錯誤：', e);
+    showAlert('儲存失敗：' + (e.message || '未知錯誤'));
+  }
+}
 
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
