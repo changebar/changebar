@@ -123,6 +123,152 @@
   .prod-search-wrapper .pu-prod-select .opt-item.no-match { color: #9ca3af; cursor: default; text-align: center; padding: 0.6rem; justify-content: center; }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
+ /* ===== 訂單產品明細 - 強制不溢出 ===== */
+#o-items {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;   /* 防止任何子元素溢出 */
+}
+
+.ord-item-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    align-items: center;
+    background: #f9fafb;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    max-width: 100%;    /* 確保不超過父容器 */
+    overflow: hidden;   /* 防止內部內容溢出 */
+    box-sizing: border-box;
+}
+
+/* 品項搜尋框 - 彈性伸縮，但設最大寬度 */
+.ord-item-row .prod-search-wrapper {
+    flex: 1 1 150px;    /* 可以伸縮，基礎 150px */
+    min-width: 100px;
+    max-width: 220px;   /* 防止太寬 */
+    box-sizing: border-box;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-search {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    height: 36px;
+    background: #fff;
+    box-sizing: border-box;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-search:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+.ord-item-row .prod-search-wrapper .pu-prod-select {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    z-index: 9999 !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    margin-top: 2px;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-select.show { display: block; }
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item {
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item:hover { background: #eff6ff; }
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item .opt-name { font-weight: 500; }
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item .opt-cost { font-size: 0.7rem; color: #6b7280; margin-left: 0.3rem; }
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item.no-match {
+    color: #9ca3af;
+    cursor: default;
+    text-align: center;
+    padding: 0.6rem;
+    justify-content: center;
+}
+.ord-item-row .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
+
+/* 數量 - 固定寬度，但允許收縮 */
+.ord-item-row .o-qty {
+    width: 75px;
+    flex-shrink: 1;     /* 允許收縮 */
+    min-width: 50px;    /* 最小寬度防止太窄 */
+    text-align: center;
+    height: 36px;
+    padding: 0.3rem 0.2rem;
+    font-size: 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+}
+
+/* 金額 - 固定寬度，但允許收縮 */
+.ord-item-row .o-price {
+    width: 105px;
+    flex-shrink: 1;
+    min-width: 70px;
+    text-align: center;
+    height: 36px;
+    padding: 0.3rem 0.2rem;
+    font-size: 0.9rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+}
+
+/* 發票勾選 + 刪除按鈕 */
+.ord-item-row .invoice-check {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-right: 0.1rem;
+}
+.ord-item-row .invoice-check label {
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin: 0;
+}
+.ord-item-row .del-btn {
+    flex-shrink: 0;
+    padding: 0.2rem 0.5rem;
+    margin-left: 0.1rem;
+    min-height: auto;
+    font-size: 0.85rem;
+    height: 32px;
+    line-height: 1;
+    background: #fee2e2;
+    color: #dc2626;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+}
+.ord-item-row .del-btn:hover { background: #fecaca; }
+
+/* 手機版微調 */
+@media (max-width: 640px) {
+    .ord-item-row .prod-search-wrapper {
+        flex: 1 1 110px;
+        min-width: 80px;
+        max-width: 160px;
+    }
+    .ord-item-row .o-qty { width: 60px; min-width: 40px; }
+    .ord-item-row .o-price { width: 80px; min-width: 55px; }
+}
  .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
