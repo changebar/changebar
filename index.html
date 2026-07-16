@@ -112,6 +112,7 @@
   .boss-stat-card.orange { border-left-color: #f59e0b; }
   .boss-stat-card.teal { border-left-color: #14b8a6; }
 
+  /* ===== 產品搜尋下拉（通用） ===== */
   .prod-search-wrapper { position: relative; }
   .prod-search-wrapper .pu-prod-search { width: 100%; padding: 0.25rem 0.5rem; border: 1px solid #d1d5db; border-radius: 0.25rem; font-size: 0.85rem; height: 32px; background: #fff; }
   .prod-search-wrapper .pu-prod-search:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
@@ -124,7 +125,7 @@
   .prod-search-wrapper .pu-prod-select .opt-item.no-match { color: #9ca3af; cursor: default; text-align: center; padding: 0.6rem; justify-content: center; }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
-  /* ===== 訂單產品明細（已修改為與採購入庫比例一致） ===== */
+  /* ===== 訂單產品明細（修正：搜尋框大，數量金額小） ===== */
   #o-items {
     width: 100% !important;
     max-width: 100% !important;
@@ -135,10 +136,10 @@
   .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: center;
     background: #f9fafb;
-    padding: 0.5rem 0.75rem;
+    padding: 0.3rem 0.5rem;
     border-radius: 0.5rem;
     width: 100% !important;
     max-width: 100% !important;
@@ -146,20 +147,20 @@
     overflow: visible !important;
   }
 
-  /* 搜尋框 - 與採購入庫完全一致：flex: 1 1 150px */
+  /* 搜尋框 - 佔最大比例 */
   .ord-item-row .prod-search-wrapper {
-    flex: 1 1 200px;
-    min-width: 120px;
-    max-width: 400px;
+    flex: 3 1 250px;   /* 佔比最大，基礎寬度 250px */
+    min-width: 150px;
+    max-width: 450px;
     box-sizing: border-box;
   }
   .ord-item-row .prod-search-wrapper .pu-prod-search {
     width: 100%;
-    padding: 0.4rem 0.7rem;
+    padding: 0.35rem 0.6rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     font-size: 0.95rem;
-    height: 38px;
+    height: 36px;
     background: #fff;
     box-sizing: border-box;
   }
@@ -205,52 +206,54 @@
   }
   .ord-item-row .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
-  /* 數量 - 與採購入庫完全一致：80px */
+  /* 數量 - 小 */
   .ord-item-row .o-qty {
-     width: 65px;       /* ← 從 80px 改為 65px */
+    width: 60px;
     flex-shrink: 1;
-    min-width: 45px;
+    min-width: 40px;
     text-align: center;
-    height: 38px;
-    padding: 0.4rem 0.3rem;
-    font-size: 0.95rem;
+    height: 36px;
+    padding: 0.2rem 0.15rem;
+    font-size: 0.9rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     box-sizing: border-box;
+  }
 
-  /* 金額 - 與採購入庫完全一致：112px */
+  /* 金額 - 中等偏小 */
   .ord-item-row .o-price {
-   　width: 90px;       /* ← 從 112px 改為 90px */
+    width: 85px;
     flex-shrink: 1;
-    min-width: 60px;
+    min-width: 55px;
     text-align: center;
-    height: 38px;
-    padding: 0.4rem 0.3rem;
-    font-size: 0.95rem;
+    height: 36px;
+    padding: 0.2rem 0.15rem;
+    font-size: 0.9rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     box-sizing: border-box;
-}
+  }
 
+  /* 發票勾選 + 刪除按鈕 - 不縮小 */
   .ord-item-row .invoice-check {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.15rem;
     margin-right: 0.05rem;
   }
   .ord-item-row .invoice-check label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     margin: 0;
   }
   .ord-item-row .del-btn {
     flex-shrink: 0;
-    padding: 0.2rem 0.5rem;
+    padding: 0.15rem 0.4rem;
     margin-left: 0.05rem;
     min-height: auto;
-    font-size: 0.85rem;
-    height: 32px;
+    font-size: 0.8rem;
+    height: 30px;
     line-height: 1;
     background: #fee2e2;
     color: #dc2626;
@@ -260,6 +263,7 @@
   }
   .ord-item-row .del-btn:hover { background: #fecaca; }
 
+  /* ===== 表單列（修正「啟用」跑版） ===== */
   .form-row {
     display: flex;
     flex-wrap: nowrap;
@@ -285,26 +289,28 @@
   .checkbox-inline input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin: 0; flex-shrink: 0; }
   .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; min-width: auto !important; font-size: 0.9rem; }
 
+  /* ===== 訂單總金額區塊 ===== */
   .ord-total-sticky { position: sticky; bottom: 0; background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 0.75rem; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
 
+  /* ===== 其他工具類 ===== */
   .flex-wrap-custom { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
   .w-full-mobile { width: 100%; }
   @media (min-width: 640px) { .w-full-mobile { width: auto; } }
 
+  /* ===== 手機版微調 ===== */
   @media (max-width: 640px) {
     #o-items { padding: 0 0.2rem; }
-    .ord-item-row { padding: 0.3rem 0.4rem; gap: 0.3rem; }
+    .ord-item-row { padding: 0.25rem 0.3rem; gap: 0.25rem; }
     .ord-item-row .prod-search-wrapper {
-       flex: 2 1 200px;   /* ← 改成 2 1 200px */
-    min-width: 120px;
-    max-width: 400px;  /* ← 改成 400px */
-    box-sizing: border-box;
-}
+      flex: 2 1 150px;
+      min-width: 100px;
+      max-width: 280px;
+    }
     .ord-item-row .prod-search-wrapper .pu-prod-search { font-size: 0.8rem; height: 32px; padding: 0.2rem 0.4rem; }
-    .ord-item-row .o-qty { width: 60px; min-width: 40px; font-size: 0.8rem; height: 32px; }
-    .ord-item-row .o-price { width: 85px; min-width: 55px; font-size: 0.8rem; height: 32px; }
-    .ord-item-row .invoice-check label { font-size: 0.75rem; }
-    .ord-item-row .del-btn { font-size: 0.75rem; height: 28px; padding: 0.1rem 0.3rem; }
+    .ord-item-row .o-qty { width: 50px; min-width: 35px; font-size: 0.8rem; height: 32px; }
+    .ord-item-row .o-price { width: 70px; min-width: 45px; font-size: 0.8rem; height: 32px; }
+    .ord-item-row .invoice-check label { font-size: 0.7rem; }
+    .ord-item-row .del-btn { font-size: 0.7rem; height: 28px; padding: 0.1rem 0.3rem; }
     .form-row { flex-wrap: wrap; gap: 0.3rem; }
     .form-row label { min-width: 50px; font-size: 0.8rem; }
   }
