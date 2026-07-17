@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>養芯健康 ERP</title>
+<!-- 加入 favicon 避免 404 -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <script src="https://cdn.tailwindcss.com/3.3.3"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -125,7 +127,7 @@
   .prod-search-wrapper .pu-prod-select .opt-item.no-match { color: #9ca3af; cursor: default; text-align: center; padding: 0.6rem; justify-content: center; }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
-  /* ===== 訂單產品明細（修正：商品名稱完整顯示，數量金額縮小） ===== */
+  /* ===== 訂單產品明細（修正：商品名稱完整顯示，使用 flex-1 與採購入庫一致） ===== */
   #o-items {
     width: 100% !important;
     max-width: 100% !important;
@@ -147,11 +149,10 @@
     overflow: visible !important;
   }
 
-  /* 搜尋框 - 佔最大比例，讓商品名稱完整顯示 */
+  /* 搜尋框 - 改成 flex-1 與採購入庫一致，移除 max-width 限制讓名稱完整顯示 */
   .ord-item-row .prod-search-wrapper {
-    flex: 4 1 280px;
+    flex: 1 1 auto;
     min-width: 150px;
-    max-width: 500px;
     box-sizing: border-box;
   }
   .ord-item-row .prod-search-wrapper .pu-prod-search {
@@ -234,7 +235,7 @@
     box-sizing: border-box;
   }
 
-  /* 發票勾選 + 刪除按鈕 - 不縮小 */
+  /* 發票勾選 + 刪除按鈕 */
   .ord-item-row .invoice-check {
     flex-shrink: 0;
     display: flex;
@@ -263,7 +264,7 @@
   }
   .ord-item-row .del-btn:hover { background: #fecaca; }
 
-  /* ===== 表單列（修正「啟用」跑版） ===== */
+  /* ===== 表單列 ===== */
   .form-row {
     display: flex;
     flex-wrap: nowrap;
@@ -291,22 +292,18 @@
   .checkbox-inline input[type="checkbox"] { width: 1rem; height: 1rem; margin: 0; flex-shrink: 0; }
   .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; min-width: auto !important; font-size: 0.85rem; white-space: nowrap; }
 
-  /* ===== 訂單總金額區塊 ===== */
   .ord-total-sticky { position: sticky; bottom: 0; background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 0.75rem; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
 
-  /* ===== 其他工具類 ===== */
   .flex-wrap-custom { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
   .w-full-mobile { width: 100%; }
   @media (min-width: 640px) { .w-full-mobile { width: auto; } }
 
-  /* ===== 手機版微調 ===== */
   @media (max-width: 640px) {
     #o-items { padding: 0 0.2rem; }
     .ord-item-row { padding: 0.2rem 0.25rem; gap: 0.2rem; }
     .ord-item-row .prod-search-wrapper {
-      flex: 3 1 140px;
+      flex: 1 1 auto;
       min-width: 90px;
-      max-width: 260px;
     }
     .ord-item-row .prod-search-wrapper .pu-prod-search { font-size: 0.75rem; height: 30px; padding: 0.15rem 0.3rem; }
     .ord-item-row .o-qty { width: 45px; min-width: 30px; font-size: 0.75rem; height: 30px; }
@@ -878,14 +875,16 @@ function renderBoss(c) {
     for(let i=0; i<subTagIds.length; i++) { if(uniqueIds.indexOf(subTagIds[i]) === -1) uniqueIds.push(subTagIds[i]); }
     subCustomerCount = uniqueIds.length;
   }
+  // 計算訂閱月營收：從客戶的 subscription_amount 計算
   let subMonthlyRevenue = 0;
-  for(let i=0; i<monthOrders.length; i++) {
-    const o = monthOrders[i];
-    if(o.is_subscription && o.subscription_days > 0) {
-      const dailyRevenue = (o.total_amount || 0) / o.subscription_days;
-      subMonthlyRevenue += dailyRevenue * 30;
+  for(let i=0; i<D.customers.length; i++) {
+    const c = D.customers[i];
+    if(c.is_subscription && c.subscription_days > 0 && c.subscription_amount > 0) {
+      const monthlyAmount = (c.subscription_amount / c.subscription_days) * 30;
+      subMonthlyRevenue += monthlyAmount;
     }
   }
+
   const totalCustomers = D.customers.length;
   const monthOrderCount = monthOrders.length;
 
@@ -979,7 +978,7 @@ function downloadBossReport() {
       '統一編號': c.tax_id || '',
       '發票抬頭': c.invoice_title || '',
       'Email': c.email || '',
-      '訂閱': c.is_subscription ? '是 ('+(c.subscription_days||0)+'天)' : '否',
+      '訂閱': c.is_subscription ? '是 ('+(c.subscription_days||0)+'天, '+(c.subscription_amount||0)+'元)' : '否',
       '備註': c.notes || ''
     };
   });
@@ -1145,6 +1144,7 @@ function renderCustTable() {
   document.getElementById('cust-tbody').innerHTML = html;
 }
 
+// ===== 客戶詳情（修正：顯示訂閱天數與金額） =====
 async function viewCustDetail(id) {
   const c = D.customers.find(function(x) { return x.id===id; });
   if(!c) return showAlert('找不到客戶');
@@ -1155,7 +1155,12 @@ async function viewCustDetail(id) {
     return tag ? '<span class="tag-'+tag.color+' px-2 py-1 rounded text-xs mr-1">'+tag.name+'</span>' : '';
   }).join('');
 
-  const subInfo = c.is_subscription ? '<span class="text-green-600 font-bold">是 ('+c.subscription_days+' 天)</span>' : '<span class="text-gray-500">否</span>';
+  let subInfo = '<span class="text-gray-500">否</span>';
+  if(c.is_subscription && c.subscription_days > 0 && c.subscription_amount > 0) {
+    subInfo = '<span class="text-green-600 font-bold">是 ('+c.subscription_days+' 天, 金額 '+c.subscription_amount+' 元)</span>';
+  } else if(c.is_subscription) {
+    subInfo = '<span class="text-yellow-600">是 (天數/金額未設定)</span>';
+  }
 
   const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
   const addrs = addrsResp.data || [];
@@ -1188,6 +1193,7 @@ async function viewCustDetail(id) {
   openModal('客戶詳情', html, function(){return Promise.resolve();}, true);
 }
 
+// ===== 新增/編輯客戶（修正：訂閱設定加入金額欄位） =====
 async function openCustModal(id) {
   editingId = id || null;
   const c = id ? D.customers.find(function(x) { return x.id===id; }) : null;
@@ -1207,6 +1213,10 @@ async function openCustModal(id) {
     tagHtml += '<label class="flex items-center gap-2 px-3 py-2 bg-white border rounded cursor-pointer"><input type="checkbox" value="'+t.id+'" class="c-tag-cb" '+(custTagIds.indexOf(t.id)!==-1?'checked':'')+'><span class="tag-'+t.color+' px-2 py-1 rounded text-xs">'+t.name+'</span></label>';
   }
 
+  const subChecked = (c && c.is_subscription) ? 'checked' : '';
+  const subDays = (c && c.subscription_days) || 30;
+  const subAmount = (c && c.subscription_amount) || 0;
+
   const html = '<input type="hidden" id="c-id" value="'+(id||'')+'">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div>' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'" oninput="syncAddrContact()"></div></div>' +
@@ -1214,9 +1224,10 @@ async function openCustModal(id) {
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.invoice_title||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.tax_id||'':'')+'"></div></div>' +
     '<div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">' +
       '<h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3>' +
-      '<div class="form-row"><label>訂閱客戶</label><div class="checkbox-inline"><input type="checkbox" id="c-is-sub" '+(c&&c.is_subscription?'checked':'')+' onchange="document.getElementById(\'c-sub-days-box\').style.display = this.checked ? \'block\' : \'none\'"><label for="c-is-sub">啟用</label></div></div>' +
-      '<div id="c-sub-days-box" style="display:'+(c&&c.is_subscription?'block':'none')+'">' +
-        '<div class="form-row"><label>訂閱週期</label><select id="c-sub-days" class="form-control w-full px-3 py-2 border rounded input-field"><option value="30" '+(c&&c.subscription_days===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(c&&c.subscription_days===45?'selected':'')+'>45 天</option><option value="60" '+(c&&c.subscription_days===60?'selected':'')+'>60 天 (雙月繳)</option></select></div>' +
+      '<div class="form-row"><label>訂閱客戶</label><div class="checkbox-inline"><input type="checkbox" id="c-is-sub" '+subChecked+' onchange="toggleSubFields()"><label for="c-is-sub">啟用</label></div></div>' +
+      '<div id="c-sub-fields" style="display:'+(c&&c.is_subscription?'block':'none')+'">' +
+        '<div class="form-row"><label>週期(天)</label><select id="c-sub-days" class="form-control w-full px-3 py-2 border rounded input-field"><option value="30" '+(subDays===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(subDays===45?'selected':'')+'>45 天</option><option value="60" '+(subDays===60?'selected':'')+'>60 天 (雙月繳)</option></select></div>' +
+        '<div class="form-row"><label>金額</label><input type="number" id="c-sub-amount" class="form-control w-full px-3 py-2 border rounded input-field" value="'+subAmount+'" min="0" step="0.01" placeholder="請輸入訂閱金額"></div>' +
       '</div>' +
     '</div>' +
     '<div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">'+tagHtml+'</div></div>' +
@@ -1229,6 +1240,11 @@ async function openCustModal(id) {
     document.getElementById('addr-box').innerHTML = '';
     if(addrs && addrs.length > 0) { for(let i=0; i<addrs.length; i++) addAddr(addrs[i]); } else { addAddr(); }
   } else { addAddr(null, true); }
+}
+
+function toggleSubFields() {
+  const checked = document.getElementById('c-is-sub').checked;
+  document.getElementById('c-sub-fields').style.display = checked ? 'block' : 'none';
 }
 
 function syncAddrContact() {
@@ -1255,8 +1271,10 @@ function addAddr(addrData, isDefault) {
   box.appendChild(div);
 }
 
+// ===== 儲存客戶（修正：儲存訂閱金額） =====
 async function saveCust() {
   const id = document.getElementById('c-id').value;
+  const isSub = document.getElementById('c-is-sub').checked;
   const data = {
     type: document.getElementById('c-type').value,
     company_name: document.getElementById('c-comp').value||null,
@@ -1265,7 +1283,10 @@ async function saveCust() {
     primary_contact_window_id: document.getElementById('c-win').value||null,
     invoice_title: document.getElementById('c-title').value||null,
     tax_id: document.getElementById('c-tax').value||null,
-    email: document.getElementById('c-email').value||null
+    email: document.getElementById('c-email').value||null,
+    is_subscription: isSub,
+    subscription_days: isSub ? parseInt(document.getElementById('c-sub-days').value) || 30 : 0,
+    subscription_amount: isSub ? parseFloat(document.getElementById('c-sub-amount').value) || 0 : 0
   };
   if(!data.contact_person || !data.phone) return showAlert('聯絡人和電話必填！');
   try {
@@ -1310,7 +1331,9 @@ async function saveCust() {
   } catch(e) {
     console.error('saveCust error:', e);
     let msg = '儲存失敗：' + e.message;
-    if (e.message && e.message.includes('column') && e.message.includes('notes')) {
+    if (e.message && e.message.includes('column') && e.message.includes('subscription_amount')) {
+      msg = '儲存失敗：資料表缺少 subscription_amount 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE customers ADD COLUMN IF NOT EXISTS subscription_amount NUMERIC DEFAULT 0;';
+    } else if (e.message && e.message.includes('column') && e.message.includes('notes')) {
       msg = '儲存失敗：資料表缺少 notes 欄位，已跳過該欄位。請檢查資料庫結構或聯絡管理員。';
     }
     showAlert(msg);
@@ -1500,7 +1523,12 @@ function clearOrdFilters() {
   renderOrdTable();
 }
 
-// ========== 新增/編輯訂單（修正問題 1、2、3、5） ==========
+// ========== 新增/編輯訂單（修正問題 1、3、4、5） ==========
+// 問題1：商品名稱顯示寬度 → 已修改 CSS .ord-item-row .prod-search-wrapper 為 flex:1 1 auto
+// 問題3：驗證+順序調整+移除訂閱設定
+// 問題4：運費代墊+公司吸收運費都要出現在收支與訂閱
+// 問題5：編輯時銀行帳戶不重複累加
+
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1524,31 +1552,33 @@ async function openOrdModal(id) {
   let empOptions = '<option value="">無代墊</option>';
   for(let i=0; i<D.emps.length; i++) { const emp = D.emps[i]; empOptions += '<option value="' + emp.id + '" ' + (o && o.shipping_advance_employee_id === emp.id ? 'selected' : '') + '>' + emp.name + '</option>'; }
 
-  const isSubscription = o ? o.is_subscription_order : false;
-  const subscriptionDays = o ? o.subscription_days : 30;
   const couponAmount = o ? o.coupon_amount || 0 : 0;
   const pointsAmount = o ? o.points_amount || 0 : 0;
   const invType = o ? o.invoice_type || 'no' : 'no';
 
+  // ===== 調整順序：客戶→倉庫→地址→產品明細→運費/通路/金流→代墊→折價券/紅利→發票 =====
   const html = '<input type="hidden" id="o-id" value="' + (id || '') + '">' +
+    // 1. 客戶 + 倉庫
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">選擇客戶 *</label><input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field mb-2" placeholder="輸入名稱或電話搜尋..." oninput="searchCustomerInOrder()"><select id="o-cust" class="w-full px-3 py-2 border rounded input-field" onchange="fillCustomerData()">' + custOptions + '</select></div><div><label class="block text-sm font-bold mb-2">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div></div>' +
+    // 2. 寄送地址
     '<div class="bg-gray-50 p-4 rounded-lg mb-4"><h3 class="font-bold mb-3">📮 寄送地址 (自動帶入可修改)</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="o-recv-name" class="w-full px-3 py-2 border rounded input-field"></div><div><label class="block text-xs font-bold mb-1">電話</label><input type="text" id="o-recv-phone" class="w-full px-3 py-2 border rounded input-field"></div><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" id="o-recv-addr" class="w-full px-3 py-2 border rounded input-field"></div></div></div>' +
-    '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" '+(invType==='no'?'selected':'')+'>無發票</option><option value="yes" '+(invType==='yes'?'selected':'')+'>有發票</option><option value="tax_plus" '+(invType==='tax_plus'?'selected':'')+'>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_no||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_title||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_tax_id||'':'')+'"></div></div></div>' +
-    '<div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200"><h3 class="font-bold mb-3">💰 運費、通路與金流</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">運費金額</label><input type="number" id="o-shipping-fee" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.shipping_fee||0:0)+'" oninput="calcOrd()"></div><div><label class="block text-xs font-bold mb-1">運費支付方</label><select id="o-ship-payer" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="company" '+(o&&o.customer_paid_shipping===0?'selected':'')+'>公司吸收</option><option value="customer" '+(o&&o.customer_paid_shipping>0?'selected':'')+'>客戶支付 (加總)</option></select></div><div><label class="block text-xs font-bold mb-1">銷售通路</label><select id="o-channel" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + chOptions + '</select></div><div><label class="block text-xs font-bold mb-1">付款方式</label><select id="o-payment" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + pmOptions + '</select></div><div class="md:col-span-4"><label class="block text-xs font-bold mb-1">入款銀行帳戶 (存檔後自動入帳)</label><select id="o-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div></div></div>' +
+    // 3. 產品明細
+    '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細 *</label><div class="flex gap-2 mb-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div>' +
+    '<div class="mt-2 flex gap-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-4 py-2 bg-pink-600 text-white rounded text-sm btn-touch">+ 新增禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-4 py-2 bg-gray-600 text-white rounded text-sm btn-touch">+ 新增外箱</button></div></div>' +
+    // 4. 運費、通路與金流
+    '<div class="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200"><h3 class="font-bold mb-3">💰 運費、通路與金流</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">運費金額</label><input type="number" id="o-shipping-fee" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.shipping_fee||0:0)+'" oninput="calcOrd()"></div><div><label class="block text-xs font-bold mb-1">運費支付方</label><select id="o-ship-payer" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="company" '+(o&&o.customer_paid_shipping===0?'selected':'')+'>公司吸收</option><option value="customer" '+(o&&o.customer_paid_shipping>0?'selected':'')+'>客戶支付 (加總)</option></select></div><div><label class="block text-xs font-bold mb-1">銷售通路 *</label><select id="o-channel" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + chOptions + '</select></div><div><label class="block text-xs font-bold mb-1">付款方式 *</label><select id="o-payment" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()">' + pmOptions + '</select></div><div class="md:col-span-4"><label class="block text-xs font-bold mb-1">入款銀行帳戶 * (存檔後自動入帳)</label><select id="o-bank" class="w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div></div></div>' +
+    // 5. 運費代墊管理
     '<div class="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200"><h3 class="font-bold text-orange-800 mb-3">🚚 運費代墊管理</h3>' +
       '<div class="form-row"><label style="min-width:100px;">有運費代墊</label><div class="checkbox-inline"><input type="checkbox" id="o-has-advance" '+(o&&o.shipping_advance_employee_id?'checked':'')+' onchange="document.getElementById(\'o-advance-emp-box\').style.display = this.checked ? \'block\' : \'none\'"><label for="o-has-advance">啟用</label></div></div>' +
       '<div id="o-advance-emp-box" style="display:'+(o&&o.shipping_advance_employee_id?'block':'none')+'">' +
         '<div class="form-row"><label style="min-width:100px;">代墊員工</label><select id="o-advance-emp" class="form-control w-full px-3 py-2 border rounded input-field">' + empOptions + '</select></div>' +
       '</div>' +
     '</div>' +
-    '<div class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-200"><h3 class="font-bold text-indigo-800 mb-3">🔄 訂閱訂單設定</h3>' +
-      '<div class="form-row" style="margin-bottom:0.25rem;"><label style="min-width:100px;">訂閱訂單</label><div class="checkbox-inline"><input type="checkbox" id="o-is-subscription" '+(isSubscription?'checked':'')+' onchange="calcOrd()"><label for="o-is-subscription">啟用</label></div></div>' +
-      '<div style="margin-left:105px;margin-bottom:0.75rem;"><span class="text-xs text-gray-600">勾選後會統計到平均月營收</span></div>' +
-      '<div class="form-row"><label style="min-width:100px;">訂閱週期</label><select id="o-subscription-days" class="form-control w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="30" '+(subscriptionDays===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(subscriptionDays===45?'selected':'')+'>45 天</option><option value="60" '+(subscriptionDays===60?'selected':'')+'>60 天 (雙月繳)</option></select></div>' +
-    '</div>' +
+    // 6. 折價券與紅利點數
     '<div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200"><h3 class="font-bold mb-3">🎫 折價券與紅利點數</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">折價券金額</label><input type="number" id="o-coupon-amount" class="w-full px-3 py-2 border rounded input-field" value="'+couponAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">官網發放折價券</p></div><div><label class="block text-xs font-bold mb-1">紅利點數折抵</label><input type="number" id="o-points-amount" class="w-full px-3 py-2 border rounded input-field" value="'+pointsAmount+'" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">紅利點數折抵金額</p></div></div></div>' +
-    '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細</label><div class="flex gap-2 mb-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div>' +
-    '<div class="mt-2 flex gap-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-4 py-2 bg-pink-600 text-white rounded text-sm btn-touch">+ 新增禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-4 py-2 bg-gray-600 text-white rounded text-sm btn-touch">+ 新增外箱</button></div></div>' +
+    // 7. 發票資訊
+    '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" '+(invType==='no'?'selected':'')+'>無發票</option><option value="yes" '+(invType==='yes'?'selected':'')+'>有發票</option><option value="tax_plus" '+(invType==='tax_plus'?'selected':'')+'>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_no||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_title||'':'')+'"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(o?o.invoice_tax_id||'':'')+'"></div></div></div>' +
+    // 總金額區塊
     '<div class="ord-total-sticky"><div class="flex justify-between items-center flex-wrap gap-2"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
 
   openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
@@ -1609,6 +1639,7 @@ async function loadCustomerDefaultAddress(custId) {
   }
 }
 
+// ===== 新增訂單產品列（修正問題1：使用 flex-1 讓名稱完整顯示） =====
 function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
@@ -1635,8 +1666,8 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
 
   div.innerHTML = `
-    <div class="prod-search-wrapper">
-      <input type="text" class="pu-prod-search" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
+    <div class="prod-search-wrapper flex-1 min-w-[150px]">
+      <input type="text" class="pu-prod-search w-full px-2 py-1 border rounded" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterOrdProdOptions(this, '${uid}')" onfocus="document.getElementById('ord_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('ord_dropdown_${uid}').classList.remove('show')},300)">
       <div class="pu-prod-select" id="ord_dropdown_${uid}">
         ${prodOptionsHtml}
       </div>
@@ -1760,19 +1791,41 @@ function calcOrd() {
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ===== 存檔訂單（修正：編輯時銀行不重複累加、自動記錄費用到收支） =====
+// ===== 儲存訂單（修正問題3、4、5） =====
 async function saveOrd() {
   const cid = document.getElementById('o-cust').value;
   const wid = document.getElementById('o-warehouse').value;
   const bankId = document.getElementById('o-bank').value;
-  if(!cid) return showAlert('請選擇客戶！');
-  if(!wid) return showAlert('請選擇出貨倉庫！');
-  if(!bankId) return showAlert('請選擇入款銀行！');
+  const chId = document.getElementById('o-channel').value;
+  const pmId = document.getElementById('o-payment').value;
 
+  // ===== 問題3：驗證必填欄位 =====
+  const missing = [];
+  if(!cid) missing.push('客戶');
+  if(!wid) missing.push('出貨倉庫');
+  if(!bankId) missing.push('入款銀行帳戶');
+  if(!chId) missing.push('銷售通路');
+  if(!pmId) missing.push('付款方式');
+
+  // 檢查產品明細
+  const rows = document.querySelectorAll('#o-items .ord-item-row');
+  let hasProduct = false;
+  for(let i=0; i<rows.length; i++) {
+    const r = rows[i];
+    const hiddenInput = r.querySelector('.pu-prod-id');
+    if(hiddenInput && hiddenInput.value) { hasProduct = true; break; }
+  }
+  if(!hasProduct) missing.push('產品明細');
+
+  if(missing.length > 0) {
+    showAlert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('、'));
+    return;
+  }
+
+  // 收集產品資料
   const items = [];
   let productSubtotal = 0;
   let totalCost = 0;
-  const rows = document.querySelectorAll('#o-items .ord-item-row');
   for(let i=0; i<rows.length; i++) {
     const r = rows[i];
     const hiddenInput = r.querySelector('.pu-prod-id');
@@ -1791,7 +1844,6 @@ async function saveOrd() {
       totalCost += finalCost * q;
     }
   }
-  if(!items.length) return showAlert('請加入產品！');
 
   const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
   const shipPayer = document.getElementById('o-ship-payer').value;
@@ -1807,10 +1859,8 @@ async function saveOrd() {
   const totalAmount = Math.round(totalAmountRaw);
 
   const chSelect = document.getElementById('o-channel');
-  const chId = chSelect.value || null;
   const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
   const pmSelect = document.getElementById('o-payment');
-  const pmId = pmSelect.value || null;
   const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
 
   const chCommission = totalAmount * (chRate / 100);
@@ -1818,14 +1868,12 @@ async function saveOrd() {
   const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
   const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
   const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+
   const hasAdvance = document.getElementById('o-has-advance').checked;
   const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
-  const advanceAmount = 0;
+  const advanceAmount = 0; // 目前代墊金額固定為0，因為運費已單獨計算
   const advanceStatus = 'pending';
   const advanceBankId = null;
-
-  const isSubscriptionOrder = document.getElementById('o-is-subscription').checked;
-  const subscriptionDays = parseInt(document.getElementById('o-subscription-days').value) || 30;
 
   let orderNo;
   if (editingId) {
@@ -1858,8 +1906,8 @@ async function saveOrd() {
     shipping_recv_phone: document.getElementById('o-recv-phone').value || null,
     shipping_address: document.getElementById('o-recv-addr').value || null,
     shipping_advance_employee_id: advanceEmpId,
-    is_subscription_order: isSubscriptionOrder,
-    subscription_days: subscriptionDays,
+    is_subscription_order: false, // 已移除訂閱訂單設定，預設為否
+    subscription_days: 0,
     coupon_amount: couponAmount,
     points_amount: pointsAmount,
     shipping_advance_amount: advanceAmount,
@@ -1875,7 +1923,7 @@ async function saveOrd() {
     let oldTotalAmount = 0;
     let oldBankId = null;
 
-    // === 編輯模式：先讀取舊訂單資料 ===
+    // ===== 編輯模式：還原舊訂單（修正問題5：不重複累加） =====
     if (editingId) {
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
       oldOrder = oldOrderResp.data;
@@ -1883,7 +1931,7 @@ async function saveOrd() {
         oldTotalAmount = oldOrder.total_amount || 0;
         oldBankId = oldOrder.bank_account_id;
 
-        // 還原舊銀行（僅當銀行有變動時才處理）
+        // 還原舊銀行（先減去舊金額）
         if (oldBankId && oldTotalAmount > 0) {
           const oldBank = D.banks.find(b => b.id === oldBankId);
           if (oldBank) {
@@ -1895,7 +1943,7 @@ async function saveOrd() {
         await sb.from('order_items').delete().eq('order_id', editingId);
         await sb.from('expenses').delete().eq('related_order_id', editingId);
 
-        // 還原庫存（編輯時需要先還原再扣新的）
+        // 還原庫存
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         for (let item of oldItems) {
@@ -1925,7 +1973,7 @@ async function saveOrd() {
       // 更新訂單
       await sb.from('orders').update(data).eq('id', editingId);
     } else {
-      // === 新增模式 ===
+      // ===== 新增模式 =====
       const insertResult = await sb.from('orders').insert([data]).select().single();
       if (insertResult.error) {
         console.error('訂單插入錯誤：', insertResult.error);
@@ -1935,7 +1983,7 @@ async function saveOrd() {
       editingId = orderId;
     }
 
-    // === 寫入 order_items ===
+    // ===== 寫入 order_items =====
     if (items.length > 0) {
       try {
         const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
@@ -1957,22 +2005,24 @@ async function saveOrd() {
       }
     }
 
-    // === 銀行入帳（僅當金額變動時處理） ===
+    // ===== 銀行入帳（修正問題5：使用取代邏輯） =====
     const targetBank = D.banks.find(b => b.id === bankId);
     if (targetBank && totalAmount > 0) {
-      // 如果編輯時銀行沒變，但金額變了，用差額調整
+      // 編輯模式下，如果銀行相同，用差額更新；如果銀行不同，新銀行直接加總額
       if (editingId && oldBankId === bankId && oldTotalAmount > 0) {
+        // 同一銀行：差額更新 (新金額 - 舊金額)
         const diff = totalAmount - oldTotalAmount;
         if (diff !== 0) {
           await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + diff }).eq('id', bankId);
         }
+        // diff=0 時不做任何變動
       } else {
-        // 新增或銀行有變動：直接加總金額
+        // 不同銀行 或 新增模式：直接加總金額
         await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
       }
     }
 
-    // === 扣庫存（新訂單） ===
+    // ===== 扣庫存（新訂單） =====
     for (let item of items) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
@@ -1998,7 +2048,7 @@ async function saveOrd() {
       }
     }
 
-    // === 自動記錄費用到收支（問題5） ===
+    // ===== 問題4：自動記錄費用到收支（運費公司吸收 + 代墊 + 通路抽成 + 手續費） =====
     const expCats = D.expCats;
     const shippingCat = expCats.find(c => c.name === '運費');
     const channelCat = expCats.find(c => c.name === '通路抽成');
@@ -2019,6 +2069,28 @@ async function saveOrd() {
         reimbursed_date: advanceEmpId ? null : new Date().toISOString().split('T')[0],
         related_order_id: orderId
       });
+    }
+
+    // 運費代墊（若有指定員工）
+    if (hasAdvance && advanceEmpId && shippingFee > 0) {
+      // 檢查是否已存在
+      const existingAdvance = D.expenses.find(e =>
+        e.related_order_id === orderId &&
+        e.description && e.description.includes('運費代墊')
+      );
+      if (!existingAdvance) {
+        expensesToAdd.push({
+          category_id: (shippingCat || {}).id,
+          amount: shippingFee,
+          description: '訂單 ' + orderNo + ' 運費代墊（' + (D.emps.find(e => e.id === advanceEmpId)?.name || '') + '）',
+          payment_date: new Date().toISOString().split('T')[0],
+          employee_id: advanceEmpId,
+          is_reimbursed: false,
+          reimbursement_bank_id: null,
+          reimbursed_date: null,
+          related_order_id: orderId
+        });
+      }
     }
 
     // 通路抽成
@@ -2051,14 +2123,14 @@ async function saveOrd() {
       });
     }
 
-    // 寫入 expenses
+    // 寫入 expenses（去重）
     if (expensesToAdd.length > 0) {
       for (let exp of expensesToAdd) {
-        // 檢查是否已存在相同記錄（避免重複）
-        const existing = D.expenses.find(e => 
-          e.related_order_id === exp.related_order_id && 
+        const existing = D.expenses.find(e =>
+          e.related_order_id === exp.related_order_id &&
           e.category_id === exp.category_id &&
-          Math.abs(e.amount - exp.amount) < 0.01
+          Math.abs(e.amount - exp.amount) < 0.01 &&
+          e.description === exp.description
         );
         if (!existing) {
           await sb.from('expenses').insert([exp]);
@@ -2073,32 +2145,10 @@ async function saveOrd() {
       }
     }
 
-    // 運費代墊（若有）
-    if (hasAdvance && advanceEmpId && advanceAmount > 0) {
-      // 檢查是否已存在
-      const existingAdvance = D.expenses.find(e => 
-        e.related_order_id === orderId && 
-        e.description && e.description.includes('運費代墊')
-      );
-      if (!existingAdvance) {
-        await sb.from('expenses').insert([{
-          category_id: (shippingCat || {}).id,
-          amount: advanceAmount,
-          description: '訂單 ' + orderNo + ' 運費代墊',
-          payment_date: new Date().toISOString().split('T')[0],
-          employee_id: advanceEmpId,
-          is_reimbursed: advanceStatus === 'reimbursed',
-          reimbursement_bank_id: advanceBankId,
-          reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
-          related_order_id: orderId
-        }]);
-      }
-    }
-
     showAlert('出貨單已儲存！');
     window.closeModal();
     await loadAll();
-    
+
     if (currentView === 'orders') {
         renderOrders(document.getElementById('main-content'));
     } else {
@@ -2110,6 +2160,7 @@ async function saveOrd() {
   }
 }
 
+// ===== 查看訂單詳情 =====
 async function viewOrdDetail(id) {
   const o = D.orders.find(function(x) { return x.id === id; });
   if(!o) return showAlert('找不到訂單');
@@ -2148,6 +2199,7 @@ async function viewOrdDetail(id) {
   openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
 
+// ===== 刪除訂單 =====
 async function delOrd(id) {
   if(!confirm('確定刪除？')) return;
   try {
@@ -2155,6 +2207,7 @@ async function delOrd(id) {
     const o = orderResp.data;
     if(!o) return showAlert('找不到訂單！');
 
+    // 還原銀行
     if(o.bank_account_id && o.total_amount) {
       const bank = D.banks.find(b => b.id === o.bank_account_id);
       if(bank) {
@@ -2162,6 +2215,7 @@ async function delOrd(id) {
       }
     }
 
+    // 還原庫存
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
     for (let item of items) {
@@ -2419,7 +2473,7 @@ async function delWarehouse(id) {
   }
 }
 
-// ==================== 庫存盤點（問題4：顯示各倉庫庫存） ====================
+// ==================== 庫存盤點 ====================
 function renderInventory(c) {
   let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
   const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
