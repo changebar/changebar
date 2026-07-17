@@ -125,7 +125,7 @@
   .prod-search-wrapper .pu-prod-select .opt-item.no-match { color: #9ca3af; cursor: default; text-align: center; padding: 0.6rem; justify-content: center; }
   .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
-  /* ===== 訂單產品明細（修正：搜尋框大，數量金額小） ===== */
+  /* ===== 訂單產品明細（修正：商品名稱完整顯示，數量金額縮小） ===== */
   #o-items {
     width: 100% !important;
     max-width: 100% !important;
@@ -136,10 +136,10 @@
   .ord-item-row {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.4rem;
+    gap: 0.3rem;
     align-items: center;
     background: #f9fafb;
-    padding: 0.3rem 0.5rem;
+    padding: 0.25rem 0.4rem;
     border-radius: 0.5rem;
     width: 100% !important;
     max-width: 100% !important;
@@ -147,20 +147,20 @@
     overflow: visible !important;
   }
 
-  /* 搜尋框 - 佔最大比例 */
+  /* 搜尋框 - 佔最大比例，讓商品名稱完整顯示 */
   .ord-item-row .prod-search-wrapper {
-    flex: 3 1 250px;   /* 佔比最大，基礎寬度 250px */
+    flex: 4 1 280px;
     min-width: 150px;
-    max-width: 450px;
+    max-width: 500px;
     box-sizing: border-box;
   }
   .ord-item-row .prod-search-wrapper .pu-prod-search {
     width: 100%;
-    padding: 0.35rem 0.6rem;
+    padding: 0.3rem 0.6rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
-    font-size: 0.95rem;
-    height: 36px;
+    font-size: 0.9rem;
+    height: 34px;
     background: #fff;
     box-sizing: border-box;
   }
@@ -186,7 +186,7 @@
   }
   .ord-item-row .prod-search-wrapper .pu-prod-select.show { display: block; }
   .ord-item-row .prod-search-wrapper .pu-prod-select .opt-item {
-    padding: 0.4rem 0.7rem;
+    padding: 0.3rem 0.6rem;
     cursor: pointer;
     border-bottom: 1px solid #f3f4f6;
     display: flex;
@@ -201,34 +201,34 @@
     color: #9ca3af;
     cursor: default;
     text-align: center;
-    padding: 0.6rem;
+    padding: 0.5rem;
     justify-content: center;
   }
   .ord-item-row .prod-search-wrapper .pu-prod-select .opt-item.no-match:hover { background: transparent; }
 
   /* 數量 - 小 */
   .ord-item-row .o-qty {
-    width: 60px;
+    width: 55px;
     flex-shrink: 1;
-    min-width: 40px;
+    min-width: 35px;
     text-align: center;
-    height: 36px;
-    padding: 0.2rem 0.15rem;
-    font-size: 0.9rem;
+    height: 34px;
+    padding: 0.15rem 0.1rem;
+    font-size: 0.85rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     box-sizing: border-box;
   }
 
-  /* 金額 - 中等偏小 */
+  /* 金額 - 小 */
   .ord-item-row .o-price {
-    width: 85px;
+    width: 80px;
     flex-shrink: 1;
-    min-width: 55px;
+    min-width: 50px;
     text-align: center;
-    height: 36px;
-    padding: 0.2rem 0.15rem;
-    font-size: 0.9rem;
+    height: 34px;
+    padding: 0.15rem 0.1rem;
+    font-size: 0.85rem;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
     box-sizing: border-box;
@@ -239,21 +239,21 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 0.15rem;
+    gap: 0.1rem;
     margin-right: 0.05rem;
   }
   .ord-item-row .invoice-check label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
     margin: 0;
   }
   .ord-item-row .del-btn {
     flex-shrink: 0;
-    padding: 0.15rem 0.4rem;
+    padding: 0.1rem 0.35rem;
     margin-left: 0.05rem;
     min-height: auto;
-    font-size: 0.8rem;
-    height: 30px;
+    font-size: 0.75rem;
+    height: 28px;
     line-height: 1;
     background: #fee2e2;
     color: #dc2626;
@@ -275,19 +275,21 @@
   .form-row label {
     margin-bottom: 0 !important;
     flex-shrink: 0;
-    min-width: 60px;
+    min-width: 55px;
     font-weight: 600;
     font-size: 0.9rem;
+    white-space: nowrap;
   }
   .form-row .form-control { flex: 1; min-width: 80px; }
   .checkbox-inline {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
     flex-shrink: 0;
+    white-space: nowrap;
   }
-  .checkbox-inline input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin: 0; flex-shrink: 0; }
-  .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; min-width: auto !important; font-size: 0.9rem; }
+  .checkbox-inline input[type="checkbox"] { width: 1rem; height: 1rem; margin: 0; flex-shrink: 0; }
+  .checkbox-inline label { margin: 0 !important; font-weight: 400 !important; cursor: pointer; min-width: auto !important; font-size: 0.85rem; white-space: nowrap; }
 
   /* ===== 訂單總金額區塊 ===== */
   .ord-total-sticky { position: sticky; bottom: 0; background: #f3f4f6; padding: 0.75rem 1rem; border-radius: 0.5rem; margin-top: 0.75rem; z-index: 10; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
@@ -300,19 +302,20 @@
   /* ===== 手機版微調 ===== */
   @media (max-width: 640px) {
     #o-items { padding: 0 0.2rem; }
-    .ord-item-row { padding: 0.25rem 0.3rem; gap: 0.25rem; }
+    .ord-item-row { padding: 0.2rem 0.25rem; gap: 0.2rem; }
     .ord-item-row .prod-search-wrapper {
-      flex: 2 1 150px;
-      min-width: 100px;
-      max-width: 280px;
+      flex: 3 1 140px;
+      min-width: 90px;
+      max-width: 260px;
     }
-    .ord-item-row .prod-search-wrapper .pu-prod-search { font-size: 0.8rem; height: 32px; padding: 0.2rem 0.4rem; }
-    .ord-item-row .o-qty { width: 50px; min-width: 35px; font-size: 0.8rem; height: 32px; }
-    .ord-item-row .o-price { width: 70px; min-width: 45px; font-size: 0.8rem; height: 32px; }
-    .ord-item-row .invoice-check label { font-size: 0.7rem; }
-    .ord-item-row .del-btn { font-size: 0.7rem; height: 28px; padding: 0.1rem 0.3rem; }
+    .ord-item-row .prod-search-wrapper .pu-prod-search { font-size: 0.75rem; height: 30px; padding: 0.15rem 0.3rem; }
+    .ord-item-row .o-qty { width: 45px; min-width: 30px; font-size: 0.75rem; height: 30px; }
+    .ord-item-row .o-price { width: 65px; min-width: 40px; font-size: 0.75rem; height: 30px; }
+    .ord-item-row .invoice-check label { font-size: 0.65rem; }
+    .ord-item-row .del-btn { font-size: 0.65rem; height: 26px; padding: 0.05rem 0.25rem; }
     .form-row { flex-wrap: wrap; gap: 0.3rem; }
-    .form-row label { min-width: 50px; font-size: 0.8rem; }
+    .form-row label { min-width: 45px; font-size: 0.8rem; }
+    .checkbox-inline label { font-size: 0.8rem; }
   }
 </style>
 </head>
@@ -1497,6 +1500,7 @@ function clearOrdFilters() {
   renderOrdTable();
 }
 
+// ========== 新增/編輯訂單（修正問題 1、2、3、5） ==========
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1756,6 +1760,7 @@ function calcOrd() {
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
+// ===== 存檔訂單（修正：編輯時銀行不重複累加、自動記錄費用到收支） =====
 async function saveOrd() {
   const cid = document.getElementById('o-cust').value;
   const wid = document.getElementById('o-warehouse').value;
@@ -1867,17 +1872,30 @@ async function saveOrd() {
   try {
     let orderId = editingId;
     let oldOrder = null;
+    let oldTotalAmount = 0;
+    let oldBankId = null;
 
+    // === 編輯模式：先讀取舊訂單資料 ===
     if (editingId) {
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
       oldOrder = oldOrderResp.data;
       if (oldOrder) {
-        if (oldOrder.bank_account_id && oldOrder.total_amount) {
-          const oldBank = D.banks.find(b => b.id === oldOrder.bank_account_id);
+        oldTotalAmount = oldOrder.total_amount || 0;
+        oldBankId = oldOrder.bank_account_id;
+
+        // 還原舊銀行（僅當銀行有變動時才處理）
+        if (oldBankId && oldTotalAmount > 0) {
+          const oldBank = D.banks.find(b => b.id === oldBankId);
           if (oldBank) {
-            await sb.from('bank_accounts').update({ balance: (oldBank.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
+            await sb.from('bank_accounts').update({ balance: (oldBank.balance || 0) - oldTotalAmount }).eq('id', oldBankId);
           }
         }
+
+        // 刪除舊的 order_items 和 expenses
+        await sb.from('order_items').delete().eq('order_id', editingId);
+        await sb.from('expenses').delete().eq('related_order_id', editingId);
+
+        // 還原庫存（編輯時需要先還原再扣新的）
         const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
         const oldItems = oldItemsResp.data || [];
         for (let item of oldItems) {
@@ -1903,11 +1921,11 @@ async function saveOrd() {
             }
           }
         }
-        await sb.from('order_items').delete().eq('order_id', editingId);
-        await sb.from('expenses').delete().eq('related_order_id', editingId);
       }
+      // 更新訂單
       await sb.from('orders').update(data).eq('id', editingId);
     } else {
+      // === 新增模式 ===
       const insertResult = await sb.from('orders').insert([data]).select().single();
       if (insertResult.error) {
         console.error('訂單插入錯誤：', insertResult.error);
@@ -1917,32 +1935,44 @@ async function saveOrd() {
       editingId = orderId;
     }
 
+    // === 寫入 order_items ===
     if (items.length > 0) {
-        try {
-            const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
-            const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
-            if (itemResult.error) throw itemResult.error;
-        } catch (itemError) {
-            if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
-                console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
-                const itemsWithoutInvoice = items.map(i => {
-                    const { has_invoice, ...rest } = i;
-                    return { ...rest, order_id: orderId };
-                });
-                const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
-                if (retryResult.error) throw retryResult.error;
-                showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
-            } else {
-                throw itemError;
-            }
+      try {
+        const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
+        const itemResult = await sb.from('order_items').insert(itemsWithOrderId);
+        if (itemResult.error) throw itemResult.error;
+      } catch (itemError) {
+        if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
+          console.warn('⚠️ order_items 缺少 has_invoice 欄位，正在重新嘗試插入（不包含 has_invoice）...');
+          const itemsWithoutInvoice = items.map(i => {
+            const { has_invoice, ...rest } = i;
+            return { ...rest, order_id: orderId };
+          });
+          const retryResult = await sb.from('order_items').insert(itemsWithoutInvoice);
+          if (retryResult.error) throw retryResult.error;
+          showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
+        } else {
+          throw itemError;
         }
+      }
     }
 
+    // === 銀行入帳（僅當金額變動時處理） ===
     const targetBank = D.banks.find(b => b.id === bankId);
-    if (targetBank) {
-      await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
+    if (targetBank && totalAmount > 0) {
+      // 如果編輯時銀行沒變，但金額變了，用差額調整
+      if (editingId && oldBankId === bankId && oldTotalAmount > 0) {
+        const diff = totalAmount - oldTotalAmount;
+        if (diff !== 0) {
+          await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + diff }).eq('id', bankId);
+        }
+      } else {
+        // 新增或銀行有變動：直接加總金額
+        await sb.from('bank_accounts').update({ balance: (targetBank.balance || 0) + totalAmount }).eq('id', bankId);
+      }
     }
 
+    // === 扣庫存（新訂單） ===
     for (let item of items) {
       const prod = D.products.find(p => p.id === item.product_id);
       if (!prod) continue;
@@ -1968,18 +1998,101 @@ async function saveOrd() {
       }
     }
 
-    if (hasAdvance && advanceEmpId && advanceAmount > 0) {
-      await sb.from('expenses').insert([{
-        category_id: (D.expCats.find(c => c.name === '運費') || {}).id,
-        amount: advanceAmount,
-        description: '訂單 ' + orderNo + ' 運費代墊',
+    // === 自動記錄費用到收支（問題5） ===
+    const expCats = D.expCats;
+    const shippingCat = expCats.find(c => c.name === '運費');
+    const channelCat = expCats.find(c => c.name === '通路抽成');
+    const paymentCat = expCats.find(c => c.name === '付款手續費');
+
+    const expensesToAdd = [];
+
+    // 運費（公司吸收的部分）
+    if (companyShippingCost > 0 && shippingCat) {
+      expensesToAdd.push({
+        category_id: shippingCat.id,
+        amount: companyShippingCost,
+        description: '訂單 ' + orderNo + ' 運費（公司吸收）',
         payment_date: new Date().toISOString().split('T')[0],
-        employee_id: advanceEmpId,
-        is_reimbursed: advanceStatus === 'reimbursed',
-        reimbursement_bank_id: advanceBankId,
-        reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+        employee_id: advanceEmpId || null,
+        is_reimbursed: !!advanceEmpId ? false : true,
+        reimbursement_bank_id: advanceEmpId ? null : bankId,
+        reimbursed_date: advanceEmpId ? null : new Date().toISOString().split('T')[0],
         related_order_id: orderId
-      }]);
+      });
+    }
+
+    // 通路抽成
+    if (chCommission > 0 && channelCat) {
+      expensesToAdd.push({
+        category_id: channelCat.id,
+        amount: chCommission,
+        description: '訂單 ' + orderNo + ' 通路抽成 (' + chRate + '%)',
+        payment_date: new Date().toISOString().split('T')[0],
+        employee_id: null,
+        is_reimbursed: true,
+        reimbursement_bank_id: bankId,
+        reimbursed_date: new Date().toISOString().split('T')[0],
+        related_order_id: orderId
+      });
+    }
+
+    // 付款手續費
+    if (pmCommission > 0 && paymentCat) {
+      expensesToAdd.push({
+        category_id: paymentCat.id,
+        amount: pmCommission,
+        description: '訂單 ' + orderNo + ' 付款手續費 (' + pmRate + '%)',
+        payment_date: new Date().toISOString().split('T')[0],
+        employee_id: null,
+        is_reimbursed: true,
+        reimbursement_bank_id: bankId,
+        reimbursed_date: new Date().toISOString().split('T')[0],
+        related_order_id: orderId
+      });
+    }
+
+    // 寫入 expenses
+    if (expensesToAdd.length > 0) {
+      for (let exp of expensesToAdd) {
+        // 檢查是否已存在相同記錄（避免重複）
+        const existing = D.expenses.find(e => 
+          e.related_order_id === exp.related_order_id && 
+          e.category_id === exp.category_id &&
+          Math.abs(e.amount - exp.amount) < 0.01
+        );
+        if (!existing) {
+          await sb.from('expenses').insert([exp]);
+          // 如果是已結帳的費用，要扣銀行
+          if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+            const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
+            if (bank) {
+              await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
+            }
+          }
+        }
+      }
+    }
+
+    // 運費代墊（若有）
+    if (hasAdvance && advanceEmpId && advanceAmount > 0) {
+      // 檢查是否已存在
+      const existingAdvance = D.expenses.find(e => 
+        e.related_order_id === orderId && 
+        e.description && e.description.includes('運費代墊')
+      );
+      if (!existingAdvance) {
+        await sb.from('expenses').insert([{
+          category_id: (shippingCat || {}).id,
+          amount: advanceAmount,
+          description: '訂單 ' + orderNo + ' 運費代墊',
+          payment_date: new Date().toISOString().split('T')[0],
+          employee_id: advanceEmpId,
+          is_reimbursed: advanceStatus === 'reimbursed',
+          reimbursement_bank_id: advanceBankId,
+          reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+          related_order_id: orderId
+        }]);
+      }
     }
 
     showAlert('出貨單已儲存！');
@@ -2306,7 +2419,7 @@ async function delWarehouse(id) {
   }
 }
 
-// ==================== 庫存盤點 ====================
+// ==================== 庫存盤點（問題4：顯示各倉庫庫存） ====================
 function renderInventory(c) {
   let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
   const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
@@ -2374,7 +2487,7 @@ function showWhTab(whId) {
         '<td class="px-4 py-3 text-center">' + initialStock + '</td>' +
         '<td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
     }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">📦 全部倉庫庫存總覽</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">總庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   } else {
     const wh = D.warehouses.find(function(w) { return w.id === whId; });
     const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
@@ -2395,7 +2508,7 @@ function showWhTab(whId) {
         '<td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
         '<td class="px-4 py-3 text-center"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded text-center" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
     }
-    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-4 bg-gray-50 border-b"><h3 class="font-bold text-center">' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">目前庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th><th class="px-4 py-3 text-center text-xs">盤點調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">🏚️ ' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th><th class="px-4 py-3 text-center text-xs">調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
   }
 }
 
