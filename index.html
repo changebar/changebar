@@ -536,7 +536,6 @@ async function loadAll() {
         showAlert('載入資料失敗，請檢查網路或重新登入。');
     }
 }
-
 // ==================== 老闆查閱 ====================
 function renderBoss(c) {
   const startY = parseInt(bossDateRange.start.split('-')[0]);
@@ -742,7 +741,6 @@ function renderBoss(c) {
     banksHtml += '<div class="flex justify-between items-center p-3 bg-gray-50 rounded"><span class="font-medium">'+b.account_name+'</span><span class="font-bold text-green-600">'+(b.balance||0).toLocaleString()+'</span></div>';
   }
 
-  // 修正月份輸入框的值（slice(0,7)）
   const startMonth = bossDateRange.start.slice(0,7);
   const endMonth = bossDateRange.end.slice(0,7);
 
@@ -1926,7 +1924,6 @@ async function delOrd(id) {
     console.error('delOrd error:', e);
   }
 }
-
 // ==================== 商品與 BOM ====================
 function renderProducts(c) {
   const tm = {finished: '成品', semi: '半成品', gift_box: '禮盒', outer_box: '外箱子'};
@@ -2904,7 +2901,6 @@ async function saveSub() {
     bank_account_id: bankId
   };
   try {
-    // 不檢查餘額
     let result;
     if (id) {
       const oldSub = D.subs.find(function(x) { return x.id === id; });
