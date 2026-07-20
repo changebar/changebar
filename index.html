@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <script src="https://cdn.tailwindcss.com/3.3.3"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>ㄑ
 <style>
   * { box-sizing: border-box; }
   body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: contain; margin:0; padding:0; }
@@ -769,7 +769,6 @@ function renderBoss(c) {
     (inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '') +
     '<div class="mt-4 p-4 bg-indigo-100 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">庫存總價值</span><span class="text-3xl font-bold text-indigo-600">'+totalInventoryValue.toLocaleString()+'</span></div></div></div></div>';
 }
-
 // ==================== 下載 Excel ====================
 function downloadBossReport() {
   const startDate = bossDateRange.start;
@@ -1336,9 +1335,6 @@ async function openOrdModal(id) {
           const hasInvoice = item.has_invoice || false;
           const isGift = item.is_gift || false;
           addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice, isGift);
-        }
-      }
-    }
   }
   setTimeout(calcOrd, 100);
 }
@@ -1351,7 +1347,6 @@ function searchCustomerInOrder() {
     const text = (opt.dataset.name || '').toLowerCase() + ' ' + (opt.dataset.phone || '').toLowerCase();
     opt.style.display = text.indexOf(kw) !== -1 ? 'block' : 'none';
   }
-}
 function fillCustomerData() {
   const custId = document.getElementById('o-cust').value;
   if(!custId) return;
