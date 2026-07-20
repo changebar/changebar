@@ -89,7 +89,6 @@
   #modal-content .space-y-2 > * + * { margin-top: 0.75rem !important; }
   #modal-content .space-y-4 > * + * { margin-top: 1.25rem !important; }
   #modal-content .mb-4 { margin-bottom: 1.25rem !important; }
-  #modal-content { overflow-y: auto !important; overflow-x: visible !important; }
   #modal-container { overflow: visible !important; }
   .content-card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1.5rem; overflow: hidden; }
   @media (max-width: 640px) { .content-card { padding: 1rem; } }
@@ -346,7 +345,6 @@
   </div>
 </div>
 
-<script>
 // ==================== Supabase 初始化 ====================
 const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
@@ -360,7 +358,7 @@ if (typeof window.supabase !== 'undefined') {
 }
 
 // ==================== 全域資料變數 ====================
-let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[] };
+let D = { products:[], windows:[], customers:[], tags:[], warehouses:[], bom:[], vendors:[], channels:[], payments:[], expenses:[], subs:[], banks:[], emps:[], expCats:[], orders:[], purchases:[], warehouseInv:[], customerTags:[], orderItems:[], purchaseItems:[] };
 let editingId = null, currentView = 'boss', bossMonth = new Date().toISOString().slice(0,7);
 let bossDateRange = { start: bossMonth, end: bossMonth };
 let isSaving = false;
@@ -623,7 +621,8 @@ async function loadAll() {
         const [
             productsRes, windowsRes, customersRes, tagsRes, warehousesRes, bomRes,
             vendorsRes, channelsRes, paymentsRes, expensesRes, subsRes, banksRes,
-            empsRes, expCatsRes, ordersRes, purchasesRes, warehouseInvRes, customerTagsRes
+            empsRes, expCatsRes, ordersRes, purchasesRes, warehouseInvRes, customerTagsRes,
+            orderItemsRes, purchaseItemsRes
         ] = await Promise.all([
             sb.from('products').select('*'),
             sb.from('contact_windows').select('*'),
@@ -642,7 +641,9 @@ async function loadAll() {
             sb.from('orders').select('*'),
             sb.from('purchases').select('*'),
             sb.from('warehouse_inventory').select('*'),
-            sb.from('customer_tags').select('*')
+            sb.from('customer_tags').select('*'),
+            sb.from('order_items').select('*'),
+            sb.from('purchase_items').select('*')
         ]);
 
         D.products = productsRes.data || [];
@@ -663,6 +664,8 @@ async function loadAll() {
         D.purchases = purchasesRes.data || [];
         D.warehouseInv = warehouseInvRes.data || [];
         D.customerTags = customerTagsRes.data || [];
+        D.orderItems = orderItemsRes.data || [];
+        D.purchaseItems = purchaseItemsRes.data || [];
 
         console.log('✅ 所有資料載入完成，訂單數：', D.orders.length);
     } catch (error) {
@@ -728,6 +731,21 @@ function renderBoss(c) {
   for(let i=0; i<D.banks.length; i++) totalCash += D.banks[i].balance||0;
 
   const monthlyProfit = rev - pur - exp - subMonthlyTotal;
+
+  // 計算贈品成本
+  let giftCost = 0;
+  for(let i=0; i<monthOrders.length; i++) {
+    const o = monthOrders[i];
+    const items = D.orderItems.filter(item => item.order_id === o.id);
+    for(let j=0; j<items.length; j++) {
+      const item = items[j];
+      if(item.is_gift) {
+        const prod = D.products.find(p => p.id === item.product_id);
+        const cost = prod ? prod.cost_price || 0 : 0;
+        giftCost += cost * item.quantity;
+      }
+    }
+  }
 
   const unreimbursedExpenses = D.expenses.filter(function(e) { return e.employee_id && !e.is_reimbursed; });
   const unreimbursedByEmp = {};
@@ -837,13 +855,16 @@ function renderBoss(c) {
   }
   if(!paymentStatsHtml) paymentStatsHtml = '<div class="text-gray-400">無數據</div>';
 
+  // 代墊款顯示類別（問題2）
   let unreimbursedHtml = '';
   for(const name in unreimbursedByEmp) {
     const data = unreimbursedByEmp[name];
     let itemsHtml = '';
     for(let i=0; i<data.items.length; i++) {
       const e = data.items[i];
-      itemsHtml += '<div class="flex justify-between"><span>'+(e.description || '無描述')+' ('+e.payment_date+')</span><span>'+(e.amount||0).toLocaleString()+'</span></div>';
+      const cat = D.expCats.find(c => c.id === e.category_id);
+      const catName = cat ? cat.name : '未分類';
+      itemsHtml += '<div class="flex justify-between"><span>'+catName+' ('+e.payment_date+')</span><span>'+(e.amount||0).toLocaleString()+'</span></div>';
     }
     unreimbursedHtml += '<div class="border rounded-lg p-4"><div class="flex justify-between items-center mb-2"><span class="font-bold text-lg">'+name+'</span><span class="text-2xl font-bold text-orange-600">'+data.total.toLocaleString()+'</span></div><div class="text-sm text-gray-600 space-y-1">'+itemsHtml+'</div></div>';
   }
@@ -884,7 +905,10 @@ function renderBoss(c) {
     '</div>' +
     '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3><div class="space-y-4">'+unreimbursedHtml+'</div></div>' +
     '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4><div class="space-y-1 text-sm">'+channelStatsHtml+'</div><div class="border-t mt-2 pt-2 font-bold">合計：'+totalChannelCommission.toLocaleString()+'</div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4><div class="space-y-1 text-sm">'+paymentStatsHtml+'</div><div class="border-t mt-2 pt-2 font-bold">合計：'+totalPaymentCommission.toLocaleString()+'</div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">'+companyShipping.toLocaleString()+'</span></div><div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">'+customerShipping.toLocaleString()+'</span></div></div><div class="border-t mt-2 pt-2 font-bold">公司支出：'+totalShippingCost.toLocaleString()+'</div></div></div><div class="mt-4 p-4 bg-red-50 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">期間出貨總支出</span><span class="text-2xl font-bold text-red-600">'+totalOrderExpenses.toLocaleString()+'</span></div></div></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3><div class="space-y-4"><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">'+totalCustomers+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">期間訂單數</span><span class="text-2xl font-bold text-indigo-600">'+monthOrderCount+' 單</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">'+subCustomerCount+' 位</span></div><div class="flex justify-between items-center"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">'+Math.round(subMonthlyRevenue).toLocaleString()+'</span></div></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3><p class="text-4xl font-bold text-orange-600 mb-6">現金總額：'+totalCash.toLocaleString()+'</p><div class="space-y-2">'+banksHtml+'</div></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3><div class="space-y-4"><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">'+totalCustomers+' 位</span></div>' +
+    '<div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">'+subCustomerCount+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">'+Math.round(subMonthlyRevenue).toLocaleString()+'</span></div>' +
+    '<div class="flex justify-between items-center"><span class="text-gray-600">🎁 贈品總成本</span><span class="text-2xl font-bold text-red-500">'+giftCost.toLocaleString()+'</span></div></div></div>' +
+    '<div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3><p class="text-4xl font-bold text-orange-600 mb-6">現金總額：'+totalCash.toLocaleString()+'</p><div class="space-y-2">'+banksHtml+'</div></div></div>' +
     '<div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📦 庫存資產總覽</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">成品</p><p class="text-2xl font-bold text-blue-600">'+inventoryAssets.finished.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.finished.value.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">半成品</p><p class="text-2xl font-bold text-purple-600">'+inventoryAssets.semi.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.semi.value.toLocaleString()+'</p></div><div class="p-4 bg-pink-50 rounded-lg"><p class="text-sm text-gray-600">禮盒</p><p class="text-2xl font-bold text-pink-600">'+inventoryAssets.gift_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.gift_box.value.toLocaleString()+'</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-600">外箱子</p><p class="text-2xl font-bold text-gray-600">'+inventoryAssets.outer_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.outer_box.value.toLocaleString()+'</p></div></div>' +
     (inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '') +
     '<div class="mt-4 p-4 bg-indigo-100 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">庫存總價值</span><span class="text-3xl font-bold text-indigo-600">'+totalInventoryValue.toLocaleString()+'</span></div></div></div></div>';
@@ -1263,11 +1287,7 @@ async function saveCust() {
     render();
   } catch (e) {
     console.error('saveCust error:', e);
-    let msg = '儲存失敗：' + e.message;
-    if (e.message && e.message.includes('column "subscription_amount" does not exist')) {
-      msg = '儲存失敗：資料表缺少 subscription_amount 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE customers ADD COLUMN IF NOT EXISTS subscription_amount NUMERIC DEFAULT 0;\n\n目前暫時跳過金額欄位，其餘資料已儲存。';
-    }
-    showAlert(msg);
+    showAlert('儲存失敗：' + e.message);
   }
 }
 
@@ -1299,10 +1319,6 @@ function manageTags() {
 }
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
-
-// ============================================================
-// 第二段：訂單、商品、倉庫、庫存、採購
-// ============================================================
 
 // ==================== 訂單出貨 ====================
 function renderOrders(c) {
@@ -1520,7 +1536,8 @@ async function openOrdModal(id) {
         const p = D.products.find(function(x) { return x.id === item.product_id; });
         if(p) {
           const hasInvoice = item.has_invoice || false;
-          addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice);
+          const isGift = item.is_gift || false;
+          addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice, isGift);
         }
       }
     }
@@ -1544,7 +1561,8 @@ function fillCustomerData() {
   if(!custId) return;
   const cust = D.customers.find(function(c) { return c.id === custId; });
   if(!cust) return;
-  document.getElementById('o-recv-name').value = cust.contact_person || '';
+  // 公司名稱優先（問題1）
+  document.getElementById('o-recv-name').value = cust.company_name || cust.contact_person || '';
   document.getElementById('o-recv-phone').value = cust.phone || '';
   document.getElementById('o-invoice-title').value = cust.invoice_title || '';
   document.getElementById('o-invoice-tax').value = cust.tax_id || '';
@@ -1559,10 +1577,10 @@ async function loadCustomerDefaultAddress(custId) {
   }
 }
 
-function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
+function addOrdItem(typeFilter, prod, qty, price, hasInvoice, isGift) {
   const box = document.getElementById('o-items');
   const div = document.createElement('div');
-  div.className = 'ord-item-row';
+  div.className = 'ord-item-row'; // 與採購一致
   const uid = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
   let prodOptionsHtml = '';
@@ -1583,6 +1601,7 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
   let defaultPrice = prod ? (prod.sell_price || 0) : 0;
   const isFinished = (typeFilter === 'finished');
   const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
+  const giftChecked = isGift ? 'checked' : '';
 
   div.innerHTML = `
     <div class="prod-search-wrapper">
@@ -1595,6 +1614,7 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice) {
     <input type="number" class="o-qty" value="${qty || 1}" min="1" oninput="calcOrd()">
     <input type="number" class="o-price" value="${price !== undefined ? price : defaultPrice}" step="0.01" oninput="calcOrd()">
     ${isFinished ? `<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ${checkedAttr} onchange="calcOrd()" id="inv_${uid}"><label for="inv_${uid}">有</label></div>` : ''}
+    <div class="invoice-check"><input type="checkbox" class="o-is-gift" ${giftChecked} onchange="calcOrd()" id="gift_${uid}"><label for="gift_${uid}">🎁贈品</label></div>
     <button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn">✕</button>
   `;
   box.appendChild(div);
@@ -1661,8 +1681,12 @@ function calcOrd() {
     const costPrice = product.cost_price || 0;
     const price = parseFloat(r.querySelector('.o-price').value) || 0;
     const qty = parseInt(r.querySelector('.o-qty').value) || 0;
-    productSubtotal += price * qty;
-
+    const isGift = r.querySelector('.o-is-gift')?.checked || false;
+    // 贈品不計收入
+    if (!isGift) {
+      productSubtotal += price * qty;
+    }
+    // 成本照算
     let finalCost = costPrice;
     const hasInvoiceCheck = r.querySelector('.o-has-invoice');
     if (hasInvoiceCheck && hasInvoiceCheck.checked && product.type === 'finished') {
@@ -1753,11 +1777,12 @@ async function saveOrd() {
       const pid = hiddenInput.value;
       const q = parseInt(r.querySelector('.o-qty').value) || 0;
       const p = parseFloat(r.querySelector('.o-price').value) || 0;
+      const isGift = r.querySelector('.o-is-gift')?.checked || false;
       if (pid && q > 0) {
         const hasInvoiceCheck = r.querySelector('.o-has-invoice');
         const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
-        items.push({ product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice });
-        productSubtotal += p * q;
+        items.push({ product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice, is_gift: isGift });
+        if (!isGift) productSubtotal += p * q;
         const product = D.products.find(x => x.id === pid);
         const cost = product ? product.cost_price || 0 : 0;
         const finalCost = hasInvoice && product && product.type === 'finished' ? cost * 1.05 : cost;
@@ -1916,6 +1941,13 @@ async function saveOrd() {
           });
           await sb.from('order_items').insert(itemsWithoutInvoice);
           showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
+        } else if (itemError.message && itemError.message.includes('column "is_gift" does not exist')) {
+          const itemsWithoutGift = items.map(i => {
+            const { is_gift, ...rest } = i;
+            return { ...rest, order_id: orderId };
+          });
+          await sb.from('order_items').insert(itemsWithoutGift);
+          showAlert('⚠️ 偵測到 order_items 缺少 is_gift 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN is_gift BOOLEAN DEFAULT FALSE;');
         } else {
           throw itemError;
         }
@@ -2053,7 +2085,13 @@ async function saveOrd() {
     }
   } catch (e) {
     console.error('saveOrd 錯誤：', e);
-    showAlert('儲存失敗：' + (e.message || '未知錯誤'));
+    let errMsg = '儲存失敗：';
+    if (e.message && e.message.includes('column "is_gift" does not exist')) {
+      errMsg += 'order_items 資料表缺少 is_gift 欄位。\n請在 Supabase SQL Editor 執行：\nALTER TABLE order_items ADD COLUMN is_gift BOOLEAN DEFAULT FALSE;';
+    } else {
+      errMsg += e.message;
+    }
+    showAlert(errMsg);
   } finally {
     isSaving = false;
   }
@@ -2070,7 +2108,7 @@ async function viewOrdDetail(id) {
 
   const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
   const items = itemsResp.data || [];
-  let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th></tr></thead><tbody>';
+  let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th><th class="p-2 text-center">贈品</th></tr></thead><tbody>';
   let totalCost = 0;
   for(let i=0; i<items.length; i++) {
     const item = items[i];
@@ -2078,7 +2116,7 @@ async function viewOrdDetail(id) {
     const subtotal = item.quantity * item.unit_price;
     const cost = p ? (p.cost_price || 0) * item.quantity : 0;
     totalCost += cost;
-    itemsHtml += '<tr class="border-b"><td class="p-2">'+(p?p.name:'未知')+'</td><td class="p-2 text-right">'+item.quantity+'</td><td class="p-2 text-right">'+item.unit_price+'</td><td class="p-2 text-right">'+subtotal.toLocaleString()+'</td></tr>';
+    itemsHtml += '<tr class="border-b"><td class="p-2">'+(p?p.name:'未知')+'</td><td class="p-2 text-right">'+item.quantity+'</td><td class="p-2 text-right">'+item.unit_price+'</td><td class="p-2 text-right">'+subtotal.toLocaleString()+'</td><td class="p-2 text-center">'+(item.is_gift ? '🎁' : '')+'</td></tr>';
   }
   itemsHtml += '</tbody></table>';
 
@@ -2519,7 +2557,7 @@ function renderPurTable() {
       '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
     const invoiceLabel = p.is_invoice_purchase ? '<span class="text-green-600 font-bold">有</span>' : '<span class="text-gray-400">無</span>';
 
-    const items = p.items || [];
+    const items = D.purchaseItems.filter(item => item.purchase_id === p.id) || [];
     const itemsText = items.map(function(item) {
       const prod = D.products.find(x => x.id === item.product_id);
       return (prod?.name || '?') + ' x' + item.quantity;
@@ -2556,42 +2594,39 @@ function viewPurchaseDetail(id) {
   const p = D.purchases.find(x => x.id === id);
   if(!p) { showAlert('找不到採購資料'); return; }
   const vendor = D.vendors.find(v => v.id === p.vendor_id);
+  const items = D.purchaseItems.filter(item => item.purchase_id === id) || [];
+  let itemsHTML = '<div class="space-y-2">';
+  if(items.length === 0) { itemsHTML += '<div class="text-gray-500">無商品明細</div>'; }
+  else {
+    items.forEach(function(item) {
+      const product = D.products.find(x => x.id === item.product_id);
+      itemsHTML += '<div class="border-b pb-2">' +
+        '<div class="grid grid-cols-3 gap-2 text-sm">' +
+        '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
+        '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
+        '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
+        '</div>' +
+        '</div>';
+    });
+  }
+  itemsHTML += '</div>';
 
-  sb.from('purchase_items').select('*').eq('purchase_id', id).then(function(res) {
-    const items = res.data || [];
-    let itemsHTML = '<div class="space-y-2">';
-    if(items.length === 0) { itemsHTML += '<div class="text-gray-500">無商品明細</div>'; }
-    else {
-      items.forEach(function(item) {
-        const product = D.products.find(x => x.id === item.product_id);
-        itemsHTML += '<div class="border-b pb-2">' +
-          '<div class="grid grid-cols-3 gap-2 text-sm">' +
-          '<div><span class="text-gray-600">商品：</span>' + (product ? product.name : '-') + '</div>' +
-          '<div><span class="text-gray-600">數量：</span>' + item.quantity + '</div>' +
-          '<div><span class="text-gray-600">單價：</span>$' + item.unit_price + '</div>' +
-          '</div>' +
-          '</div>';
-      });
-    }
-    itemsHTML += '</div>';
-
-    const isInvoice = p.is_invoice_purchase;
-    const totalDisplay = isInvoice ? '稅金' : '總金額';
-    const html = '<div class="space-y-4">' +
-      '<div class="grid grid-cols-2 gap-4">' +
-      '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
-      '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
-      '<div><span class="text-gray-600">類型：</span>' + (isInvoice ? '購買發票' : '一般採購') + '</div>' +
-      '<div><span class="text-gray-600">發票：</span>' + (p.is_invoice_purchase ? '有' : '無') + '</div>' +
-      '<div><span class="text-gray-600">' + totalDisplay + '：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
-      '</div>' +
-      '<div class="border-t pt-4">' +
-      '<h3 class="font-bold mb-2">採購明細</h3>' +
-      itemsHTML +
-      '</div>' +
-      '</div>';
-    openModal('採購詳情', html, null, true);
-  }).catch(function(e) { showAlert('載入明細失敗：' + e.message); });
+  const isInvoice = p.is_invoice_purchase;
+  const totalDisplay = isInvoice ? '稅金' : '總金額';
+  const html = '<div class="space-y-4">' +
+    '<div class="grid grid-cols-2 gap-4">' +
+    '<div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div>' +
+    '<div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div>' +
+    '<div><span class="text-gray-600">類型：</span>' + (isInvoice ? '購買發票' : '一般採購') + '</div>' +
+    '<div><span class="text-gray-600">發票：</span>' + (p.is_invoice_purchase ? '有' : '無') + '</div>' +
+    '<div><span class="text-gray-600">' + totalDisplay + '：</span>$' + (p.total_amount || 0).toLocaleString() + '</div>' +
+    '</div>' +
+    '<div class="border-t pt-4">' +
+    '<h3 class="font-bold mb-2">採購明細</h3>' +
+    itemsHTML +
+    '</div>' +
+    '</div>';
+  openModal('採購詳情', html, null, true);
 }
 
 async function openPurModal(isInvoicePurchase, editId) {
@@ -2638,8 +2673,7 @@ async function openPurModal(isInvoicePurchase, editId) {
 
   openModal(isInvoicePurchase ? '購買發票' : '一般採購入庫', html, savePur);
   if(editId && existingData) {
-    const itemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
-    const items = itemsResp.data || [];
+    const items = D.purchaseItems.filter(item => item.purchase_id === editId) || [];
     if(items.length > 0) {
       for(let i=0; i<items.length; i++) {
         const item = items[i];
@@ -2656,7 +2690,7 @@ async function openPurModal(isInvoicePurchase, editId) {
 function addPurItem(prod, qty, price) {
   const box = document.getElementById('pu-items');
   const div = document.createElement('div');
-  div.className = 'flex flex-wrap gap-2 items-center bg-gray-50 p-3 rounded';
+  div.className = 'pu-item-row';
   const uid = 'pu_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
 
   let prodOptionsHtml = '';
@@ -2674,16 +2708,16 @@ function addPurItem(prod, qty, price) {
   let defaultCost = prod ? (prod.cost_price || 0) : 0;
 
   div.innerHTML = `
-    <div class="flex-1 min-w-[150px] prod-search-wrapper">
-      <input type="text" class="pu-prod-search w-full px-3 py-2 border rounded input-field" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterPurProdOptions(this, '${uid}')" onfocus="document.getElementById('pu_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('pu_dropdown_${uid}').classList.remove('show')},200)">
+    <div class="prod-search-wrapper">
+      <input type="text" class="pu-prod-search" placeholder="🔍 搜尋商品..." value="${defaultName}" autocomplete="off" oninput="filterPurProdOptions(this, '${uid}')" onfocus="document.getElementById('pu_dropdown_${uid}').classList.add('show')" onblur="setTimeout(function(){document.getElementById('pu_dropdown_${uid}').classList.remove('show')},200)">
       <div class="pu-prod-select" id="pu_dropdown_${uid}">
         ${prodOptionsHtml}
       </div>
       <input type="hidden" class="pu-prod-id" value="${prod ? prod.id : ''}">
     </div>
-    <div class="w-20"><input type="number" class="pu-qty w-full px-3 py-2 border rounded input-field" value="${qty || 1}" min="1" oninput="calcPur()"></div>
-    <div class="w-28"><input type="number" class="pu-price w-full px-3 py-2 border rounded input-field" value="${price !== undefined ? price : defaultCost}" step="0.01" oninput="calcPur()"></div>
-    <button type="button" onclick="this.parentElement.remove();calcPur()" class="px-3 py-2 bg-red-100 text-red-600 rounded btn-touch flex-shrink-0">✕</button>
+    <input type="number" class="pu-qty" value="${qty || 1}" min="1" oninput="calcPur()">
+    <input type="number" class="pu-price" value="${price !== undefined ? price : defaultCost}" step="0.01" oninput="calcPur()">
+    <button type="button" onclick="this.parentElement.remove();calcPur()" class="del-btn">✕</button>
   `;
   box.appendChild(div);
 
@@ -2726,7 +2760,7 @@ function selectPurProduct(el, uid) {
   if(!wrapper) return;
   const searchInput = wrapper.querySelector('.pu-prod-search');
   const hiddenInput = wrapper.querySelector('.pu-prod-id');
-  const priceInput = wrapper.closest('div.flex')?.querySelector('.pu-price');
+  const priceInput = wrapper.closest('.pu-item-row')?.querySelector('.pu-price');
   if(searchInput) searchInput.value = name;
   if(hiddenInput) hiddenInput.value = id;
   if(priceInput && !priceInput.dataset.userSet) { priceInput.value = cost; }
@@ -2737,7 +2771,7 @@ function selectPurProduct(el, uid) {
 
 function calcPur() {
   let subtotal = 0;
-  const rows = document.querySelectorAll('#pu-items > div');
+  const rows = document.querySelectorAll('#pu-items .pu-item-row');
   for(let i=0; i<rows.length; i++) {
     const r = rows[i];
     const price = parseFloat(r.querySelector('.pu-price').value) || 0;
@@ -2767,7 +2801,7 @@ async function savePur() {
 
   const items = [];
   let subtotal = 0;
-  const rows = document.querySelectorAll('#pu-items > div');
+  const rows = document.querySelectorAll('#pu-items .pu-item-row');
   for(let i=0; i<rows.length; i++) {
     const r = rows[i];
     const hiddenInput = r.querySelector('.pu-prod-id');
@@ -2836,10 +2870,6 @@ async function delPur(id) {
     showAlert('失敗：' + e.message);
   }
 }
-
-// ============================================================
-// 第三段：廠商、收支與訂閱、銀行、通路員工、輔助函式、系統初始化
-// ============================================================
 
 // ==================== 廠商管理 ====================
 function renderVendors(c) {
@@ -3217,11 +3247,7 @@ async function saveSub() {
   };
 
   try {
-    const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-    if(bank.data && bank.data.balance < amount) {
-      return showAlert('⚠️ 銀行餘額不足！\n目前餘額：' + bank.data.balance.toLocaleString() + '\n訂閱金額：' + amount.toLocaleString());
-    }
-
+    // 不檢查餘額，允許負數（問題9）
     let result;
     if (id) {
       const oldSub = D.subs.find(function(x) { return x.id === id; });
@@ -3257,15 +3283,7 @@ async function saveSub() {
     }
   } catch(e) {
     console.error('saveSub error:', e);
-    let errMsg = '儲存失敗：';
-    if (e.message && (e.message.includes('start_date') || e.message.includes('end_date'))) {
-      errMsg += '資料表 system_subscriptions 缺少 start_date 或 end_date 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE system_subscriptions ADD COLUMN IF NOT EXISTS start_date DATE;\nALTER TABLE system_subscriptions ADD COLUMN IF NOT EXISTS end_date DATE;';
-    } else if (e.message && e.message.includes('column') && e.message.includes('bank_account_id')) {
-      errMsg += '資料表 system_subscriptions 缺少 bank_account_id 欄位。\n\n請在 Supabase SQL Editor 中執行：\nALTER TABLE system_subscriptions ADD COLUMN bank_account_id UUID REFERENCES bank_accounts(id);';
-    } else {
-      errMsg += e.message;
-    }
-    showAlert(errMsg);
+    showAlert('儲存失敗：' + e.message);
   }
 }
 
@@ -3437,10 +3455,8 @@ async function delEmp(id) {
   try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
 }
 
-// ==================== 系統啟動 ====================
 console.log('✅ 所有模組已載入，系統就緒！');
 console.log('📌 請使用帳號登入開始使用養芯健康 ERP');
-
 </script>
 </body>
 </html>
