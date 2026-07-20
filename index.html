@@ -9,7 +9,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
 <script src="https://cdn.tailwindcss.com/3.3.3"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>ㄑ
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; }
   body { font-family: 'Microsoft JhengHei', 'Segoe UI', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior-y: contain; margin:0; padding:0; }
@@ -536,6 +536,7 @@ async function loadAll() {
         showAlert('載入資料失敗，請檢查網路或重新登入。');
     }
 }
+
 // ==================== 老闆查閱 ====================
 function renderBoss(c) {
   const startY = parseInt(bossDateRange.start.split('-')[0]);
@@ -769,6 +770,7 @@ function renderBoss(c) {
     (inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '') +
     '<div class="mt-4 p-4 bg-indigo-100 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">庫存總價值</span><span class="text-3xl font-bold text-indigo-600">'+totalInventoryValue.toLocaleString()+'</span></div></div></div></div>';
 }
+
 // ==================== 下載 Excel ====================
 function downloadBossReport() {
   const startDate = bossDateRange.start;
@@ -900,6 +902,7 @@ function downloadBossReport() {
   XLSX.writeFile(wb, fileName);
   showAlert('Excel 報表已下載！');
 }
+
 // ==================== 客戶管理 ====================
 function renderCRM(c) {
   c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'type\')">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'company_name\')">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'contact_person\')">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
@@ -1335,6 +1338,9 @@ async function openOrdModal(id) {
           const hasInvoice = item.has_invoice || false;
           const isGift = item.is_gift || false;
           addOrdItem(p.type, p, item.quantity, item.unit_price, hasInvoice, isGift);
+        }
+      }
+    }
   }
   setTimeout(calcOrd, 100);
 }
@@ -1347,6 +1353,7 @@ function searchCustomerInOrder() {
     const text = (opt.dataset.name || '').toLowerCase() + ' ' + (opt.dataset.phone || '').toLowerCase();
     opt.style.display = text.indexOf(kw) !== -1 ? 'block' : 'none';
   }
+}
 function fillCustomerData() {
   const custId = document.getElementById('o-cust').value;
   if(!custId) return;
@@ -1919,6 +1926,7 @@ async function delOrd(id) {
     console.error('delOrd error:', e);
   }
 }
+
 // ==================== 商品與 BOM ====================
 function renderProducts(c) {
   const tm = {finished: '成品', semi: '半成品', gift_box: '禮盒', outer_box: '外箱子'};
