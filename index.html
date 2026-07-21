@@ -904,7 +904,7 @@ function downloadBossReport() {
 }
 </script>
 <script>
-// ==================== 客戶管理 ====================
+// ==================== 客戶管理（含地址收件人自動抓取公司名稱） ====================
 function renderCRM(c) {
   c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">👥 客戶管理</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="manageWindows()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 btn-touch">管理聯繫窗口</button><button onclick="manageTags()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 btn-touch">管理標籤</button><button onclick="openCustModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 btn-touch">+ 新增客戶</button></div></div><div class="mb-4"><input type="text" id="cust-search" placeholder="🔍 搜尋客戶/標籤..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="renderCustTable()"></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'type\')">類型 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'company_name\')">公司/姓名 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header" onclick="sortCustTable(\'contact_person\')">聯絡人/電話 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">抬頭/統編</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">主要窗口</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">標籤</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="cust-tbody" class="bg-white divide-y divide-gray-200"></tbody></table></div></div>';
   renderCustTable();
@@ -1013,8 +1013,8 @@ async function openCustModal(id) {
   const subAmount = (c && c.subscription_amount) || 0;
   const html = '<input type="hidden" id="c-id" value="'+(id||'')+'">' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'" oninput="syncAddrContact()"></div></div>' +
-    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'"></div></div>' +
+    '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div></div>' +
     '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.invoice_title||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.tax_id||'':'')+'"></div></div>' +
     '<div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4">' +
       '<h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3>' +
@@ -1038,21 +1038,22 @@ function toggleSubFields() {
   const checked = document.getElementById('c-is-sub').checked;
   document.getElementById('c-sub-fields').style.display = checked ? 'block' : 'none';
 }
+// 修改：同步地址收件人時，優先使用「公司/客戶名稱」
 function syncAddrContact() {
-  const contact = document.getElementById('c-contact') ? document.getElementById('c-contact').value || '' : '';
+  const companyName = document.getElementById('c-comp') ? document.getElementById('c-comp').value || '' : '';
   const phone = document.getElementById('c-phone') ? document.getElementById('c-phone').value || '' : '';
   const recvInputs = document.querySelectorAll('#addr-box .a-recv');
   const phoneInputs = document.querySelectorAll('#addr-box .a-phone');
-  for(let i=0; i<recvInputs.length; i++) { if(!recvInputs[i].dataset.userEdited) recvInputs[i].value = contact; }
+  for(let i=0; i<recvInputs.length; i++) { if(!recvInputs[i].dataset.userEdited) recvInputs[i].value = companyName; }
   for(let i=0; i<phoneInputs.length; i++) { if(!phoneInputs[i].dataset.userEdited) phoneInputs[i].value = phone; }
 }
 function addAddr(addrData, isDefault) {
   const box = document.getElementById('addr-box');
-  const contact = document.getElementById('c-contact') ? document.getElementById('c-contact').value || '' : '';
+  const companyName = document.getElementById('c-comp') ? document.getElementById('c-comp').value || '' : '';
   const phone = document.getElementById('c-phone') ? document.getElementById('c-phone').value || '' : '';
   const div = document.createElement('div');
   div.className = 'border rounded-lg p-4 bg-gray-50';
-  const recipientName = addrData ? addrData.recipient_name : contact;
+  const recipientName = addrData ? addrData.recipient_name : companyName;
   const recipientPhone = addrData ? addrData.recipient_phone : phone;
   const addressType = addrData ? addrData.address_type : 'home';
   const street = addrData ? addrData.street : '';
@@ -1079,7 +1080,10 @@ async function saveCust() {
     const amt = parseFloat(document.getElementById('c-sub-amount').value) || 0;
     data.subscription_amount = amt;
   }
-  if (!data.contact_person || !data.phone) return showAlert('聯絡人和電話必填！');
+  if (!data.contact_person || !data.phone) {
+    showAlert('⚠️ 聯絡人和電話為必填欄位，請補齊後再儲存！');
+    return;
+  }
   try {
     let cid = id;
     if (id) {
@@ -1113,13 +1117,13 @@ async function saveCust() {
       });
     }
     if(addrs.length) await sb.from('customer_addresses').insert(addrs);
-    showAlert('客戶已儲存！');
+    showAlert('✅ 客戶已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch (e) {
     console.error('saveCust error:', e);
-    showAlert('儲存失敗：' + e.message);
+    showAlert('❌ 儲存失敗：' + e.message);
   }
 }
 async function delCust(id) {
@@ -1131,7 +1135,7 @@ async function delCust(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('刪除失敗：' + e.message);
+    showAlert('❌ 刪除失敗：' + e.message);
   }
 }
 function manageWindows() {
@@ -1149,7 +1153,7 @@ function manageTags() {
 async function addTag() { const n = document.getElementById('t-name').value.trim(); if(!n) return; await sb.from('tags').insert([{name:n, color:document.getElementById('t-color').value}]); await loadAll(); manageTags(); }
 async function delTag(id) { if(!confirm('刪除?')) return; await sb.from('tags').delete().eq('id',id); await loadAll(); manageTags(); }
 
-// ==================== 訂單出貨（含修正） ====================
+// ==================== 訂單出貨（修正存檔與庫存同步邏輯） ====================
 function renderOrders(c) {
   c.innerHTML = '<div class="content-card">' +
     '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
@@ -1287,7 +1291,6 @@ function clearOrdFilters() {
   renderOrdTable();
 }
 
-// ====== 修正後的 openOrdModal ======
 async function openOrdModal(id) {
   editingId = id || null;
   const o = id ? D.orders.find(function(x) { return x.id === id; }) : null;
@@ -1517,22 +1520,45 @@ function calcOrd() {
   document.getElementById('o-margin').textContent = margin.toFixed(1) + '%';
   document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
+
+// ====== 修正後的 saveOrd（存檔驗證 + 庫存差異同步） ======
 async function saveOrd() {
   if (isSaving) return;
   isSaving = true;
+
   try {
+    // === 1. 取得表單欄位 ===
     const cid = document.getElementById('o-cust').value;
     const wid = document.getElementById('o-warehouse').value;
     const bankId = document.getElementById('o-bank').value;
     const chId = document.getElementById('o-channel').value;
     const pmId = document.getElementById('o-payment').value;
+
+    // === 2. 檢查產品明細 ===
     const rows = document.querySelectorAll('#o-items .ord-item-row');
     let hasProduct = false;
+    const itemsData = [];
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const hiddenInput = r.querySelector('.pu-prod-id');
-      if (hiddenInput && hiddenInput.value) { hasProduct = true; break; }
+      if (hiddenInput && hiddenInput.value) {
+        hasProduct = true;
+        const qty = parseInt(r.querySelector('.o-qty').value) || 0;
+        const price = parseFloat(r.querySelector('.o-price').value) || 0;
+        const isGift = r.querySelector('.o-is-gift')?.checked || false;
+        const hasInvoiceCheck = r.querySelector('.o-has-invoice');
+        const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
+        itemsData.push({
+          product_id: hiddenInput.value,
+          quantity: qty,
+          unit_price: price,
+          has_invoice: hasInvoice,
+          is_gift: isGift
+        });
+      }
     }
+
+    // === 3. 驗證必填欄位 ===
     const missing = [];
     if (!cid) missing.push('客戶');
     if (!wid) missing.push('出貨倉庫');
@@ -1540,33 +1566,29 @@ async function saveOrd() {
     if (!chId) missing.push('銷售通路');
     if (!pmId) missing.push('付款方式');
     if (!hasProduct) missing.push('產品明細');
+
     if (missing.length > 0) {
       showAlert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('、'));
       isSaving = false;
       return;
     }
-    const items = [];
+
+    // === 4. 計算訂單金額 ===
     let productSubtotal = 0;
     let totalCost = 0;
-    for (let i = 0; i < rows.length; i++) {
-      const r = rows[i];
-      const hiddenInput = r.querySelector('.pu-prod-id');
-      if (!hiddenInput || !hiddenInput.value) continue;
-      const pid = hiddenInput.value;
-      const q = parseInt(r.querySelector('.o-qty').value) || 0;
-      const p = parseFloat(r.querySelector('.o-price').value) || 0;
-      const isGift = r.querySelector('.o-is-gift')?.checked || false;
-      if (pid && q > 0) {
-        const hasInvoiceCheck = r.querySelector('.o-has-invoice');
-        const hasInvoice = hasInvoiceCheck ? hasInvoiceCheck.checked : false;
-        items.push({ product_id: pid, quantity: q, unit_price: p, has_invoice: hasInvoice, is_gift: isGift });
-        if (!isGift) productSubtotal += p * q;
-        const product = D.products.find(x => x.id === pid);
-        const cost = product ? product.cost_price || 0 : 0;
-        const finalCost = hasInvoice && product && product.type === 'finished' ? cost * 1.05 : cost;
-        totalCost += finalCost * q;
+    const finalItems = [];
+    for (let item of itemsData) {
+      const product = D.products.find(x => x.id === item.product_id);
+      if (!product) continue;
+      const cost = product.cost_price || 0;
+      const finalCost = (item.has_invoice && product.type === 'finished') ? cost * 1.05 : cost;
+      if (!item.is_gift) {
+        productSubtotal += item.unit_price * item.quantity;
       }
+      totalCost += finalCost * item.quantity;
+      finalItems.push(item);
     }
+
     const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
     const shipPayer = document.getElementById('o-ship-payer').value;
     const finalShipping = shipPayer === 'customer' ? shippingFee : 0;
@@ -1578,6 +1600,7 @@ async function saveOrd() {
     let totalAmountRaw = productSubtotal + finalShipping + taxAmount - totalDiscount;
     if (totalAmountRaw < 0) totalAmountRaw = 0;
     const totalAmount = Math.round(totalAmountRaw);
+
     const chSelect = document.getElementById('o-channel');
     const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
     const pmSelect = document.getElementById('o-payment');
@@ -1587,11 +1610,11 @@ async function saveOrd() {
     const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
     const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
     const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+
     const hasAdvance = document.getElementById('o-has-advance').checked;
     const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
-    const advanceAmount = 0;
-    const advanceStatus = 'pending';
-    const advanceBankId = null;
+
+    // === 5. 準備訂單資料 ===
     let orderNo;
     if (editingId) {
       const old = D.orders.find(x => x.id === editingId);
@@ -1600,6 +1623,7 @@ async function saveOrd() {
       orderNo = 'ORD-' + Date.now();
     }
     const orderDate = new Date().toISOString();
+
     const data = {
       customer_id: cid,
       warehouse_id: wid,
@@ -1625,16 +1649,18 @@ async function saveOrd() {
       subscription_days: 0,
       coupon_amount: couponAmount,
       points_amount: pointsAmount,
-      shipping_advance_amount: advanceAmount,
-      shipping_advance_reimbursed: advanceStatus === 'reimbursed',
-      shipping_advance_bank_id: advanceBankId,
-      shipping_advance_reimbursed_date: advanceStatus === 'reimbursed' ? new Date().toISOString().split('T')[0] : null,
+      shipping_advance_amount: 0,
+      shipping_advance_reimbursed: false,
+      shipping_advance_bank_id: null,
+      shipping_advance_reimbursed_date: null,
       created_at: orderDate
     };
+
     let orderId = editingId;
     let oldOrder = null;
-    let oldTotalAmount = 0;
-    let oldBankId = null;
+    let oldItems = [];
+
+    // === 6. 如果是編輯，先取得舊訂單資料 ===
     if (editingId) {
       const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
       oldOrder = oldOrderResp.data;
@@ -1643,69 +1669,88 @@ async function saveOrd() {
         isSaving = false;
         return;
       }
-      oldTotalAmount = oldOrder.total_amount || 0;
-      oldBankId = oldOrder.bank_account_id;
-      if (oldBankId && oldTotalAmount > 0) {
-        const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
+      // 取得舊的訂單明細
+      const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
+      oldItems = oldItemsResp.data || [];
+
+      // 6a. 處理舊訂單的銀行入帳退回（如果有入帳）
+      if (oldOrder.bank_account_id && oldOrder.total_amount > 0) {
+        const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldOrder.bank_account_id).single();
         if (oldBank.data) {
-          await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) - oldTotalAmount }).eq('id', oldBankId);
+          await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
         }
       }
+
+      // 6b. 處理庫存恢復（只恢復有變動的項目）
+      for (let oldItem of oldItems) {
+        const prod = D.products.find(p => p.id === oldItem.product_id);
+        if (!prod) continue;
+        // 檢查此商品在新訂單中是否存在，以及數量是否相同
+        const newItem = finalItems.find(item => item.product_id === oldItem.product_id);
+        const qtyDiff = newItem ? newItem.quantity - oldItem.quantity : -oldItem.quantity;
+
+        // 只有當數量有變動時才調整庫存
+        if (qtyDiff !== 0) {
+          // 如果是成品/禮盒/外箱，直接調整庫存
+          if (['finished','gift_box','outer_box'].includes(prod.type)) {
+            const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
+            if (inv.data) {
+              await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - qtyDiff }).eq('id', inv.data.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: -qtyDiff, safety_stock: 0 }]);
+            }
+          }
+          // BOM 物料調整
+          const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+          for (let bom of bomItems) {
+            const required = bom.quantity * qtyDiff;
+            const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+            if (matInv.data && matInv.data.length > 0) {
+              let target = matInv.data.find(inv => inv.warehouse_id === oldOrder.warehouse_id);
+              if (!target) target = matInv.data[0];
+              await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
+            } else {
+              await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
+            }
+          }
+        }
+      }
+
+      // 6c. 刪除舊的訂單明細和相關費用
       await sb.from('order_items').delete().eq('order_id', editingId);
       await sb.from('expenses').delete().eq('related_order_id', editingId);
-      const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
-      const oldItems = oldItemsResp.data || [];
-      for (let item of oldItems) {
-        const prod = D.products.find(p => p.id === item.product_id);
-        if (!prod) continue;
-        if (['finished','gift_box','outer_box'].includes(prod.type)) {
-          const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
-          if (inv.data) {
-            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
-          } else {
-            await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
-          }
-        }
-        const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-        for (let bom of bomItems) {
-          const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-          if (matInv.data && matInv.data.length > 0) {
-            let target = matInv.data.find(inv => inv.warehouse_id === oldOrder.warehouse_id);
-            if (!target) target = matInv.data[0];
-            await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + (bom.quantity * item.quantity) }).eq('id', target.id);
-          } else {
-            await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: bom.child_product_id, quantity: bom.quantity * item.quantity, safety_stock: 0 }]);
-          }
-        }
-      }
     }
+
+    // === 7. 儲存或更新訂單主檔 ===
     if (editingId) {
       await sb.from('orders').update(data).eq('id', editingId);
     } else {
       const insertResult = await sb.from('orders').insert([data]).select().single();
       if (insertResult.error) {
         console.error('訂單插入錯誤：', insertResult.error);
-        showAlert('訂單插入失敗：' + insertResult.error.message);
+        showAlert('❌ 訂單插入失敗：' + insertResult.error.message);
         isSaving = false;
         return;
       }
       orderId = insertResult.data.id;
       editingId = orderId;
     }
-    if (items.length > 0) {
+
+    // === 8. 儲存新的訂單明細 ===
+    if (finalItems.length > 0) {
       try {
-        const itemsWithOrderId = items.map(i => Object.assign({}, i, { order_id: orderId }));
+        const itemsWithOrderId = finalItems.map(i => Object.assign({}, i, { order_id: orderId }));
         await sb.from('order_items').insert(itemsWithOrderId);
       } catch (itemError) {
         if (itemError.code === 'PGRST204' && itemError.message.includes('has_invoice')) {
-          const itemsWithoutInvoice = items.map(i => {
+          const itemsWithoutInvoice = finalItems.map(i => {
             const { has_invoice, ...rest } = i;
             return { ...rest, order_id: orderId };
           });
           await sb.from('order_items').insert(itemsWithoutInvoice);
           showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 欄位，已暫停該功能。\n建議執行：ALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;');
         } else if (itemError.message && itemError.message.includes('column "is_gift" does not exist')) {
-          const itemsWithoutGift = items.map(i => {
+          const itemsWithoutGift = finalItems.map(i => {
             const { is_gift, ...rest } = i;
             return { ...rest, order_id: orderId };
           });
@@ -1716,41 +1761,52 @@ async function saveOrd() {
         }
       }
     }
+
+    // === 9. 銀行入帳（新增訂單或編輯後金額有變） ===
     if (bankId && totalAmount > 0) {
       const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
       if (newBank.data) {
         await sb.from('bank_accounts').update({ balance: (newBank.data.balance || 0) + totalAmount }).eq('id', bankId);
       }
     }
-    for (let item of items) {
-      const prod = D.products.find(p => p.id === item.product_id);
-      if (!prod) continue;
-      if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
-        if (inv.data) {
-          await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
-        } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+
+    // === 10. 處理新訂單的庫存扣除（僅針對新增的商品或數量增加的部分） ===
+    // 注意：編輯時，數量沒變的商品已在步驟6b中跳過（因為qtyDiff=0），不會重複扣除
+    // 但新增訂單時，所有商品都是新的，需要扣除
+    if (!editingId) {
+      for (let item of finalItems) {
+        const prod = D.products.find(p => p.id === item.product_id);
+        if (!prod) continue;
+        if (['finished','gift_box','outer_box'].includes(prod.type)) {
+          const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
+          if (inv.data) {
+            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+          }
         }
-      }
-      const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-      for (let bom of bomItems) {
-        const required = bom.quantity * item.quantity;
-        const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-        if (matInv.data && matInv.data.length > 0) {
-          let target = matInv.data.find(inv => inv.warehouse_id === wid);
-          if (!target) target = matInv.data[0];
-          await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
-        } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
+        const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+        for (let bom of bomItems) {
+          const required = bom.quantity * item.quantity;
+          const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+          if (matInv.data && matInv.data.length > 0) {
+            let target = matInv.data.find(inv => inv.warehouse_id === wid);
+            if (!target) target = matInv.data[0];
+            await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
+          } else {
+            await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
+          }
         }
       }
     }
+
+    // === 11. 產生費用支出（運費、通路抽成、手續費） ===
     const expCats = D.expCats;
     const shippingCat = expCats.find(c => c.name === '運費');
     const channelCat = expCats.find(c => c.name === '通路抽成');
     const paymentCat = expCats.find(c => c.name === '付款手續費');
     const expensesToAdd = [];
+
     if (companyShippingCost > 0 && shippingCat) {
       expensesToAdd.push({
         category_id: shippingCat.id,
@@ -1764,6 +1820,7 @@ async function saveOrd() {
         related_order_id: orderId
       });
     }
+
     if (hasAdvance && advanceEmpId && shippingFee > 0) {
       const existingAdvance = D.expenses.find(e =>
         e.related_order_id === orderId &&
@@ -1783,6 +1840,7 @@ async function saveOrd() {
         });
       }
     }
+
     if (chCommission > 0 && channelCat) {
       expensesToAdd.push({
         category_id: channelCat.id,
@@ -1796,6 +1854,7 @@ async function saveOrd() {
         related_order_id: orderId
       });
     }
+
     if (pmCommission > 0 && paymentCat) {
       expensesToAdd.push({
         category_id: paymentCat.id,
@@ -1809,6 +1868,7 @@ async function saveOrd() {
         related_order_id: orderId
       });
     }
+
     if (expensesToAdd.length > 0) {
       for (let exp of expensesToAdd) {
         const existing = D.expenses.find(e =>
@@ -1828,7 +1888,8 @@ async function saveOrd() {
         }
       }
     }
-    showAlert('出貨單已儲存！');
+
+    showAlert('✅ 出貨單已儲存！');
     window.closeModal();
     await loadAll();
     if (currentView === 'orders') {
@@ -1838,17 +1899,73 @@ async function saveOrd() {
     }
   } catch (e) {
     console.error('saveOrd 錯誤：', e);
-    let errMsg = '儲存失敗：';
-    if (e.message && e.message.includes('column "is_gift" does not exist')) {
-      errMsg += 'order_items 資料表缺少 is_gift 欄位。\n請在 Supabase SQL Editor 執行：\nALTER TABLE order_items ADD COLUMN is_gift BOOLEAN DEFAULT FALSE;';
-    } else {
-      errMsg += e.message;
-    }
-    showAlert(errMsg);
+    showAlert('❌ 儲存失敗：' + (e.message || '未知錯誤'));
   } finally {
     isSaving = false;
   }
 }
+
+// ====== 刪除訂單（庫存補回） ======
+async function delOrd(id) {
+  if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
+  try {
+    const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
+    const o = orderResp.data;
+    if (!o) { showAlert('❌ 找不到訂單！'); return; }
+
+    // 1. 退回銀行入帳
+    if (o.bank_account_id && o.total_amount > 0) {
+      const bank = D.banks.find(b => b.id === o.bank_account_id);
+      if (bank) {
+        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
+      }
+    }
+
+    // 2. 取得訂單明細
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+
+    // 3. 補回庫存
+    for (let item of items) {
+      const prod = D.products.find(p => p.id === item.product_id);
+      if (!prod) continue;
+      if (['finished','gift_box','outer_box'].includes(prod.type)) {
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
+        if (inv.data) {
+          await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+        }
+      }
+      const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+      for (let bom of bomItems) {
+        const restoreQty = bom.quantity * item.quantity;
+        const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+        if (matInv.data && matInv.data.length > 0) {
+          let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
+          if (!target) target = matInv.data[0];
+          await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
+        } else {
+          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
+        }
+      }
+    }
+
+    // 4. 刪除相關資料
+    await sb.from('expenses').delete().eq('related_order_id', id);
+    await sb.from('order_items').delete().eq('order_id', id);
+    await sb.from('orders').delete().eq('id', id);
+
+    showAlert('✅ 訂單已刪除，庫存已補回！');
+    await loadAll();
+    render();
+  } catch (e) {
+    showAlert('❌ 刪除失敗：' + e.message);
+    console.error('delOrd error:', e);
+  }
+}
+
+// ====== viewOrdDetail（訂單詳情） ======
 async function viewOrdDetail(id) {
   const o = D.orders.find(function(x) { return x.id === id; });
   if(!o) return showAlert('找不到訂單');
@@ -1882,55 +1999,6 @@ async function viewOrdDetail(id) {
     '<div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div>' +
   '</div>';
   openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
-}
-async function delOrd(id) {
-  if(!confirm('確定刪除？')) return;
-  try {
-    const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
-    const o = orderResp.data;
-    if(!o) return showAlert('找不到訂單！');
-    if(o.bank_account_id && o.total_amount) {
-      const bank = D.banks.find(b => b.id === o.bank_account_id);
-      if(bank) {
-        await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
-      }
-    }
-    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
-    const items = itemsResp.data || [];
-    for (let item of items) {
-      const prod = D.products.find(p => p.id === item.product_id);
-      if (!prod) continue;
-      if (['finished','gift_box','outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
-        if (inv.data) {
-          await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
-        } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
-        }
-      }
-      const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-      for (let bom of bomItems) {
-        const restoreQty = bom.quantity * item.quantity;
-        const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-        if (matInv.data && matInv.data.length > 0) {
-          let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
-          if (!target) target = matInv.data[0];
-          await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
-        } else {
-          await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
-        }
-      }
-    }
-    await sb.from('expenses').delete().eq('related_order_id', id);
-    await sb.from('order_items').delete().eq('order_id', id);
-    await sb.from('orders').delete().eq('id', id);
-    showAlert('訂單已刪除！');
-    await loadAll();
-    render();
-  } catch(e) {
-    showAlert('刪除失敗：' + e.message);
-    console.error('delOrd error:', e);
-  }
 }
 
 // ==================== 商品與 BOM ====================
@@ -1984,19 +2052,22 @@ async function saveProd() {
     cost_price: parseFloat(document.getElementById('p-cost').value) || 0,
     initial_stock: initialStock
   };
-  if(!d.sku || !d.name) return showAlert('SKU與名稱為必填！');
+  if(!d.sku || !d.name) {
+    showAlert('⚠️ SKU與名稱為必填欄位，請補齊後再儲存！');
+    return;
+  }
   try {
     if(id) {
       await sb.from('products').update(d).eq('id', id);
     } else {
       await sb.from('products').insert([Object.assign({}, d, {current_stock: initialStock})]);
     }
-    showAlert('已儲存！');
+    showAlert('✅ 已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 async function delProd(id) {
@@ -2008,7 +2079,7 @@ async function delProd(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('刪除失敗：' + e.message);
+    showAlert('❌ 刪除失敗：' + e.message);
   }
 }
 async function editBom(id) {
@@ -2035,18 +2106,21 @@ async function editBom(id) {
       const pid = document.getElementById('bom-edit-p').value;
       const cid = document.getElementById('bom-edit-c').value;
       const qty = parseFloat(document.getElementById('bom-edit-q').value);
-      if(!pid || !cid || qty <= 0) return showAlert('請完整填寫！');
+      if(!pid || !cid || qty <= 0) {
+        showAlert('⚠️ 請完整填寫所有欄位！');
+        return;
+      }
       await sb.from('bom_list').update({
         parent_product_id: pid,
         child_product_id: cid,
         quantity: qty
       }).eq('id', id);
-      showAlert('BOM 已更新！');
+      showAlert('✅ BOM 已更新！');
       window.closeModal();
       await loadAll();
       render();
     } catch(e) {
-      showAlert('失敗：' + e.message);
+      showAlert('❌ 失敗：' + e.message);
     }
   });
 }
@@ -2069,14 +2143,17 @@ function openBomModal() {
       const pid = document.getElementById('b-p').value;
       const cid = document.getElementById('b-c').value;
       const qty = parseFloat(document.getElementById('b-q').value);
-      if(!pid || !cid || qty <= 0) return showAlert('請完整填寫！');
+      if(!pid || !cid || qty <= 0) {
+        showAlert('⚠️ 請完整填寫所有欄位！');
+        return;
+      }
       await sb.from('bom_list').insert([{ parent_product_id: pid, child_product_id: cid, quantity: qty }]);
-      showAlert('已儲存！');
+      showAlert('✅ 已儲存！');
       window.closeModal();
       await loadAll();
       render();
     } catch(e) {
-      showAlert('失敗：' + e.message);
+      showAlert('❌ 失敗：' + e.message);
     }
   });
 }
@@ -2087,7 +2164,7 @@ async function delBom(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 
@@ -2110,17 +2187,20 @@ function openWarehouseModal(id) {
 }
 async function saveWarehouse() {
   const name = document.getElementById('wh-name').value.trim();
-  if(!name) return showAlert('倉庫名稱必填！');
+  if(!name) {
+    showAlert('⚠️ 倉庫名稱必填！');
+    return;
+  }
   const data = { name: name, location: document.getElementById('wh-loc').value, is_active: document.getElementById('wh-active').value === 'true' };
   try {
     if(editingId) await sb.from('warehouses').update(data).eq('id', editingId);
     else await sb.from('warehouses').insert([data]);
-    showAlert('倉庫已儲存！');
+    showAlert('✅ 倉庫已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 async function delWarehouse(id) {
@@ -2131,7 +2211,7 @@ async function delWarehouse(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('刪除失敗：' + e.message);
+    showAlert('❌ 刪除失敗：' + e.message);
   }
 }
 
@@ -2225,8 +2305,8 @@ function saveInvItem(btn, pid, wid) {
   const data = {quantity: qty};
   const promise = existing ? sb.from('warehouse_inventory').update(data).eq('id', existing.id) : sb.from('warehouse_inventory').insert([{warehouse_id: wid, product_id: pid, quantity: qty, safety_stock: 0}]);
   promise.then(function() {
-    loadAll().then(function() { showWhTab(wid); showAlert('庫存已更新！'); });
-  }).catch(function(e) { showAlert('失敗：' + e.message); });
+    loadAll().then(function() { showWhTab(wid); showAlert('✅ 庫存已更新！'); });
+  }).catch(function(e) { showAlert('❌ 失敗：' + e.message); });
 }
 
 // ==================== 採購入庫 ====================
@@ -2510,7 +2590,10 @@ async function savePur() {
       subtotal += p * q;
     }
   }
-  if(!items.length) return showAlert('請加入採購商品！');
+  if(!items.length) {
+    showAlert('⚠️ 請加入採購商品！');
+    return;
+  }
   let totalAmount;
   if (isInvoiceMode) {
     totalAmount = Math.round(subtotal * 0.05);
@@ -2545,12 +2628,12 @@ async function savePur() {
         if(prod) await sb.from('products').update({current_stock: (prod.current_stock || 0) + item.quantity}).eq('id', item.product_id);
       }
     }
-    showAlert('採購已儲存！');
+    showAlert('✅ 採購已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 async function delPur(id) {
@@ -2561,7 +2644,7 @@ async function delPur(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 
@@ -2610,16 +2693,19 @@ async function saveVen() {
     phone: document.getElementById('v-phone').value,
     cooperation_status: document.getElementById('v-status').value
   };
-  if(!d.name) return showAlert('名稱必填！');
+  if(!d.name) {
+    showAlert('⚠️ 名稱必填！');
+    return;
+  }
   try {
     if(id) await sb.from('vendors').update(d).eq('id', id);
     else await sb.from('vendors').insert([d]);
-    showAlert('已儲存！');
+    showAlert('✅ 已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 async function delVen(id) {
@@ -2629,7 +2715,7 @@ async function delVen(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 
@@ -2781,8 +2867,14 @@ async function saveExp() {
   const bankId = document.getElementById('e-bank').value || null;
   const amount = parseFloat(document.getElementById('e-amt').value) || 0;
   const paymentDate = document.getElementById('e-date').value;
-  if (!bankId && amount > 0) return showAlert('請選擇出帳銀行帳戶！');
-  if (!paymentDate) return showAlert('請選擇日期！');
+  if (!bankId && amount > 0) {
+    showAlert('⚠️ 請選擇出帳銀行帳戶！');
+    return;
+  }
+  if (!paymentDate) {
+    showAlert('⚠️ 請選擇日期！');
+    return;
+  }
   const d = {
     category_id: document.getElementById('e-cat').value,
     amount: amount,
@@ -2796,7 +2888,7 @@ async function saveExp() {
   try {
     if(id) {
       await sb.from('expenses').update(d).eq('id', id);
-      showAlert('已更新！');
+      showAlert('✅ 已更新！');
     } else {
       const newExp = await sb.from('expenses').insert([d]).select().single();
       if(newExp.error) throw newExp.error;
@@ -2806,7 +2898,7 @@ async function saveExp() {
           await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - amount }).eq('id', bankId);
         }
       }
-      showAlert('已記錄並扣款！');
+      showAlert('✅ 已記錄並扣款！');
     }
     window.closeModal();
     await loadAll();
@@ -2816,7 +2908,7 @@ async function saveExp() {
       render();
     }
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
     console.error('saveExp error:', e);
   }
 }
@@ -2834,7 +2926,7 @@ async function delExp(id) {
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 function sortSubTable(field) {
@@ -2894,13 +2986,13 @@ async function saveSub() {
   const startDate = document.getElementById('s-start').value;
   const endDate = document.getElementById('s-end').value;
   const name = document.getElementById('s-name').value.trim();
-  if (!name) return showAlert('請輸入訂閱名稱！');
-  if (!bankId) return showAlert('請選擇出帳銀行帳戶！');
-  if (amount <= 0) return showAlert('金額必須大於0！');
-  if (!startDate || !endDate) return showAlert('請選擇完整的日期區間！');
+  if (!name) { showAlert('⚠️ 請輸入訂閱名稱！'); return; }
+  if (!bankId) { showAlert('⚠️ 請選擇出帳銀行帳戶！'); return; }
+  if (amount <= 0) { showAlert('⚠️ 金額必須大於0！'); return; }
+  if (!startDate || !endDate) { showAlert('⚠️ 請選擇完整的日期區間！'); return; }
   const start = new Date(startDate);
   const end = new Date(endDate);
-  if (end < start) return showAlert('結束日期不能早於開始日期！');
+  if (end < start) { showAlert('⚠️ 結束日期不能早於開始日期！'); return; }
   const d = {
     name: name,
     provider: document.getElementById('s-provider').value.trim(),
@@ -2921,12 +3013,12 @@ async function saveSub() {
       }
       result = await sb.from('system_subscriptions').update(d).eq('id', id);
       if (result.error) throw result.error;
-      showAlert('訂閱已更新！');
+      showAlert('✅ 訂閱已更新！');
     } else {
       result = await sb.from('system_subscriptions').insert([d]).select().single();
       if (result.error) throw result.error;
       editingId = result.data.id;
-      showAlert('訂閱已新增！');
+      showAlert('✅ 訂閱已新增！');
     }
     if(bankId && amount > 0) {
       const currentBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
@@ -2943,7 +3035,7 @@ async function saveSub() {
     }
   } catch(e) {
     console.error('saveSub error:', e);
-    showAlert('儲存失敗：' + e.message);
+    showAlert('❌ 儲存失敗：' + e.message);
   }
 }
 async function delSub(id) {
@@ -2959,9 +3051,9 @@ async function delSub(id) {
     await sb.from('system_subscriptions').delete().eq('id', id);
     await loadAll();
     render();
-    showAlert('訂閱已刪除並完成退款！');
+    showAlert('✅ 訂閱已刪除並完成退款！');
   } catch(e) {
-    showAlert('刪除失敗：' + e.message);
+    showAlert('❌ 刪除失敗：' + e.message);
     console.error('delSub error:', e);
   }
 }
@@ -3008,21 +3100,24 @@ async function openBankModal(id) {
 async function saveBank() {
   const id = document.getElementById('b-id').value;
   const d = { account_name: document.getElementById('b-name').value, bank_name: document.getElementById('b-bank').value, account_number: document.getElementById('b-number').value, balance: parseFloat(document.getElementById('b-balance').value) || 0, is_active: document.getElementById('b-active').value === 'true' };
-  if(!d.account_name) return showAlert('帳戶名稱必填！');
+  if(!d.account_name) {
+    showAlert('⚠️ 帳戶名稱必填！');
+    return;
+  }
   try {
     if(id) await sb.from('bank_accounts').update(d).eq('id', id);
     else await sb.from('bank_accounts').insert([d]);
-    showAlert('已儲存！');
+    showAlert('✅ 已儲存！');
     window.closeModal();
     await loadAll();
     render();
   } catch(e) {
-    showAlert('失敗：' + e.message);
+    showAlert('❌ 失敗：' + e.message);
   }
 }
 async function delBank(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('bank_accounts').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try { await sb.from('bank_accounts').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 
 // ==================== 通路與員工 ====================
@@ -3064,11 +3159,11 @@ async function openChannelModal() {
     await sb.from('sales_channels').insert([{name: name, commission_rate: rate}]);
     await loadAll();
     render();
-  } catch(e) { showAlert('失敗：' + e.message); }
+  } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 async function delChannel(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('sales_channels').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try { await sb.from('sales_channels').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 async function openPaymentModal() {
   const name = prompt('請輸入付款方式名稱：');
@@ -3078,11 +3173,11 @@ async function openPaymentModal() {
     await sb.from('payment_methods').insert([{name: name, commission_rate: rate}]);
     await loadAll();
     render();
-  } catch(e) { showAlert('失敗：' + e.message); }
+  } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 async function delPayment(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try { await sb.from('payment_methods').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 async function openEmpModal() {
   const name = prompt('請輸入員工姓名：');
@@ -3092,11 +3187,11 @@ async function openEmpModal() {
     await sb.from('employees').insert([{name: name, position: position}]);
     await loadAll();
     render();
-  } catch(e) { showAlert('失敗：' + e.message); }
+  } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 async function delEmp(id) {
   if(!confirm('確定刪除?')) return;
-  try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('失敗：' + e.message); }
+  try { await sb.from('employees').delete().eq('id', id); await loadAll(); render(); } catch(e) { showAlert('❌ 失敗：' + e.message); }
 }
 
 console.log('✅ 所有模組已載入，系統就緒！');
