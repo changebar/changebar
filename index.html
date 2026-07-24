@@ -111,12 +111,14 @@
         <button id="alert-ok-btn" class="alert-btn mt-6">確定 (Enter)</button>
     </div>
 </div>
+
 <script>
 // ================================================================
 //  1. Supabase 初始化
 // ================================================================
 const SUPABASE_URL = 'https://flqdyljoxadhqsnbasax.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZscWR5bGpveGFkaHFzbmJhc2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMzk1MTMsImV4cCI6MjA5NDYxNTUxM30.eSm6D0-T_qpdTY3JfLo9eLSjYgBa6w5Asv4DA5c_6Qk';
+
 if (typeof window.supabase !== 'undefined') {
     window.sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('✅ Supabase 初始化成功');
@@ -1031,7 +1033,7 @@ function saveInvItem(btn, pid, wid) {
 }
 
 // ================================================================
-//  14. 採購入庫 (完整) — 上半部分到此，下半在第三段
+//  14. 採購入庫 (完整)
 // ================================================================
 function renderPurchases(c) {
     c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
@@ -1127,14 +1129,6 @@ function viewPurchaseDetail(id) {
     openModal('採購詳情', html, null, true);
 }
 
-// ================================================================
-//  第二段結束，請複製第三段（採購下半、廠商、收支、訂閱、銀行、通路、老闆、訂單）
-// ================================================================
-</script>
-<script>
-// ================================================================
-//  採購入庫 (下半)
-// ================================================================
 async function openPurModal(isInvoicePurchase, editId) {
     editingId = editId || null;
     const existingData = editId ? D.purchases.find(function(x) { return x.id === editId; }) : null;
@@ -2356,11 +2350,8 @@ function downloadBossReport() {
 }
 
 // ================================================================
+//  21. 訂單出貨 - 完整模組 (含所有訂單函數)
 // ================================================================
-//  訂單出貨 - 完整模組 (包含所有函數)
-//  請將此段代碼追加到您原有的 JavaScript 末尾（</script> 之前）
-// ================================================================
-
 function renderOrders(c) {
     c.innerHTML = '<div class="content-card">' +
         '<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">' +
@@ -2468,14 +2459,7 @@ function renderOrdTable() {
         if (o.shipping_advance_amount > 0 && emp) {
             advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">' + emp.name + '</div><div class="font-bold">' + o.shipping_advance_amount.toLocaleString() + '</div></div>';
         }
-        html += '<tr class="hover:bg-gray-50">' +
-            '<td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td>' +
-            '<td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td>' +
-            '<td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td>' +
-            '<td class="px-4 py-3 text-center">' + advanceHtml + '</td>' +
-            '<td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td>' +
-            '<td class="px-4 py-3 text-center">' + marginHtml + '</td>' +
-            '<td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
+        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td><td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td><td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td><td class="px-4 py-3 text-center">' + advanceHtml + '</td><td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-center">' + marginHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
             '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
             '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
             '<button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>' +
@@ -2483,12 +2467,7 @@ function renderOrdTable() {
             '</tr>';
     }
     const avgMargin = count > 0 ? (totalMargin / count).toFixed(1) : 0;
-    html += '<tr class="bg-gray-100 font-bold">' +
-        '<td class="px-4 py-3 text-center" colspan="3">總計 (' + list.length + ' 單)</td>' +
-        '<td class="px-4 py-3 text-center text-lg">' + totalAmount.toLocaleString() + '</td>' +
-        '<td class="px-4 py-3 text-center text-lg">' + avgMargin + '%</td>' +
-        '<td class="px-4 py-3 text-center" colspan="2">平均毛利率</td>' +
-        '</tr>';
+    html += '<tr class="bg-gray-100 font-bold"><td class="px-4 py-3 text-center" colspan="3">總計 (' + list.length + ' 單)</td><td class="px-4 py-3 text-center text-lg">' + totalAmount.toLocaleString() + '</td><td class="px-4 py-3 text-center text-lg">' + avgMargin + '%</td><td class="px-4 py-3 text-center" colspan="2">平均毛利率</td></tr>';
     const tbody = document.getElementById('ord-tbody');
     if (tbody) tbody.innerHTML = html;
 }
@@ -2505,7 +2484,7 @@ function clearOrdFilters() {
     renderOrdTable();
 }
 
-// ---- 開啓訂單 Modal ----
+// ====== 開啓訂單 Modal ======
 async function openOrdModal(id) {
     try {
         editingId = id || null;
@@ -2526,31 +2505,26 @@ async function openOrdModal(id) {
             const w = activeWarehouses[i];
             whOptions += '<option value="' + w.id + '" ' + (o && o.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
         }
-
         let custOptions = '<option value="">請選擇或搜尋客戶...</option>';
         for (let i=0; i<D.customers.length; i++) {
             const c = D.customers[i];
             custOptions += '<option value="' + c.id + '" data-name="' + (c.company_name || c.contact_person) + '" data-phone="' + (c.phone || '') + '" data-title="' + (c.invoice_title || '') + '" data-tax="' + (c.tax_id || '') + '" ' + (o && o.customer_id === c.id ? 'selected' : '') + '>' + (c.company_name || c.contact_person) + ' - ' + c.phone + '</option>';
         }
-
         let chOptions = '<option value="">請選擇通路</option>';
         for (let i=0; i<D.channels.length; i++) {
             const ch = D.channels[i];
             chOptions += '<option value="' + ch.id + '" data-rate="' + ch.commission_rate + '" ' + (o && o.sales_channel_id === ch.id ? 'selected' : '') + '>' + ch.name + ' (' + ch.commission_rate + '%)</option>';
         }
-
         let pmOptions = '<option value="">請選擇付款方式</option>';
         for (let i=0; i<D.payments.length; i++) {
             const pm = D.payments[i];
             pmOptions += '<option value="' + pm.id + '" data-rate="' + pm.commission_rate + '" ' + (o && o.payment_method_id === pm.id ? 'selected' : '') + '>' + pm.name + ' (' + pm.commission_rate + '%)</option>';
         }
-
         let bankOptions = '<option value="">請選擇入款銀行</option>';
         for (let i=0; i<D.banks.length; i++) {
             const b = D.banks[i];
             bankOptions += '<option value="' + b.id + '" ' + (o && o.bank_account_id === b.id ? 'selected' : '') + '>' + b.account_name + '</option>';
         }
-
         let empOptions = '<option value="">無代墊</option>';
         for (let i=0; i<D.emps.length; i++) {
             const emp = D.emps[i];
@@ -2583,7 +2557,8 @@ async function openOrdModal(id) {
         if (id && o) {
             if (o.customer_id) {
                 const cust = D.customers.find(function(c) { return c.id === o.customer_id; });
-                if (cust) { document.getElementById('o-cust').value = cust.id; fillCustomerData(); }
+                if (cust) { document.getElementById('o-cust').value = cust.id;
+                    fillCustomerData(); }
             }
             document.getElementById('o-recv-name').value = o.shipping_recv_name || '';
             document.getElementById('o-recv-phone').value = o.shipping_recv_phone || '';
@@ -2787,7 +2762,7 @@ function calcOrd() {
     document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ---- saveOrd - 完整儲存與驗證 ----
+// ========== 修正後的 saveOrd - 完整驗證與儲存 ==========
 async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
@@ -2835,7 +2810,6 @@ async function saveOrd() {
         if (missing.length > 0) {
             throw new Error('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
         }
-        // 檢查產品有效性
         for (let item of itemsData) {
             const product = D.products.find(x => x.id === item.product_id);
             if (!product) throw new Error('⚠️ 無效的產品 ID：' + item.product_id + '，請重新選擇商品。');
@@ -2921,7 +2895,6 @@ async function saveOrd() {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldOrder.bank_account_id).single();
                 if (oldBank.data) await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) - oldOrder.total_amount }).eq('id', oldOrder.bank_account_id);
             }
-            // 補回舊庫存
             for (let oldItem of oldItems) {
                 const prod = D.products.find(p => p.id === oldItem.product_id);
                 if (!prod) continue;
@@ -2977,13 +2950,11 @@ async function saveOrd() {
             }
         }
 
-        // 入帳
         if (bankId && totalAmount > 0) {
             const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (newBank.data) await sb.from('bank_accounts').update({ balance: (newBank.data.balance || 0) + totalAmount }).eq('id', bankId);
         }
 
-        // 扣庫存（僅新訂單）
         if (!editingId) {
             for (let item of finalItems) {
                 const prod = D.products.find(p => p.id === item.product_id);
@@ -3008,16 +2979,15 @@ async function saveOrd() {
             }
         }
 
-        // ====== 運費記錄到收支 ======
+        // ----- 運費記錄到收支 -----
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const channelCat = expCats.find(c => c.name === '通路抽成');
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const expensesToAdd = [];
 
-        // 記錄公司吸收的運費（不論是否代墊，只要是公司吸收的都要記）
         if (companyShippingCost > 0 && shippingCat) {
-            const isReimbursed = !advanceEmpId; // 有代墊員工則待結帳
+            const isReimbursed = !advanceEmpId;
             expensesToAdd.push({
                 category_id: shippingCat.id,
                 amount: companyShippingCost,
@@ -3030,8 +3000,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-
-        // 如果有代墊員工且運費 >0，記錄一筆代墊費用（待結帳）
         if (hasAdvance && advanceEmpId && shippingFee > 0) {
             const existingAdvance = D.expenses.find(e => e.related_order_id === orderId && e.description && e.description.includes('運費代墊'));
             if (!existingAdvance) {
@@ -3048,8 +3016,6 @@ async function saveOrd() {
                 });
             }
         }
-
-        // 通路抽成
         if (chCommission > 0 && channelCat) {
             expensesToAdd.push({
                 category_id: channelCat.id,
@@ -3063,7 +3029,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-        // 付款手續費
         if (pmCommission > 0 && paymentCat) {
             expensesToAdd.push({
                 category_id: paymentCat.id,
@@ -3077,8 +3042,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-
-        // 寫入 expense
         if (expensesToAdd.length > 0) {
             for (let exp of expensesToAdd) {
                 const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
@@ -3094,7 +3057,7 @@ async function saveOrd() {
             }
         }
 
-        // 成功
+        // ----- 成功 -----
         showAlert('✅ 出貨單已儲存！');
         window.closeModal();
         await loadAll();
@@ -3105,7 +3068,7 @@ async function saveOrd() {
         }
     } catch (e) {
         console.error('saveOrd 錯誤：', e);
-        throw e; // 由 openModal 的 catch 顯示錯誤且不關閉表單
+        throw e;
     } finally {
         isSaving = false;
     }
@@ -3183,7 +3146,8 @@ async function viewOrdDetail(id) {
     const html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div><div><b>📮 寄送地址:</b> '+(o.shipping_address||'無')+'</div><div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div><div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div><div><b>📦 產品明細:</b>'+itemsHtml+'</div><div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div></div>';
     openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
-console.log('✅ 全部模組已載入，完整功能。');
+
+console.log('✅ 全部模組已載入，所有功能完整。');
 </script>
 </body>
 </html>
