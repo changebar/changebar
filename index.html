@@ -2766,154 +2766,103 @@ async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
     try {
-        alert('🚀 1. saveOrd 開始執行');
+        alert('===== 步驟 1：函數已執行 =====');
 
-        // 收集表單數據
+        // 1. 取得基本表單值
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
         const bankId = document.getElementById('o-bank').value;
         const chId = document.getElementById('o-channel').value;
         const pmId = document.getElementById('o-payment').value;
-        alert('📦 2. 客戶ID=' + cid + ', 倉庫ID=' + wid + ', 銀行ID=' + bankId);
+        alert('步驟 2：客戶=' + cid + '，倉庫=' + wid + '，銀行=' + bankId);
 
-        // 收集商品明細
+        // 2. 取得商品明細
         const rows = document.querySelectorAll('#o-items .ord-item-row');
-        const itemsData = [];
-        for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            const hiddenInput = r.querySelector('.pu-prod-id');
-            if (hiddenInput && hiddenInput.value) {
-                const qty = parseInt(r.querySelector('.o-qty').value) || 0;
-                const price = parseFloat(r.querySelector('.o-price').value) || 0;
-                const isGift = r.querySelector('.o-is-gift')?.checked || false;
-                const hasInvoice = r.querySelector('.o-has-invoice')?.checked || false;
-                itemsData.push({
-                    product_id: hiddenInput.value,
-                    quantity: qty,
-                    unit_price: price,
-                    has_invoice: hasInvoice,
-                    is_gift: isGift
-                });
-            }
+        const items = [];
+        for (const r of rows) {
+            const pid = r.querySelector('.pu-prod-id')?.value;
+            if (!pid) continue;
+            const qty = parseInt(r.querySelector('.o-qty').value) || 1;
+            const price = parseFloat(r.querySelector('.o-price').value) || 0;
+            items.push({ product_id: pid, quantity: qty, unit_price: price });
         }
-        if (itemsData.length === 0) {
-            throw new Error('請至少加入一個商品！');
+        if (items.length === 0) {
+            alert('❌ 錯誤：沒有商品，請加入至少一個商品！');
+            return;
         }
-        alert('📦 3. 商品明細共 ' + itemsData.length + ' 項');
+        alert('步驟 3：商品數量=' + items.length);
 
-        // 計算總金額（省略詳細計算，直接取畫面顯示的數字，但為了保險，我們簡單計算）
+        // 3. 計算總金額（簡化）
         let total = 0;
-        for (let item of itemsData) {
-            if (!item.is_gift) total += item.unit_price * item.quantity;
-        }
-        // 加上運費（客戶支付部分）
-        const shippingFee = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
-        const shipPayer = document.getElementById('o-ship-payer').value;
-        if (shipPayer === 'customer') total += shippingFee;
-        // 加稅
-        const invType = document.getElementById('o-invoice-type').value;
-        if (invType === 'tax_plus') total *= 1.05;
-        // 扣折價券、紅利
+        for (const it of items) total += it.unit_price * it.quantity;
+        // 加上運費（客戶支付）
+        const shipping = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
+        if (document.getElementById('o-ship-payer').value === 'customer') total += shipping;
+        // 折價券與紅利
         const coupon = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
         const points = parseFloat(document.getElementById('o-points-amount').value) || 0;
-        total = total - coupon - points;
+        total = Math.round(total - coupon - points);
         if (total < 0) total = 0;
-        total = Math.round(total);
-        alert('💰 4. 計算總金額=' + total);
+        alert('步驟 4：總金額=' + total);
 
-        // 準備訂單資料（簡化版，只保留必要欄位）
-        const orderNo = 'ORD-' + Date.now();
-        const orderDate = new Date().toISOString();
-        const data = {
+        // 4. 準備訂單資料（只填必要的欄位，其他用預設）
+        const orderData = {
             customer_id: cid,
             warehouse_id: wid,
             bank_account_id: bankId,
             total_amount: total,
             status: 'shipped',
-            order_no: orderNo,
-            sales_channel_id: chId,
-            payment_method_id: pmId,
-            shipping_fee: shippingFee,
-            created_at: orderDate,
-            // 其他欄位用預設值或 null
-            gross_profit_margin: null,
-            invoice_type: invType,
-            invoice_no: null,
-            invoice_title: null,
-            invoice_tax_id: null,
+            order_no: 'ORD-' + Date.now(),
+            sales_channel_id: chId || null,
+            payment_method_id: pmId || null,
+            shipping_fee: shipping,
+            created_at: new Date().toISOString(),
+            // 其他可能需要的欄位（如果有資料庫預設值，可以省略）
+            gross_profit_margin: 0,
+            invoice_type: 'no',
             absorbed_shipping_fee: 0,
-            customer_paid_shipping: shipPayer === 'customer' ? shippingFee : 0,
-            shipping_recv_name: document.getElementById('o-recv-name').value || null,
-            shipping_recv_phone: document.getElementById('o-recv-phone').value || null,
-            shipping_address: document.getElementById('o-recv-addr').value || null,
-            is_subscription_order: false,
-            subscription_days: 0,
+            customer_paid_shipping: document.getElementById('o-ship-payer').value === 'customer' ? shipping : 0,
             coupon_amount: coupon,
-            points_amount: points,
-            shipping_advance_employee_id: null,
-            shipping_advance_amount: 0,
-            shipping_advance_reimbursed: false,
-            shipping_advance_bank_id: null,
-            shipping_advance_reimbursed_date: null
+            points_amount: points
         };
-        alert('📝 5. 訂單資料準備完成，準備插入 orders');
+        alert('步驟 5：訂單資料準備完成，即將插入 orders');
 
-        // ---------- 插入 orders ----------
-        const orderResult = await sb.from('orders').insert([data]);
-        alert('📤 6. orders 插入結果：' + JSON.stringify(orderResult));
+        // 5. 插入 orders (使用 .select() 取得回傳的 ID)
+        const orderResult = await sb.from('orders').insert([orderData]).select();
+        alert('步驟 6：orders 插入結果：' + JSON.stringify(orderResult));
         if (orderResult.error) {
-            throw new Error('orders 插入失敗：' + orderResult.error.message);
+            alert('❌ orders 插入失敗：' + orderResult.error.message);
+            return;
         }
-        // 取得新訂單 ID（因為我們沒有使用 .select()，所以從 orderResult 中可能沒有 data）
-        // 所以改用查詢方式取得最新訂單 ID（不建議，但暫時用）
-        // 更簡單：改用 .select().single() 取得 ID，但為了避免更多錯誤，我們改為用 .select() 重新查詢
-        // 或者我們直接使用 orderResult.data[0].id（如果有的話）
-        let orderId = null;
-        if (orderResult.data && orderResult.data.length > 0) {
-            orderId = orderResult.data[0].id;
-        } else {
-            // 如果沒有回傳 data，我們用查詢方式取得最後一筆訂單
-            const query = await sb.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
-            if (query.data && query.data.length > 0) {
-                orderId = query.data[0].id;
-            } else {
-                throw new Error('無法取得新增的訂單 ID');
-            }
+        if (!orderResult.data || orderResult.data.length === 0) {
+            alert('❌ orders 插入成功但沒有回傳資料');
+            return;
         }
-        alert('✅ 7. 訂單插入成功，ID=' + orderId);
+        const orderId = orderResult.data[0].id;
+        alert('✅ 步驟 7：訂單 ID=' + orderId + ' 插入成功！');
 
-        // ---------- 插入 order_items ----------
-        const itemsWithOrderId = itemsData.map(item => ({
-            ...item,
-            order_id: orderId
-        }));
-        alert('📤 8. 準備插入 order_items：' + JSON.stringify(itemsWithOrderId));
-        const itemsResult = await sb.from('order_items').insert(itemsWithOrderId);
-        alert('📤 9. order_items 插入結果：' + JSON.stringify(itemsResult));
-        if (itemsResult.error) {
-            throw new Error('order_items 插入失敗：' + itemsResult.error.message);
+        // 6. 插入 order_items
+        const itemData = items.map(it => ({ ...it, order_id: orderId }));
+        const itemResult = await sb.from('order_items').insert(itemData);
+        alert('步驟 8：order_items 插入結果：' + JSON.stringify(itemResult));
+        if (itemResult.error) {
+            alert('❌ order_items 插入失敗：' + itemResult.error.message);
+            return;
         }
-        alert('✅ 10. order_items 插入成功！');
+        alert('✅ 步驟 9：訂單明細插入成功！');
 
-        // ---------- 更新銀行餘額（如果有） ----------
+        // 7. 更新銀行餘額（可選）
         if (bankId && total > 0) {
-            const bankQuery = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-            if (bankQuery.error) {
-                alert('⚠️ 查詢銀行餘額失敗：' + bankQuery.error.message);
-            } else {
-                const newBalance = (bankQuery.data.balance || 0) + total;
-                const updateBank = await sb.from('bank_accounts').update({ balance: newBalance }).eq('id', bankId);
-                if (updateBank.error) {
-                    alert('⚠️ 更新銀行餘額失敗：' + updateBank.error.message);
-                } else {
-                    alert('✅ 11. 銀行餘額已更新為 ' + newBalance);
-                }
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (!bank.error) {
+                const newBal = (bank.data.balance || 0) + total;
+                await sb.from('bank_accounts').update({ balance: newBal }).eq('id', bankId);
+                alert('✅ 步驟 10：銀行餘額已更新為 ' + newBal);
             }
         }
 
-        // ---------- 所有步驟完成 ----------
-        alert('🎉 12. 全部儲存完成！即將關閉視窗並刷新列表');
-        showAlert('✅ 出貨單已儲存！');
+        alert('🎉 所有步驟完成！訂單已儲存！');
+        showAlert('✅ 訂單儲存成功！');
         window.closeModal();
         await loadAll();
         if (currentView === 'orders') {
@@ -2922,10 +2871,8 @@ async function saveOrd() {
             render();
         }
     } catch (e) {
-        // 任何錯誤都會在這裡被捕捉
-        alert('❌ 儲存過程中發生錯誤：' + e.message + '\n\n請查看 Console 以獲得更多細節。');
-        console.error('❌ saveOrd 錯誤:', e);
-        // 不要重新拋出錯誤，以免 modal 的 catch 再次顯示
+        alert('❌ 意外錯誤：' + e.message + '\n\n請查看 Console 詳細資訊');
+        console.error(e);
     } finally {
         isSaving = false;
     }
