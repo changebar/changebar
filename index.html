@@ -2763,6 +2763,7 @@ function calcOrd() {
 
 // ========== 修復後的 saveOrd（完整驗證與儲存） ==========
 async function saveOrd() {
+    alert('saveOrd 被呼叫了！');
     if (isSaving) return;
     isSaving = true;
     try {
