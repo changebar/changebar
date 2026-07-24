@@ -224,11 +224,14 @@ function showAlert(msg) {
     function handleAlertKey(e) {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
             e.preventDefault();
+            e.stopPropagation();  // 防止事件繼續傳播
             closeAlert();
         }
     }
     newOkBtn.addEventListener('click', closeAlert);
-    setTimeout(function() { newOkBtn.focus(); document.addEventListener('keydown', handleAlertKey); }, 100);
+    // 使用 capture 階段捕獲，避免與其他監聽衝突
+    document.addEventListener('keydown', handleAlertKey, true);
+    setTimeout(function() { newOkBtn.focus(); }, 100);
 }
 
 // ================================================================
@@ -297,12 +300,27 @@ function openModal(title, html, onSave, hideSave) {
             saveBtn.classList.add('hidden');
         } else {
             saveBtn.classList.remove('hidden');
-    saveBtn.onclick = function() {
-    if (typeof saveOrd === 'function') {
-        saveOrd();
-    } else {
-        showAlert('❌ 錯誤：儲存功能未定義，請重新整理頁面。');
-    }
+  saveBtn.onclick = function() {
+    if (isSaving) return;
+    isSaving = true;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中...';
+
+    Promise.resolve(onSave())
+        .then(function() {
+            isSaving = false;
+            saveBtn.disabled = false;
+            saveBtn.textContent = '儲存 (Enter)';
+            window.closeModal();
+        })
+        .catch(function(e) {
+            console.error('❌ Save error:', e || 'Unknown error');
+            isSaving = false;
+            saveBtn.disabled = false;
+            saveBtn.textContent = '儲存 (Enter)';
+            const msg = (e && e.message) ? e.message : '儲存失敗，請檢查欄位是否完整填寫。';
+            showAlert('❌ ' + msg);
+        });
 };
         }
 
@@ -1856,14 +1874,25 @@ async function openBankModal(id) {
 }
 
 async function saveBank() {
-    const id = document.getElementById('b-id').value;
-    const d = { account_name: document.getElementById('b-name').value, bank_name: document.getElementById('b-bank').value, account_number: document.getElementById('b-number').value, balance: parseFloat(document.getElementById('b-balance').value) || 0, is_active: document.getElementById('b-active').value === 'true' };
+    const id = document.getElementById('b-id').value; // 編輯時這裡會有值
+    const d = {
+        account_name: document.getElementById('b-name').value,
+        bank_name: document.getElementById('b-bank').value,
+        account_number: document.getElementById('b-number').value,
+        balance: parseFloat(document.getElementById('b-balance').value) || 0,
+        is_active: document.getElementById('b-active').value === 'true'
+    };
     if (!d.account_name) {
         throw new Error('⚠️ 帳戶名稱必填！');
     }
     try {
-        if (id) await sb.from('bank_accounts').update(d).eq('id', id);
-        else await sb.from('bank_accounts').insert([d]);
+        if (id) {
+            // ★ 編輯模式：更新
+            await sb.from('bank_accounts').update(d).eq('id', id);
+        } else {
+            // ★ 新增模式：插入
+            await sb.from('bank_accounts').insert([d]);
+        }
         showAlert('✅ 已儲存！');
         window.closeModal();
         await loadAll();
@@ -3059,22 +3088,25 @@ async function saveOrd() {
         }
 
         // 插入費用
-        if (expensesToAdd.length > 0) {
-            for (const exp of expensesToAdd) {
-                // 檢查是否已存在（避免重複）
-                const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
-                if (!existing) {
-                    await sb.from('expenses').insert([exp]);
-                    // 若為已結帳且需扣銀行
-                    if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
-                        const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
-                        if (bank) {
-                            await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
-                        }
-                    }
+       if (expensesToAdd.length > 0) {
+    for (const exp of expensesToAdd) {
+        // ★ 如果類別不存在（category_id 為空），跳過這筆費用
+        if (!exp.category_id) {
+            console.warn('⚠️ 跳過費用記錄，因為找不到對應類別：', exp.description);
+            continue;
+        }
+        const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
+        if (!existing) {
+            await sb.from('expenses').insert([exp]);
+            if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
+                if (bank) {
+                    await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
                 }
             }
         }
+    }
+}
 
         // ===== 13. 完成 =====
         showAlert('✅ 出貨單已儲存！');
@@ -3092,12 +3124,16 @@ async function saveOrd() {
         isSaving = false;
     }
 }
+let isDeleting = false;  // 放在函數外部，全域
+
 async function delOrd(id) {
+    if (isDeleting) return;
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
+    isDeleting = true;
     try {
         const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
         const o = orderResp.data;
-        if (!o) { showAlert('❌ 找不到訂單！'); return; }
+        if (!o) { showAlert('❌ 找不到訂單！'); isDeleting = false; return; }
 
         // 退還銀行餘額
         if (o.bank_account_id && o.total_amount > 0) {
@@ -3148,6 +3184,8 @@ async function delOrd(id) {
     } catch (e) {
         showAlert('❌ 刪除失敗：' + e.message);
         console.error('delOrd error:', e);
+    } finally {
+        isDeleting = false;
     }
 }
 async function viewOrdDetail(id) {
