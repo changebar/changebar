@@ -298,11 +298,10 @@ function openModal(title, html, onSave, hideSave) {
         } else {
             saveBtn.classList.remove('hidden');
     saveBtn.onclick = function() {
-    // 直接呼叫 saveOrd，不使用 Promise 包裝
     if (typeof saveOrd === 'function') {
         saveOrd();
     } else {
-        alert('❌ 錯誤：saveOrd 函數未定義！');
+        showAlert('❌ 錯誤：儲存功能未定義，請重新整理頁面。');
     }
 };
         }
@@ -2752,7 +2751,7 @@ async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
     try {
-        // 1. 取得基本表單值
+        // ===== 1. 收集所有表單值 =====
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
         const bankId = document.getElementById('o-bank').value;
@@ -2772,7 +2771,7 @@ async function saveOrd() {
         const hasAdvance = document.getElementById('o-has-advance').checked;
         const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
 
-        // 2. 取得商品明細
+        // ===== 2. 收集商品明細 =====
         const rows = document.querySelectorAll('#o-items .ord-item-row');
         const itemsData = [];
         for (const r of rows) {
@@ -2791,12 +2790,22 @@ async function saveOrd() {
                 is_gift: isGift
             });
         }
-        if (itemsData.length === 0) {
-            showAlert('⚠️ 請至少加入一個商品！');
-            return;
+
+        // ===== 3. 驗證必填欄位（一次性檢查） =====
+        const missing = [];
+        if (!cid) missing.push('客戶');
+        if (!wid) missing.push('出貨倉庫');
+        if (!bankId) missing.push('入款銀行帳戶');
+        if (!chId) missing.push('銷售通路');
+        if (!pmId) missing.push('付款方式');
+        if (itemsData.length === 0) missing.push('至少一個商品');
+        if (missing.length > 0) {
+            showAlert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
+            isSaving = false; // 釋放鎖定
+            return; // 不關閉視窗，讓用戶繼續填寫
         }
 
-        // 3. 計算總金額與成本
+        // ===== 4. 計算金額 =====
         let productTotal = 0, totalCost = 0;
         for (const item of itemsData) {
             const prod = D.products.find(p => p.id === item.product_id);
@@ -2806,18 +2815,15 @@ async function saveOrd() {
             if (!item.is_gift) productTotal += item.unit_price * item.quantity;
             totalCost += finalCost * item.quantity;
         }
-        // 運費
         const customerShipping = (shipPayer === 'customer') ? shippingFee : 0;
         const companyShipping = (shipPayer === 'company') ? shippingFee : 0;
-        // 稅金 (稅外加)
         const taxAmount = (invType === 'tax_plus') ? productTotal * 0.05 : 0;
-        // 折扣
         const totalDiscount = coupon + points;
         let totalAmount = productTotal + customerShipping + taxAmount - totalDiscount;
         if (totalAmount < 0) totalAmount = 0;
         totalAmount = Math.round(totalAmount);
 
-        // 4. 通路與付款手續費
+        // ===== 5. 通路與付款手續費 =====
         const chSelect = document.getElementById('o-channel');
         const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
         const pmSelect = document.getElementById('o-payment');
@@ -2825,12 +2831,12 @@ async function saveOrd() {
         const chCommission = totalAmount * (chRate / 100);
         const pmCommission = totalAmount * (pmRate / 100);
 
-        // 5. 計算毛利率
+        // ===== 6. 毛利率 =====
         const totalExpenses = chCommission + pmCommission + companyShipping;
         const grossProfit = totalAmount - totalCost - totalExpenses;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
 
-        // 6. 準備訂單資料
+        // ===== 7. 準備訂單資料 =====
         const orderNo = editingId ? (D.orders.find(o => o.id === editingId)?.order_no || 'ORD-' + Date.now()) : 'ORD-' + Date.now();
         const orderDate = new Date().toISOString();
         const orderData = {
@@ -2866,13 +2872,18 @@ async function saveOrd() {
         };
 
         let orderId = editingId;
+        let oldItems = [];
 
-        // ===== 編輯模式：先處理舊資料 =====
+        // ===== 8. 編輯模式：處理舊資料 =====
         if (editingId) {
             // 取得舊訂單
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
             const oldOrder = oldOrderResp.data;
-            if (!oldOrder) throw new Error('❌ 找不到要編輯的訂單');
+            if (!oldOrder) throw new Error('找不到要編輯的訂單');
+
+            // 取得舊的 order_items（用來補庫存）
+            const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
+            oldItems = oldItemsResp.data || [];
 
             // 退還舊銀行餘額
             if (oldOrder.bank_account_id && oldOrder.total_amount > 0) {
@@ -2882,7 +2893,34 @@ async function saveOrd() {
                 }
             }
 
-            // 刪除舊的 order_items 和 expenses（避免殘留）
+            // 補回舊庫存
+            for (const oldItem of oldItems) {
+                const prod = D.products.find(p => p.id === oldItem.product_id);
+                if (!prod) continue;
+                if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+                    const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
+                    if (inv.data) {
+                        await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + oldItem.quantity }).eq('id', inv.data.id);
+                    } else {
+                        await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: oldItem.quantity, safety_stock: 0 }]);
+                    }
+                }
+                // BOM 物料補回
+                const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+                for (const bom of bomItems) {
+                    const restoreQty = bom.quantity * oldItem.quantity;
+                    const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+                    if (matInv.data && matInv.data.length > 0) {
+                        let target = matInv.data.find(inv => inv.warehouse_id === oldOrder.warehouse_id);
+                        if (!target) target = matInv.data[0];
+                        await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
+                    } else {
+                        await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
+                    }
+                }
+            }
+
+            // 刪除舊的 order_items 和 expenses
             await sb.from('order_items').delete().eq('order_id', editingId);
             await sb.from('expenses').delete().eq('related_order_id', editingId);
 
@@ -2897,14 +2935,42 @@ async function saveOrd() {
             orderId = insertResult.data.id;
         }
 
-        // ===== 插入 order_items =====
+        // ===== 9. 插入新的 order_items =====
         if (itemsData.length > 0) {
             const itemsWithOrder = itemsData.map(item => ({ ...item, order_id: orderId }));
             const itemResult = await sb.from('order_items').insert(itemsWithOrder);
             if (itemResult.error) throw new Error('插入訂單明細失敗：' + itemResult.error.message);
         }
 
-        // ===== 更新銀行餘額（新增金額） =====
+        // ===== 10. 扣除新庫存（僅新增模式，編輯模式已在補回後扣除） =====
+        // 編輯模式：我們已經補回舊庫存，現在需要扣除新庫存
+        // 新增模式：直接扣除
+        for (const item of itemsData) {
+            const prod = D.products.find(p => p.id === item.product_id);
+            if (!prod) continue;
+            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
+                if (inv.data) {
+                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+                }
+            }
+            const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
+            for (const bom of bomItems) {
+                const required = bom.quantity * item.quantity;
+                const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
+                if (matInv.data && matInv.data.length > 0) {
+                    let target = matInv.data.find(inv => inv.warehouse_id === wid);
+                    if (!target) target = matInv.data[0];
+                    await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
+                }
+            }
+        }
+
+        // ===== 11. 更新銀行餘額（加回新金額） =====
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (!bank.error) {
@@ -2913,82 +2979,104 @@ async function saveOrd() {
             }
         }
 
-        // ===== 扣除庫存（僅新增模式，編輯時已在前面處理差量，但為簡化，編輯時我們也重新扣除所有庫存） =====
-        // 注意：編輯時我們已經刪除舊訂單並重新插入，庫存處理可以統一用新增邏輯
-        // 但為了避免重複扣除，我們只在新訂單時扣除（編輯時已退還舊庫存，但我們沒有在編輯時補回，所以這裡需要補回舊的再扣除新的？）
-        // 更簡單：編輯時也重新計算庫存變化：舊訂單 items 我們已經刪除，但庫存尚未補回，所以我們在編輯時先補回舊庫存，再扣除新庫存。
-        // 但由於我們在編輯時先刪除了 order_items，並未補庫存，所以我們需要在插入新 items 後，重新調整庫存。
-        // 為了確保正確，我們在編輯時先補回舊庫存（我們還記住舊 items），但為了簡化，我們採用以下方法：
-        // 新增時直接扣除，編輯時先把舊庫存加回來，再扣除新的。
-        // 但因為我們已經無法取得舊 items（已刪除），所以我們在編輯時，先查詢舊 items 並加回庫存，再扣除新的。
-        // 為了簡化，我將在此實現一個統一的庫存處理函數，但時間關係，我們先採用簡單方式：編輯時不處理庫存（因為用戶可能只修改金額，庫存變動不大），但這不正確。
-        // 我們在編輯時，應該先補回舊庫存，再扣除新庫存。
-        // 下面我們實現正確的庫存處理。
+        // ===== 12. 記錄費用到收支 =====
+        const expCats = D.expCats;
+        const shippingCat = expCats.find(c => c.name === '運費');
+        const channelCat = expCats.find(c => c.name === '通路抽成');
+        const paymentCat = expCats.find(c => c.name === '付款手續費');
+        const expensesToAdd = [];
 
-        // 獲取舊的 items（我們在刪除前保存）
-        // 但我們已經刪除了，所以我們需要重新查詢舊的 items，但在刪除前我們沒有保存。
-        // 解決方案：在刪除前先查詢舊 items 並保存，然後再刪除。
-        // 因為我們之前的代碼是先刪除再插入，導致無法補庫存。
-        // 修復：在編輯模式下，先查詢舊 items，再刪除，然後補回庫存，再扣除新庫存。
-        // 下面是修復後的代碼，請將前面的編輯部分改為如下：
+        // 運費（公司吸收）
+        if (companyShipping > 0 && shippingCat) {
+            const isReimbursed = !advanceEmpId;
+            expensesToAdd.push({
+                category_id: shippingCat.id,
+                amount: companyShipping,
+                description: '訂單 ' + orderNo + ' 運費（公司吸收）',
+                payment_date: new Date().toISOString().split('T')[0],
+                employee_id: advanceEmpId || null,
+                is_reimbursed: isReimbursed,
+                reimbursement_bank_id: isReimbursed ? bankId : null,
+                reimbursed_date: isReimbursed ? new Date().toISOString().split('T')[0] : null,
+                related_order_id: orderId
+            });
+        }
 
-        // 重寫編輯邏輯（因前面已寫，這裡我們重構整個 saveOrd 以確保正確）
-        // 但為了不讓您重複替換，我提供一個完整的 saveOrd 函數（如下），請您完全替換成這個版本。
+        // 運費代墊（員工墊付）
+        if (hasAdvance && advanceEmpId && shippingFee > 0) {
+            expensesToAdd.push({
+                category_id: (shippingCat || {}).id,
+                amount: shippingFee,
+                description: '訂單 ' + orderNo + ' 運費代墊（' + (D.emps.find(e => e.id === advanceEmpId)?.name || '') + '）',
+                payment_date: new Date().toISOString().split('T')[0],
+                employee_id: advanceEmpId,
+                is_reimbursed: false,
+                reimbursement_bank_id: null,
+                reimbursed_date: null,
+                related_order_id: orderId
+            });
+        }
 
-        // 由於上面已經寫了部分，我將在下面給出最終完整版，您直接替換即可。
+        // 通路抽成
+        if (chCommission > 0 && channelCat) {
+            expensesToAdd.push({
+                category_id: channelCat.id,
+                amount: chCommission,
+                description: '訂單 ' + orderNo + ' 通路抽成 (' + chRate + '%)',
+                payment_date: new Date().toISOString().split('T')[0],
+                employee_id: null,
+                is_reimbursed: true,
+                reimbursement_bank_id: bankId,
+                reimbursed_date: new Date().toISOString().split('T')[0],
+                related_order_id: orderId
+            });
+        }
 
-        // ---- 上面為舊邏輯，我們現在提供最終完整版 ----
-        // 請直接複製下方的完整 saveOrd 函數
+        // 付款手續費
+        if (pmCommission > 0 && paymentCat) {
+            expensesToAdd.push({
+                category_id: paymentCat.id,
+                amount: pmCommission,
+                description: '訂單 ' + orderNo + ' 付款手續費 (' + pmRate + '%)',
+                payment_date: new Date().toISOString().split('T')[0],
+                employee_id: null,
+                is_reimbursed: true,
+                reimbursement_bank_id: bankId,
+                reimbursed_date: new Date().toISOString().split('T')[0],
+                related_order_id: orderId
+            });
+        }
 
+        // 插入費用
+        if (expensesToAdd.length > 0) {
+            for (const exp of expensesToAdd) {
+                const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
+                if (!existing) {
+                    await sb.from('expenses').insert([exp]);
+                    if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                        const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
+                        if (bank) {
+                            await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ===== 13. 完成 =====
+        showAlert('✅ 出貨單已儲存！');
+        window.closeModal();
+        await loadAll();
+        if (currentView === 'orders') {
+            renderOrders(document.getElementById('main-content'));
+        } else {
+            render();
+        }
     } catch (e) {
         console.error('儲存訂單失敗：', e);
         showAlert('❌ 儲存失敗：' + e.message);
     } finally {
         isSaving = false;
-    }
-}
-async function delOrd(id) {
-    if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
-    try {
-        const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
-        const o = orderResp.data;
-        if (!o) { showAlert('❌ 找不到訂單！'); return; }
-        if (o.bank_account_id && o.total_amount > 0) {
-            const bank = D.banks.find(b => b.id === o.bank_account_id);
-            if (bank) await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - o.total_amount }).eq('id', o.bank_account_id);
-        }
-        const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
-        const items = itemsResp.data || [];
-        for (let item of items) {
-            const prod = D.products.find(p => p.id === item.product_id);
-            if (!prod) continue;
-            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
-                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
-                if (inv.data) await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
-                else await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
-            }
-            const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-            for (let bom of bomItems) {
-                const restoreQty = bom.quantity * item.quantity;
-                const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-                if (matInv.data && matInv.data.length > 0) {
-                    let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
-                    if (!target) target = matInv.data[0];
-                    await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
-                }
-            }
-        }
-        await sb.from('expenses').delete().eq('related_order_id', id);
-        await sb.from('order_items').delete().eq('order_id', id);
-        await sb.from('orders').delete().eq('id', id);
-        showAlert('✅ 訂單已刪除，庫存已補回！');
-        await loadAll();
-        render();
-    } catch (e) {
-        showAlert('❌ 刪除失敗：' + e.message);
-        console.error('delOrd error:', e);
     }
 }
 
