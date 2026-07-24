@@ -139,6 +139,7 @@ let D = {
 let editingId = null, currentView = 'boss', bossMonth = new Date().toISOString().slice(0,7);
 let bossDateRange = { start: bossMonth, end: bossMonth };
 let isSaving = false;
+let isDeleting = false;   // ★ 新增，防止刪除時重複觸發
 
 const COLOR_NAMES = { '1':'紅色','2':'粉色','3':'紫色','4':'靛藍','5':'藍色','6':'青色','7':'綠色','8':'黃綠','9':'黃色','10':'橘色' };
 const PRODUCT_TYPE_MAP = { 'finished':'成品','semi':'半成品','gift_box':'禮盒','outer_box':'外箱子' };
@@ -224,12 +225,11 @@ function showAlert(msg) {
     function handleAlertKey(e) {
         if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
             e.preventDefault();
-            e.stopPropagation();  // 防止事件繼續傳播
+            e.stopPropagation();
             closeAlert();
         }
     }
     newOkBtn.addEventListener('click', closeAlert);
-    // 使用 capture 階段捕獲，避免與其他監聽衝突
     document.addEventListener('keydown', handleAlertKey, true);
     setTimeout(function() { newOkBtn.focus(); }, 100);
 }
@@ -300,28 +300,28 @@ function openModal(title, html, onSave, hideSave) {
             saveBtn.classList.add('hidden');
         } else {
             saveBtn.classList.remove('hidden');
-  saveBtn.onclick = function() {
-    if (isSaving) return;
-    isSaving = true;
-    saveBtn.disabled = true;
-    saveBtn.textContent = '儲存中...';
+            saveBtn.onclick = function() {
+                if (isSaving) return;
+                isSaving = true;
+                saveBtn.disabled = true;
+                saveBtn.textContent = '儲存中...';
 
-    Promise.resolve(onSave())
-        .then(function() {
-            isSaving = false;
-            saveBtn.disabled = false;
-            saveBtn.textContent = '儲存 (Enter)';
-            window.closeModal();
-        })
-        .catch(function(e) {
-            console.error('❌ Save error:', e || 'Unknown error');
-            isSaving = false;
-            saveBtn.disabled = false;
-            saveBtn.textContent = '儲存 (Enter)';
-            const msg = (e && e.message) ? e.message : '儲存失敗，請檢查欄位是否完整填寫。';
-            showAlert('❌ ' + msg);
-        });
-};
+                Promise.resolve(onSave())
+                    .then(function() {
+                        isSaving = false;
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '儲存 (Enter)';
+                        window.closeModal();
+                    })
+                    .catch(function(e) {
+                        console.error('❌ Save error:', e || 'Unknown error');
+                        isSaving = false;
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = '儲存 (Enter)';
+                        const msg = (e && e.message) ? e.message : '儲存失敗，請檢查欄位是否完整填寫。';
+                        showAlert('❌ ' + msg);
+                    });
+            };
         }
 
         footer.appendChild(cancelBtn);
@@ -1874,7 +1874,7 @@ async function openBankModal(id) {
 }
 
 async function saveBank() {
-    const id = document.getElementById('b-id').value; // 編輯時這裡會有值
+    const id = document.getElementById('b-id').value;
     const d = {
         account_name: document.getElementById('b-name').value,
         bank_name: document.getElementById('b-bank').value,
@@ -1886,13 +1886,8 @@ async function saveBank() {
         throw new Error('⚠️ 帳戶名稱必填！');
     }
     try {
-        if (id) {
-            // ★ 編輯模式：更新
-            await sb.from('bank_accounts').update(d).eq('id', id);
-        } else {
-            // ★ 新增模式：插入
-            await sb.from('bank_accounts').insert([d]);
-        }
+        if (id) await sb.from('bank_accounts').update(d).eq('id', id);
+        else await sb.from('bank_accounts').insert([d]);
         showAlert('✅ 已儲存！');
         window.closeModal();
         await loadAll();
@@ -2468,13 +2463,13 @@ function renderOrdTable() {
             const color = o.gross_profit_margin >= 0 ? 'text-green-600' : 'text-red-600';
             marginHtml = '<span class="' + color + ' font-bold">' + o.gross_profit_margin.toFixed(1) + '%</span>';
         }
-      let advanceHtml = '<span class="text-gray-400">-</span>';
-if (o.shipping_advance_employee_id && o.shipping_advance_amount > 0) {
-    const emp = D.emps.find(e => e.id === o.shipping_advance_employee_id);
-    if (emp) {
-        advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">' + emp.name + '</div><div class="font-bold">' + o.shipping_advance_amount.toLocaleString() + '</div></div>';
-    }
-}
+        let advanceHtml = '<span class="text-gray-400">-</span>';
+        if (o.shipping_advance_employee_id && o.shipping_advance_amount > 0) {
+            const emp = D.emps.find(e => e.id === o.shipping_advance_employee_id);
+            if (emp) {
+                advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">' + emp.name + '</div><div class="font-bold">' + o.shipping_advance_amount.toLocaleString() + '</div></div>';
+            }
+        }
         html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td><td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td><td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td><td class="px-4 py-3 text-center">' + advanceHtml + '</td><td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-center">' + marginHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
             '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
             '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
@@ -2500,7 +2495,7 @@ function clearOrdFilters() {
     renderOrdTable();
 }
 
-// ====== 開啓訂單 Modal（已修復） ======
+// ====== 開啓訂單 Modal ======
 async function openOrdModal(id) {
     try {
         editingId = id || null;
@@ -2568,19 +2563,19 @@ async function openOrdModal(id) {
             '<div class="ord-total-sticky"><div class="flex justify-between items-center flex-wrap gap-2"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
 
         openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
-// 強制重新綁定儲存按鈕（蓋過 openModal 的通用綁定）
-setTimeout(function() {
-    var saveBtn = document.getElementById('modal-save-btn');
-    if (saveBtn) {
-        saveBtn.onclick = function() {
-            if (typeof saveOrd === 'function') {
-                saveOrd();
-            } else {
-                alert('❌ saveOrd 未定義！');
+        // 強制重新綁定儲存按鈕（蓋過 openModal 的通用綁定）
+        setTimeout(function() {
+            var saveBtn = document.getElementById('modal-save-btn');
+            if (saveBtn) {
+                saveBtn.onclick = function() {
+                    if (typeof saveOrd === 'function') {
+                        saveOrd();
+                    } else {
+                        alert('❌ saveOrd 未定義！');
+                    }
+                };
             }
-        };
-    }
-}, 100);
+        }, 100);
 
         // ===== 編輯時載入資料 =====
         if (id && o) {
@@ -2628,6 +2623,7 @@ setTimeout(function() {
         showAlert('❌ 開啟訂單表單失敗：' + e.message);
     }
 }
+
 function searchCustomerInOrder() {
     const kw = document.getElementById('o-cust-search').value.toLowerCase();
     const select = document.getElementById('o-cust');
@@ -2806,7 +2802,7 @@ function calcOrd() {
     document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ========== 修復後的 saveOrd（完整驗證與儲存） ==========
+// ========== saveOrd - 最終完整版 ==========
 async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
@@ -2899,6 +2895,8 @@ async function saveOrd() {
         // ===== 7. 準備訂單資料 =====
         const orderNo = editingId ? (D.orders.find(o => o.id === editingId)?.order_no || 'ORD-' + Date.now()) : 'ORD-' + Date.now();
         const orderDate = new Date().toISOString();
+        // 提取日期字串（YYYY/MM/DD 格式），用於描述
+        const dateStr = new Date(orderDate).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
         const orderData = {
             customer_id: cid,
             warehouse_id: wid,
@@ -3038,11 +3036,14 @@ async function saveOrd() {
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const expensesToAdd = [];
 
+        // ★ 描述格式：「日期 收件人姓名」
+        const descPrefix = dateStr + ' ' + (recvName || '客戶');
+
         if (companyShipping > 0 && shippingCat) {
             expensesToAdd.push({
                 category_id: shippingCat.id,
                 amount: Math.round(companyShipping),
-                description: '訂單 ' + orderNo + ' 運費（公司吸收）',
+                description: descPrefix + ' 運費（公司吸收）',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: advanceEmpId || null,
                 is_reimbursed: !advanceEmpId,
@@ -3056,7 +3057,7 @@ async function saveOrd() {
             expensesToAdd.push({
                 category_id: (shippingCat || {}).id,
                 amount: Math.round(shippingFee),
-                description: '訂單 ' + orderNo + ' 運費代墊（' + (D.emps.find(e => e.id === advanceEmpId)?.name || '') + '）',
+                description: descPrefix + ' 運費代墊（' + (D.emps.find(e => e.id === advanceEmpId)?.name || '') + '）',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: advanceEmpId,
                 is_reimbursed: false,
@@ -3070,7 +3071,7 @@ async function saveOrd() {
             expensesToAdd.push({
                 category_id: channelCat.id,
                 amount: Math.round(chCommission),
-                description: '訂單 ' + orderNo + ' 通路抽成 (' + chRate + '%)',
+                description: descPrefix + ' 通路抽成 (' + chRate + '%)',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: null,
                 is_reimbursed: true,
@@ -3084,7 +3085,7 @@ async function saveOrd() {
             expensesToAdd.push({
                 category_id: paymentCat.id,
                 amount: Math.round(pmCommission),
-                description: '訂單 ' + orderNo + ' 付款手續費 (' + pmRate + '%)',
+                description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: null,
                 is_reimbursed: true,
@@ -3129,6 +3130,8 @@ async function saveOrd() {
         isSaving = false;
     }
 }
+
+// ===== delOrd（加入 isDeleting 鎖定） =====
 async function delOrd(id) {
     if (isDeleting) return;
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
@@ -3176,7 +3179,7 @@ async function delOrd(id) {
             }
         }
 
-        // 刪除關聯資料
+        // 刪除關聯資料（包含 expenses）
         await sb.from('expenses').delete().eq('related_order_id', id);
         await sb.from('order_items').delete().eq('order_id', id);
         await sb.from('orders').delete().eq('id', id);
@@ -3191,6 +3194,7 @@ async function delOrd(id) {
         isDeleting = false;
     }
 }
+
 async function viewOrdDetail(id) {
     const o = D.orders.find(function(x) { return x.id === id; });
     if (!o) return showAlert('找不到訂單');
