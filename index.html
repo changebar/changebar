@@ -2839,6 +2839,7 @@ async function saveOrd() {
         // 2. 收集商品
         const rows = document.querySelectorAll('#o-items .ord-item-row');
         const itemsData = [];
+        let totalCost = 0;
         for (const r of rows) {
             const pid = r.querySelector('.pu-prod-id')?.value;
             if (!pid) continue;
@@ -2854,6 +2855,13 @@ async function saveOrd() {
                 has_invoice: hasInvoice,
                 is_gift: isGift
             });
+            // 計算成本
+            const prod = D.products.find(p => p.id === pid);
+            if (prod) {
+                const cost = prod.cost_price || 0;
+                const finalCost = (hasInvoice && prod.type === 'finished') ? cost * 1.05 : cost;
+                totalCost += finalCost * qty;
+            }
         }
 
         // 3. 驗證必填
@@ -2871,14 +2879,13 @@ async function saveOrd() {
         }
 
         // 4. 計算金額
-        let productTotal = 0, totalCost = 0;
+        let productTotal = 0;
         for (const item of itemsData) {
             const prod = D.products.find(p => p.id === item.product_id);
             if (!prod) continue;
             const cost = prod.cost_price || 0;
             const finalCost = (item.has_invoice && prod.type === 'finished') ? cost * 1.05 : cost;
             if (!item.is_gift) productTotal += item.unit_price * item.quantity;
-            totalCost += finalCost * item.quantity;
         }
         const customerShipping = (shipPayer === 'customer') ? shippingFee : 0;
         const companyShipping = (shipPayer === 'company') ? shippingFee : 0;
@@ -2897,11 +2904,11 @@ async function saveOrd() {
         const pmCommission = Math.round(totalAmount * (pmRate / 100));
         const totalExpenses = chCommission + pmCommission + companyShipping;
 
-        // 6. 毛利率
+        // 毛利率
         const grossProfit = totalAmount - totalCost - totalExpenses;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
 
-        // ★★★ 計算「銀行實際入帳淨額」= 總金額 - 通路抽成 - 付款手續費 - 公司吸收運費 ★★★
+        // ★★★ 銀行實際入帳淨額 = 總金額 - 所有費用 ★★★
         const netBankAmount = totalAmount - chCommission - pmCommission - companyShipping;
 
         // 7. 準備訂單資料
@@ -2943,11 +2950,10 @@ async function saveOrd() {
         let orderId = editingId;
         let oldItems = [];
         let oldBankId = null;
-        let oldTotalAmount = 0;
-        let oldChCommission = 0, oldPmCommission = 0, oldCompanyShipping = 0;
         let oldNetBankAmount = 0;
+        let oldTotalAmount = 0;
 
-        // 8. 編輯模式：先處理舊資料（退還舊銀行淨額）
+        // 8. 編輯模式：先處理舊資料
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
             const oldOrder = oldOrderResp.data;
@@ -2955,20 +2961,20 @@ async function saveOrd() {
             oldBankId = oldOrder.bank_account_id;
             oldTotalAmount = oldOrder.total_amount || 0;
 
-            // 重新計算舊的佣金與手續費（因為訂單的費用記錄可能存在，但我們直接從訂單資料計算）
-            const oldChSelect = D.channels.find(ch => ch.id === oldOrder.sales_channel_id);
-            const oldPmSelect = D.payments.find(pm => pm.id === oldOrder.payment_method_id);
-            const oldChRate = oldChSelect ? oldChSelect.commission_rate || 0 : 0;
-            const oldPmRate = oldPmSelect ? oldPmSelect.commission_rate || 0 : 0;
-            oldChCommission = Math.round(oldTotalAmount * (oldChRate / 100));
-            oldPmCommission = Math.round(oldTotalAmount * (oldPmRate / 100));
-            oldCompanyShipping = oldOrder.absorbed_shipping_fee || 0;
-            oldNetBankAmount = oldTotalAmount - oldChCommission - oldPmCommission - oldCompanyShipping;
+            // 計算舊的淨額
+            const oldCh = D.channels.find(ch => ch.id === oldOrder.sales_channel_id);
+            const oldPm = D.payments.find(pm => pm.id === oldOrder.payment_method_id);
+            const oldChRate = oldCh ? oldCh.commission_rate || 0 : 0;
+            const oldPmRate = oldPm ? oldPm.commission_rate || 0 : 0;
+            const oldChComm = Math.round(oldTotalAmount * (oldChRate / 100));
+            const oldPmComm = Math.round(oldTotalAmount * (oldPmRate / 100));
+            const oldShip = oldOrder.absorbed_shipping_fee || 0;
+            oldNetBankAmount = oldTotalAmount - oldChComm - oldPmComm - oldShip;
 
             const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
             oldItems = oldItemsResp.data || [];
 
-            // ★★★ 退回舊銀行淨額（加回來） ★★★
+            // ★★★ 退回舊銀行淨額 ★★★
             if (oldBankId && oldNetBankAmount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
@@ -3004,15 +3010,12 @@ async function saveOrd() {
                 }
             }
 
-            // 刪除舊的 order_items（費用記錄保留，後續更新）
             await sb.from('order_items').delete().eq('order_id', editingId);
 
-            // 更新訂單
             const updateResult = await sb.from('orders').update(orderData).eq('id', editingId);
             if (updateResult.error) throw new Error('更新訂單失敗：' + updateResult.error.message);
             orderId = editingId;
         } else {
-            // 新增模式
             const insertResult = await sb.from('orders').insert([orderData]).select().single();
             if (insertResult.error) throw new Error('新增訂單失敗：' + insertResult.error.message);
             orderId = insertResult.data.id;
@@ -3051,7 +3054,7 @@ async function saveOrd() {
             }
         }
 
-        // 11. ★★★ 入帳新淨額（增加銀行餘額 = 總金額 - 通路抽成 - 付款手續費 - 公司吸收運費） ★★★
+        // 11. ★★★ 入帳新淨額 ★★★
         if (bankId && netBankAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (!bank.error) {
@@ -3060,14 +3063,13 @@ async function saveOrd() {
             }
         }
 
-        // 12. ★★★ 處理費用記錄（編輯時不刪除，改為更新或插入） ★★★
+        // 12. 處理費用記錄（更新或插入）
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const channelCat = expCats.find(c => c.name === '通路抽成');
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
 
-        // 定義要產生的費用列表
         const newExpenses = [];
         if (companyShipping > 0 && shippingCat) {
             newExpenses.push({
@@ -3123,16 +3125,13 @@ async function saveOrd() {
         }
 
         if (editingId) {
-            // 編輯模式：更新現有費用，或插入新費用，並刪除不再存在的費用
             for (const newExp of newExpenses) {
                 if (!newExp.category_id) {
                     console.warn('⚠️ 跳過費用記錄，找不到對應類別：', newExp.description);
                     continue;
                 }
-                // 查詢是否已有相同 related_order_id 和 category_id 的記錄
                 const existing = D.expenses.find(e => e.related_order_id === orderId && e.category_id === newExp.category_id);
                 if (existing) {
-                    // 更新現有記錄
                     await sb.from('expenses').update({
                         amount: newExp.amount,
                         description: newExp.description,
@@ -3143,9 +3142,7 @@ async function saveOrd() {
                         reimbursed_date: newExp.reimbursed_date
                     }).eq('id', existing.id);
                 } else {
-                    // 插入新記錄
                     await sb.from('expenses').insert([newExp]);
-                    // 若已結帳且需扣銀行，更新銀行餘額（費用支出）
                     if (newExp.is_reimbursed && newExp.reimbursement_bank_id && newExp.amount > 0) {
                         const bank = D.banks.find(b => b.id === newExp.reimbursement_bank_id);
                         if (bank) {
@@ -3154,7 +3151,6 @@ async function saveOrd() {
                     }
                 }
             }
-            // 如果有舊費用但新列表中沒有，則刪除（例如原本有運費現在沒有了）
             const oldExpenses = D.expenses.filter(e => e.related_order_id === orderId);
             for (const oldExp of oldExpenses) {
                 const stillExists = newExpenses.some(e => e.category_id === oldExp.category_id);
@@ -3163,7 +3159,6 @@ async function saveOrd() {
                 }
             }
         } else {
-            // 新增模式：直接插入
             if (newExpenses.length > 0) {
                 for (const exp of newExpenses) {
                     if (!exp.category_id) {
@@ -3181,7 +3176,6 @@ async function saveOrd() {
             }
         }
 
-        // 13. 完成
         showAlert('✅ 出貨單已儲存！');
         window.closeModal();
         await loadAll();
