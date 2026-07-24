@@ -2763,10 +2763,11 @@ function calcOrd() {
 
 // ========== 修復後的 saveOrd（完整驗證與儲存） ==========
 async function saveOrd() {
-    alert('saveOrd 被呼叫了！');
     if (isSaving) return;
     isSaving = true;
     try {
+        console.log('🚀 saveOrd 開始執行');
+
         // 1. 收集表單數據
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
@@ -2798,6 +2799,7 @@ async function saveOrd() {
                 });
             }
         }
+        console.log('📦 itemsData:', itemsData);
 
         // 2. 驗證必填
         const missing = [];
@@ -2883,6 +2885,7 @@ async function saveOrd() {
             shipping_advance_reimbursed_date: null,
             created_at: orderDate
         };
+        console.log('📝 訂單資料:', data);
 
         let orderId = editingId, oldOrder = null, oldItems = [];
         if (editingId) {
@@ -2924,44 +2927,66 @@ async function saveOrd() {
             await sb.from('expenses').delete().eq('related_order_id', editingId);
         }
 
+        let insertResult;
         if (editingId) {
-            await sb.from('orders').update(data).eq('id', editingId);
+            console.log('🔄 編輯訂單 ID:', editingId);
+            const updateResult = await sb.from('orders').update(data).eq('id', editingId);
+            if (updateResult.error) throw new Error('❌ 更新訂單失敗：' + updateResult.error.message);
+            orderId = editingId;
         } else {
-            const insertResult = await sb.from('orders').insert([data]).select().single();
+            console.log('➕ 新增訂單');
+            insertResult = await sb.from('orders').insert([data]).select().single();
             if (insertResult.error) throw new Error('❌ 訂單插入失敗：' + insertResult.error.message);
             orderId = insertResult.data.id;
             editingId = orderId;
+            console.log('✅ 訂單插入成功，ID:', orderId);
         }
 
-        // ---------- ★★★ 核心修復：插入 order_items（支援欄位缺失） ★★★ ----------
+        // ---------- 插入 order_items ----------
         if (finalItems.length > 0) {
             try {
                 const itemsWithOrderId = finalItems.map(i => Object.assign({}, i, { order_id: orderId }));
-                await sb.from('order_items').insert(itemsWithOrderId);
+                console.log('📤 要插入的 order_items:', itemsWithOrderId);
+                const itemsResult = await sb.from('order_items').insert(itemsWithOrderId);
+                if (itemsResult.error) throw new Error('❌ 插入 order_items 失敗：' + itemsResult.error.message);
+                console.log('✅ order_items 插入成功');
             } catch (itemError) {
-                // 若完整插入失敗（可能缺少 has_invoice 或 is_gift 欄位），則去掉這兩個欄位重試
+                // 如果完整插入失敗（可能缺少 has_invoice 或 is_gift 欄位），則去掉這兩個欄位重試
+                console.warn('⚠️ 完整插入失敗，嘗試去掉 has_invoice/is_gift 重試:', itemError.message);
                 const itemsWithoutExtra = finalItems.map(i => {
                     const { has_invoice, is_gift, ...rest } = i;
                     return { ...rest, order_id: orderId };
                 });
-                await sb.from('order_items').insert(itemsWithoutExtra);
+                const itemsResult = await sb.from('order_items').insert(itemsWithoutExtra);
+                if (itemsResult.error) throw new Error('❌ 重試插入 order_items 仍失敗：' + itemsResult.error.message);
+                console.log('✅ order_items 插入成功（去掉額外欄位）');
                 showAlert('⚠️ 偵測到 order_items 缺少 has_invoice 或 is_gift 欄位，已暫停該功能。\n建議執行：\nALTER TABLE order_items ADD COLUMN has_invoice BOOLEAN DEFAULT FALSE;\nALTER TABLE order_items ADD COLUMN is_gift BOOLEAN DEFAULT FALSE;');
             }
         }
 
+        // 入款銀行更新餘額
         if (bankId && totalAmount > 0) {
-            const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-            if (newBank.data) await sb.from('bank_accounts').update({ balance: (newBank.data.balance || 0) + totalAmount }).eq('id', bankId);
+            const bankResult = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (bankResult.error) throw new Error('❌ 查詢銀行餘額失敗：' + bankResult.error.message);
+            const newBalance = (bankResult.data.balance || 0) + totalAmount;
+            const updateBank = await sb.from('bank_accounts').update({ balance: newBalance }).eq('id', bankId);
+            if (updateBank.error) throw new Error('❌ 更新銀行餘額失敗：' + updateBank.error.message);
+            console.log('✅ 銀行餘額已更新');
         }
 
+        // 扣除庫存（僅新增訂單時）
         if (!editingId) {
             for (let item of finalItems) {
                 const prod = D.products.find(p => p.id === item.product_id);
                 if (!prod) continue;
                 if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
                     const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
-                    if (inv.data) await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
-                    else await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+                    if (inv.data) {
+                        const newQty = (inv.data.quantity || 0) - item.quantity;
+                        await sb.from('warehouse_inventory').update({ quantity: newQty }).eq('id', inv.data.id);
+                    } else {
+                        await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+                    }
                 }
                 const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
                 for (let bom of bomItems) {
@@ -2976,6 +3001,7 @@ async function saveOrd() {
                     }
                 }
             }
+            console.log('✅ 庫存已扣除');
         }
 
         // ----- 運費記錄到收支 -----
@@ -3045,7 +3071,8 @@ async function saveOrd() {
             for (let exp of expensesToAdd) {
                 const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
                 if (!existing) {
-                    await sb.from('expenses').insert([exp]);
+                    const expResult = await sb.from('expenses').insert([exp]);
+                    if (expResult.error) throw new Error('❌ 插入費用失敗：' + expResult.error.message);
                     if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
                         const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
                         if (bank) {
@@ -3054,19 +3081,23 @@ async function saveOrd() {
                     }
                 }
             }
+            console.log('✅ 費用已記錄');
         }
 
         showAlert('✅ 出貨單已儲存！');
         window.closeModal();
         await loadAll();
+        console.log('🔄 資料重新載入完成');
         if (currentView === 'orders') {
             renderOrders(document.getElementById('main-content'));
+            console.log('📋 訂單列表已重新渲染');
         } else {
             render();
         }
     } catch (e) {
-        console.error('saveOrd 錯誤：', e);
-        throw e;
+        console.error('❌ saveOrd 錯誤：', e);
+        showAlert('❌ 儲存失敗：' + e.message);
+        throw e; // 讓 modal 的 catch 也能捕捉
     } finally {
         isSaving = false;
     }
