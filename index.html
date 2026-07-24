@@ -2808,11 +2808,10 @@ function calcOrd() {
 
 // ========== 修復後的 saveOrd（完整驗證與儲存） ==========
 async function saveOrd() {
-   alert('🔥 saveOrd 被呼叫了！');
     if (isSaving) return;
     isSaving = true;
     try {
-        // ===== 1. 收集所有表單值 =====
+        // ===== 1. 收集表單值 =====
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
         const bankId = document.getElementById('o-bank').value;
@@ -2832,7 +2831,7 @@ async function saveOrd() {
         const hasAdvance = document.getElementById('o-has-advance').checked;
         const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
 
-        // ===== 2. 收集商品明細 =====
+        // ===== 2. 收集商品 =====
         const rows = document.querySelectorAll('#o-items .ord-item-row');
         const itemsData = [];
         for (const r of rows) {
@@ -2852,7 +2851,7 @@ async function saveOrd() {
             });
         }
 
-        // ===== 3. 驗證必填欄位 =====
+        // ===== 3. 驗證必填 =====
         const missing = [];
         if (!cid) missing.push('客戶');
         if (!wid) missing.push('出貨倉庫');
@@ -2861,12 +2860,12 @@ async function saveOrd() {
         if (!pmId) missing.push('付款方式');
         if (itemsData.length === 0) missing.push('至少一個商品');
         if (missing.length > 0) {
-    alert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
-    isSaving = false;
-    return;
-}
+            showAlert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
+            isSaving = false;
+            return;
+        }
 
-        // ===== 4. 計算金額 =====
+        // ===== 4. 計算金額與成本 =====
         let productTotal = 0, totalCost = 0;
         for (const item of itemsData) {
             const prod = D.products.find(p => p.id === item.product_id);
@@ -2884,7 +2883,7 @@ async function saveOrd() {
         if (totalAmount < 0) totalAmount = 0;
         totalAmount = Math.round(totalAmount);
 
-        // ===== 5. 通路與付款手續費 =====
+        // ===== 5. 佣金與手續費 =====
         const chSelect = document.getElementById('o-channel');
         const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
         const pmSelect = document.getElementById('o-payment');
@@ -2925,7 +2924,7 @@ async function saveOrd() {
             subscription_days: 0,
             coupon_amount: coupon,
             points_amount: points,
-            shipping_advance_amount: hasAdvance ? shippingFee : 0,  // ★ 修正：代墊金額等於運費
+            shipping_advance_amount: hasAdvance ? shippingFee : 0,
             shipping_advance_reimbursed: false,
             shipping_advance_bank_id: null,
             shipping_advance_reimbursed_date: null,
@@ -2990,7 +2989,7 @@ async function saveOrd() {
             orderId = insertResult.data.id;
         }
 
-        // ===== 9. 插入新的 order_items =====
+        // ===== 9. 插入 order_items =====
         if (itemsData.length > 0) {
             const itemsWithOrder = itemsData.map(item => ({ ...item, order_id: orderId }));
             const itemResult = await sb.from('order_items').insert(itemsWithOrder);
@@ -3034,33 +3033,29 @@ async function saveOrd() {
 
         // ===== 12. 記錄費用到收支 =====
         const expCats = D.expCats;
-        // ★ 請確認 expense_categories 中有「運費」「通路抽成」「付款手續費」這些類別
         const shippingCat = expCats.find(c => c.name === '運費');
         const channelCat = expCats.find(c => c.name === '通路抽成');
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const expensesToAdd = [];
 
-        // 運費（公司吸收）
         if (companyShipping > 0 && shippingCat) {
-            const isReimbursed = !advanceEmpId;
             expensesToAdd.push({
                 category_id: shippingCat.id,
-                amount: companyShipping,
+                amount: Math.round(companyShipping),
                 description: '訂單 ' + orderNo + ' 運費（公司吸收）',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: advanceEmpId || null,
-                is_reimbursed: isReimbursed,
-                reimbursement_bank_id: isReimbursed ? bankId : null,
-                reimbursed_date: isReimbursed ? new Date().toISOString().split('T')[0] : null,
+                is_reimbursed: !advanceEmpId,
+                reimbursement_bank_id: !advanceEmpId ? bankId : null,
+                reimbursed_date: !advanceEmpId ? new Date().toISOString().split('T')[0] : null,
                 related_order_id: orderId
             });
         }
 
-        // 運費代墊（員工墊付）
         if (hasAdvance && advanceEmpId && shippingFee > 0) {
             expensesToAdd.push({
                 category_id: (shippingCat || {}).id,
-                amount: shippingFee,
+                amount: Math.round(shippingFee),
                 description: '訂單 ' + orderNo + ' 運費代墊（' + (D.emps.find(e => e.id === advanceEmpId)?.name || '') + '）',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: advanceEmpId,
@@ -3071,7 +3066,6 @@ async function saveOrd() {
             });
         }
 
-        // ★ 通路抽成
         if (chCommission > 0 && channelCat) {
             expensesToAdd.push({
                 category_id: channelCat.id,
@@ -3086,7 +3080,6 @@ async function saveOrd() {
             });
         }
 
-        // ★ 付款手續費
         if (pmCommission > 0 && paymentCat) {
             expensesToAdd.push({
                 category_id: paymentCat.id,
@@ -3101,26 +3094,24 @@ async function saveOrd() {
             });
         }
 
-        // 插入費用
-       if (expensesToAdd.length > 0) {
-    for (const exp of expensesToAdd) {
-        // ★ 如果類別不存在（category_id 為空），跳過這筆費用
-        if (!exp.category_id) {
-            console.warn('⚠️ 跳過費用記錄，因為找不到對應類別：', exp.description);
-            continue;
-        }
-        const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
-        if (!existing) {
-            await sb.from('expenses').insert([exp]);
-            if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
-                const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
-                if (bank) {
-                    await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
+        if (expensesToAdd.length > 0) {
+            for (const exp of expensesToAdd) {
+                if (!exp.category_id) {
+                    console.warn('⚠️ 跳過費用記錄，找不到對應類別：', exp.description);
+                    continue;
+                }
+                const existing = D.expenses.find(e => e.related_order_id === exp.related_order_id && e.category_id === exp.category_id && Math.abs(e.amount - exp.amount) < 0.01 && e.description === exp.description);
+                if (!existing) {
+                    await sb.from('expenses').insert([exp]);
+                    if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                        const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
+                        if (bank) {
+                            await sb.from('bank_accounts').update({ balance: (bank.balance || 0) - exp.amount }).eq('id', exp.reimbursement_bank_id);
+                        }
+                    }
                 }
             }
         }
-    }
-}
 
         // ===== 13. 完成 =====
         showAlert('✅ 出貨單已儲存！');
@@ -3138,8 +3129,6 @@ async function saveOrd() {
         isSaving = false;
     }
 }
-let isDeleting = false;  // 放在函數外部，全域
-
 async function delOrd(id) {
     if (isDeleting) return;
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
