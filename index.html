@@ -2893,13 +2893,16 @@ async function saveOrd() {
         const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
         const pmSelect = document.getElementById('o-payment');
         const pmRate = pmSelect.selectedIndex > 0 ? parseFloat(pmSelect.options[pmSelect.selectedIndex].dataset.rate) || 0 : 0;
-        const chCommission = totalAmount * (chRate / 100);
-        const pmCommission = totalAmount * (pmRate / 100);
+        const chCommission = Math.round(totalAmount * (chRate / 100));
+        const pmCommission = Math.round(totalAmount * (pmRate / 100));
+        const totalExpenses = chCommission + pmCommission + companyShipping;
 
         // 6. 毛利率
-        const totalExpenses = chCommission + pmCommission + companyShipping;
         const grossProfit = totalAmount - totalCost - totalExpenses;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
+
+        // ★★★ 計算「銀行實際入帳淨額」= 總金額 - 通路抽成 - 付款手續費 - 公司吸收運費 ★★★
+        const netBankAmount = totalAmount - chCommission - pmCommission - companyShipping;
 
         // 7. 準備訂單資料
         const orderNo = editingId ? (D.orders.find(o => o.id === editingId)?.order_no || 'ORD-' + Date.now()) : 'ORD-' + Date.now();
@@ -2941,30 +2944,36 @@ async function saveOrd() {
         let oldItems = [];
         let oldBankId = null;
         let oldTotalAmount = 0;
-        let oldChId = null, oldPmId = null, oldShippingFee = 0, oldShipPayer = null, oldRecvName = null;
+        let oldChCommission = 0, oldPmCommission = 0, oldCompanyShipping = 0;
+        let oldNetBankAmount = 0;
 
-        // 8. 編輯模式：先處理舊資料（退還舊銀行餘額，且不刪除 expenses）
+        // 8. 編輯模式：先處理舊資料（退還舊銀行淨額）
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
             const oldOrder = oldOrderResp.data;
             if (!oldOrder) throw new Error('找不到要編輯的訂單');
             oldBankId = oldOrder.bank_account_id;
             oldTotalAmount = oldOrder.total_amount || 0;
-            oldChId = oldOrder.sales_channel_id;
-            oldPmId = oldOrder.payment_method_id;
-            oldShippingFee = oldOrder.shipping_fee || 0;
-            oldShipPayer = (oldOrder.customer_paid_shipping > 0) ? 'customer' : 'company';
-            oldRecvName = oldOrder.shipping_recv_name || null;
+
+            // 重新計算舊的佣金與手續費（因為訂單的費用記錄可能存在，但我們直接從訂單資料計算）
+            const oldChSelect = D.channels.find(ch => ch.id === oldOrder.sales_channel_id);
+            const oldPmSelect = D.payments.find(pm => pm.id === oldOrder.payment_method_id);
+            const oldChRate = oldChSelect ? oldChSelect.commission_rate || 0 : 0;
+            const oldPmRate = oldPmSelect ? oldPmSelect.commission_rate || 0 : 0;
+            oldChCommission = Math.round(oldTotalAmount * (oldChRate / 100));
+            oldPmCommission = Math.round(oldTotalAmount * (oldPmRate / 100));
+            oldCompanyShipping = oldOrder.absorbed_shipping_fee || 0;
+            oldNetBankAmount = oldTotalAmount - oldChCommission - oldPmCommission - oldCompanyShipping;
 
             const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
             oldItems = oldItemsResp.data || [];
 
-            // ★★★ 退回舊銀行餘額（加回來） ★★★
-            if (oldBankId && oldTotalAmount > 0) {
+            // ★★★ 退回舊銀行淨額（加回來） ★★★
+            if (oldBankId && oldNetBankAmount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
                     await sb.from('bank_accounts').update({
-                        balance: (oldBank.data.balance || 0) + oldTotalAmount
+                        balance: (oldBank.data.balance || 0) + oldNetBankAmount
                     }).eq('id', oldBankId);
                 }
             }
@@ -2995,8 +3004,7 @@ async function saveOrd() {
                 }
             }
 
-            // ★★★ 不刪除 expenses，改為更新/插入，避免未修改時消失 ★★★
-            // 先刪除舊的 order_items
+            // 刪除舊的 order_items（費用記錄保留，後續更新）
             await sb.from('order_items').delete().eq('order_id', editingId);
 
             // 更新訂單
@@ -3043,11 +3051,11 @@ async function saveOrd() {
             }
         }
 
-        // 11. ★★★ 入帳新金額（增加銀行餘額） ★★★
-        if (bankId && totalAmount > 0) {
+        // 11. ★★★ 入帳新淨額（增加銀行餘額 = 總金額 - 通路抽成 - 付款手續費 - 公司吸收運費） ★★★
+        if (bankId && netBankAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (!bank.error) {
-                const newBal = (bank.data.balance || 0) + totalAmount;
+                const newBal = (bank.data.balance || 0) + netBankAmount;
                 await sb.from('bank_accounts').update({ balance: newBal }).eq('id', bankId);
             }
         }
@@ -3090,7 +3098,7 @@ async function saveOrd() {
         if (chCommission > 0 && channelCat) {
             newExpenses.push({
                 category_id: channelCat.id,
-                amount: Math.round(chCommission),
+                amount: chCommission,
                 description: descPrefix + ' 通路抽成 (' + chRate + '%)',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: null,
@@ -3103,7 +3111,7 @@ async function saveOrd() {
         if (pmCommission > 0 && paymentCat) {
             newExpenses.push({
                 category_id: paymentCat.id,
-                amount: Math.round(pmCommission),
+                amount: pmCommission,
                 description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
                 payment_date: new Date().toISOString().split('T')[0],
                 employee_id: null,
@@ -3137,7 +3145,7 @@ async function saveOrd() {
                 } else {
                     // 插入新記錄
                     await sb.from('expenses').insert([newExp]);
-                    // 若已結帳且需扣銀行，更新銀行餘額
+                    // 若已結帳且需扣銀行，更新銀行餘額（費用支出）
                     if (newExp.is_reimbursed && newExp.reimbursement_bank_id && newExp.amount > 0) {
                         const bank = D.banks.find(b => b.id === newExp.reimbursement_bank_id);
                         if (bank) {
