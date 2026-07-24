@@ -2752,15 +2752,12 @@ async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
     try {
-        alert('===== 步驟 1：函數已執行 =====');
-
         // 1. 取得基本表單值
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
         const bankId = document.getElementById('o-bank').value;
         const chId = document.getElementById('o-channel').value;
         const pmId = document.getElementById('o-payment').value;
-        alert('步驟 2：客戶=' + cid + '，倉庫=' + wid + '，銀行=' + bankId);
 
         // 2. 取得商品明細
         const rows = document.querySelectorAll('#o-items .ord-item-row');
@@ -2770,28 +2767,28 @@ async function saveOrd() {
             if (!pid) continue;
             const qty = parseInt(r.querySelector('.o-qty').value) || 1;
             const price = parseFloat(r.querySelector('.o-price').value) || 0;
-            items.push({ product_id: pid, quantity: qty, unit_price: price });
+            const isGift = r.querySelector('.o-is-gift')?.checked || false;
+            const hasInvoice = r.querySelector('.o-has-invoice')?.checked || false;
+            items.push({ product_id: pid, quantity: qty, unit_price: price, is_gift: isGift, has_invoice: hasInvoice });
         }
         if (items.length === 0) {
-            alert('❌ 錯誤：沒有商品，請加入至少一個商品！');
+            showAlert('❌ 錯誤：請至少加入一個商品！');
             return;
         }
-        alert('步驟 3：商品數量=' + items.length);
 
-        // 3. 計算總金額（簡化）
+        // 3. 計算總金額
         let total = 0;
-        for (const it of items) total += it.unit_price * it.quantity;
-        // 加上運費（客戶支付）
+        for (const it of items) {
+            if (!it.is_gift) total += it.unit_price * it.quantity;
+        }
         const shipping = parseFloat(document.getElementById('o-shipping-fee').value) || 0;
         if (document.getElementById('o-ship-payer').value === 'customer') total += shipping;
-        // 折價券與紅利
         const coupon = parseFloat(document.getElementById('o-coupon-amount').value) || 0;
         const points = parseFloat(document.getElementById('o-points-amount').value) || 0;
         total = Math.round(total - coupon - points);
         if (total < 0) total = 0;
-        alert('步驟 4：總金額=' + total);
 
-        // 4. 準備訂單資料（只填必要的欄位，其他用預設）
+        // 4. 準備訂單資料
         const orderData = {
             customer_id: cid,
             warehouse_id: wid,
@@ -2803,51 +2800,67 @@ async function saveOrd() {
             payment_method_id: pmId || null,
             shipping_fee: shipping,
             created_at: new Date().toISOString(),
-            // 其他可能需要的欄位（如果有資料庫預設值，可以省略）
             gross_profit_margin: 0,
-            invoice_type: 'no',
-            absorbed_shipping_fee: 0,
+            invoice_type: document.getElementById('o-invoice-type').value || 'no',
+            invoice_no: document.getElementById('o-invoice-no').value || null,
+            invoice_title: document.getElementById('o-invoice-title').value || null,
+            invoice_tax_id: document.getElementById('o-invoice-tax').value || null,
+            absorbed_shipping_fee: document.getElementById('o-ship-payer').value === 'company' ? shipping : 0,
             customer_paid_shipping: document.getElementById('o-ship-payer').value === 'customer' ? shipping : 0,
             coupon_amount: coupon,
-            points_amount: points
+            points_amount: points,
+            shipping_recv_name: document.getElementById('o-recv-name').value || null,
+            shipping_recv_phone: document.getElementById('o-recv-phone').value || null,
+            shipping_address: document.getElementById('o-recv-addr').value || null,
+            shipping_advance_employee_id: null,
+            shipping_advance_amount: 0,
+            shipping_advance_reimbursed: false,
+            shipping_advance_bank_id: null,
+            shipping_advance_reimbursed_date: null,
+            is_subscription_order: false,
+            subscription_days: 0
         };
-        alert('步驟 5：訂單資料準備完成，即將插入 orders');
 
-        // 5. 插入 orders (使用 .select() 取得回傳的 ID)
+        // 5. 插入 orders
         const orderResult = await sb.from('orders').insert([orderData]).select();
-        alert('步驟 6：orders 插入結果：' + JSON.stringify(orderResult));
         if (orderResult.error) {
-            alert('❌ orders 插入失敗：' + orderResult.error.message);
+            showAlert('❌ 訂單儲存失敗：' + orderResult.error.message);
             return;
         }
         if (!orderResult.data || orderResult.data.length === 0) {
-            alert('❌ orders 插入成功但沒有回傳資料');
+            showAlert('❌ 訂單儲存成功但未回傳資料，請檢查資料表設定。');
             return;
         }
         const orderId = orderResult.data[0].id;
-        alert('✅ 步驟 7：訂單 ID=' + orderId + ' 插入成功！');
 
         // 6. 插入 order_items
         const itemData = items.map(it => ({ ...it, order_id: orderId }));
         const itemResult = await sb.from('order_items').insert(itemData);
-        alert('步驟 8：order_items 插入結果：' + JSON.stringify(itemResult));
         if (itemResult.error) {
-            alert('❌ order_items 插入失敗：' + itemResult.error.message);
-            return;
+            // 如果完整插入失敗（可能缺少 has_invoice 或 is_gift 欄位），嘗試去掉這兩個欄位
+            if (itemResult.message.includes('column') && (itemResult.message.includes('has_invoice') || itemResult.message.includes('is_gift'))) {
+                const simpleItems = items.map(({ product_id, quantity, unit_price, order_id }) => ({ product_id, quantity, unit_price, order_id }));
+                const retryResult = await sb.from('order_items').insert(simpleItems);
+                if (retryResult.error) {
+                    showAlert('❌ 訂單明細儲存失敗：' + retryResult.error.message);
+                    return;
+                }
+            } else {
+                showAlert('❌ 訂單明細儲存失敗：' + itemResult.error.message);
+                return;
+            }
         }
-        alert('✅ 步驟 9：訂單明細插入成功！');
 
-        // 7. 更新銀行餘額（可選）
+        // 7. 更新銀行餘額
         if (bankId && total > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (!bank.error) {
                 const newBal = (bank.data.balance || 0) + total;
                 await sb.from('bank_accounts').update({ balance: newBal }).eq('id', bankId);
-                alert('✅ 步驟 10：銀行餘額已更新為 ' + newBal);
             }
         }
 
-        alert('🎉 所有步驟完成！訂單已儲存！');
+        // 8. 儲存成功，關閉視窗並刷新
         showAlert('✅ 訂單儲存成功！');
         window.closeModal();
         await loadAll();
@@ -2857,11 +2870,12 @@ async function saveOrd() {
             render();
         }
     } catch (e) {
-        alert('❌ 意外錯誤：' + e.message + '\n\n請查看 Console 詳細資訊');
+        showAlert('❌ 儲存過程中發生錯誤：' + e.message);
         console.error(e);
     } finally {
         isSaving = false;
     }
+}
 }
 async function delOrd(id) {
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
