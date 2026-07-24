@@ -2568,6 +2568,19 @@ async function openOrdModal(id) {
             '<div class="ord-total-sticky"><div class="flex justify-between items-center flex-wrap gap-2"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
 
         openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
+// 強制重新綁定儲存按鈕（蓋過 openModal 的通用綁定）
+setTimeout(function() {
+    var saveBtn = document.getElementById('modal-save-btn');
+    if (saveBtn) {
+        saveBtn.onclick = function() {
+            if (typeof saveOrd === 'function') {
+                saveOrd();
+            } else {
+                alert('❌ saveOrd 未定義！');
+            }
+        };
+    }
+}, 100);
 
         // ===== 編輯時載入資料 =====
         if (id && o) {
@@ -2795,6 +2808,7 @@ function calcOrd() {
 
 // ========== 修復後的 saveOrd（完整驗證與儲存） ==========
 async function saveOrd() {
+   alert('🔥 saveOrd 被呼叫了！');
     if (isSaving) return;
     isSaving = true;
     try {
@@ -2847,10 +2861,10 @@ async function saveOrd() {
         if (!pmId) missing.push('付款方式');
         if (itemsData.length === 0) missing.push('至少一個商品');
         if (missing.length > 0) {
-            showAlert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
-            isSaving = false;
-            return;
-        }
+    alert('⚠️ 以下欄位尚未填寫，請補齊後再儲存：\n\n' + missing.join('\n'));
+    isSaving = false;
+    return;
+}
 
         // ===== 4. 計算金額 =====
         let productTotal = 0, totalCost = 0;
