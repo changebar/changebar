@@ -3585,7 +3585,6 @@ for (const item of items) {
         isDeleting = false;
     }
 }
-
 async function viewOrdDetail(id) {
     const o = D.orders.find(function(x) { return x.id === id; });
     if (!o) return showAlert('找不到訂單');
