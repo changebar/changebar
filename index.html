@@ -2947,7 +2947,7 @@ async function saveOrd() {
         let oldNetAmount = 0;
 
         // ================================================================
-        //  8. 編輯模式
+        //  8. 編輯模式：先取得舊資料，但先不處理銀行，等計算出新舊淨額後再統一處理
         // ================================================================
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
@@ -2956,7 +2956,6 @@ async function saveOrd() {
             oldBankId = oldOrder.bank_account_id;
             oldTotalAmount = oldOrder.total_amount || 0;
 
-            // 查詢舊的 expenses
             const oldExpensesResp = await sb.from('expenses').select('*').eq('related_order_id', editingId);
             const oldExpensesData = oldExpensesResp.data || [];
             oldExpensesTotal = oldExpensesData.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -2991,9 +2990,11 @@ async function saveOrd() {
                 }
             }
 
+            // 刪除舊的 order_items 和 expenses（稍後會重新插入）
             await sb.from('order_items').delete().eq('order_id', editingId);
             await sb.from('expenses').delete().eq('related_order_id', editingId);
 
+            // 更新訂單
             const updateResult = await sb.from('orders').update(orderData).eq('id', editingId);
             if (updateResult.error) throw new Error('更新訂單失敗：' + updateResult.error.message);
             orderId = editingId;
@@ -3044,7 +3045,7 @@ async function saveOrd() {
         }
 
         // ================================================================
-        //  12. ★★★ 準備新的費用記錄（先不插入，先計算總額） ★★★
+        //  12. ★★★ 準備新的費用記錄 ★★★
         // ================================================================
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
@@ -3053,7 +3054,7 @@ async function saveOrd() {
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
 
         const newExpenses = [];
-        // ★★★ 運費：只記錄一筆「公司吸收」 ★★★
+        // 運費（公司吸收）
         if (companyShippingCost > 0 && shippingCat) {
             const isReimbursed = !advanceEmpId;
             newExpenses.push({
@@ -3097,49 +3098,35 @@ async function saveOrd() {
             });
         }
 
-        // 計算新費用總額
         const newExpensesTotal = newExpenses.reduce((sum, e) => sum + e.amount, 0);
         const newNetAmount = totalAmount - newExpensesTotal;
 
         // ================================================================
-        //  13. ★★★ 銀行餘額處理 ★★★
+        //  13. ★★★ 銀行餘額處理：編輯模式一律先退舊銀行，再存新銀行 ★★★
         // ================================================================
         if (editingId) {
-            // ★★★ 編輯模式：根據銀行是否變更採取不同策略 ★★★
-            if (oldBankId !== bankId) {
-                // 情況1：銀行帳戶變更了 → 分別處理舊銀行和新銀行
-                // 從舊銀行退回 oldNetAmount
-                if (oldBankId && oldNetAmount > 0) {
-                    const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
-                    if (oldBank.data) {
-                        await sb.from('bank_accounts').update({
-                            balance: (oldBank.data.balance || 0) + oldNetAmount
-                        }).eq('id', oldBankId);
-                    }
-                }
-                // 向新銀行存入 newNetAmount
-                if (bankId && newNetAmount > 0) {
-                    const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-                    if (newBank.data) {
-                        await sb.from('bank_accounts').update({
-                            balance: (newBank.data.balance || 0) + newNetAmount
-                        }).eq('id', bankId);
-                    }
-                }
-            } else {
-                // 情況2：銀行帳戶沒變 → 只調整差額（新淨額 - 舊淨額）
-                const diff = newNetAmount - oldNetAmount;
-                if (diff !== 0 && bankId) {
-                    const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-                    if (bank.data) {
-                        await sb.from('bank_accounts').update({
-                            balance: (bank.data.balance || 0) + diff
-                        }).eq('id', bankId);
-                    }
+            // 從舊銀行扣除舊淨額（如果舊銀行存在且舊淨額 > 0）
+            if (oldBankId && oldNetAmount > 0) {
+                const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
+                if (oldBank.data) {
+                    await sb.from('bank_accounts').update({
+                        balance: (oldBank.data.balance || 0) - oldNetAmount  // 注意是減去
+                    }).eq('id', oldBankId);
                 }
             }
+            // 向新銀行存入新淨額（如果新銀行存在且新淨額 > 0）
+            if (bankId && newNetAmount > 0) {
+                const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+                if (newBank.data) {
+                    await sb.from('bank_accounts').update({
+                        balance: (newBank.data.balance || 0) + newNetAmount
+                    }).eq('id', bankId);
+                }
+            }
+            // 注意：如果銀行相同，一減一加，淨影響為零（前提是 oldNetAmount == newNetAmount），
+            // 如果金額變了，則會正確調整差額。
         } else {
-            // ★★★ 新增模式：銀行餘額增加新淨額 ★★★
+            // 新增模式：直接存入新銀行
             if (bankId && newNetAmount > 0) {
                 const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
                 if (bank.data) {
