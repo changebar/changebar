@@ -1038,7 +1038,7 @@ function saveInvItem(btn, pid, wid) {
 //  14. 採購入庫
 // ================================================================
 function renderPurchases(c) {
-    c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
+    c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">付款狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
     renderPurTable();
 }
 
@@ -1054,7 +1054,8 @@ function renderPurTable() {
     const endDate = document.getElementById('pur-end-date')?.value || '';
     let list = D.purchases.map(function(p) {
         const vendor = D.vendors.find(v => v.id === p.vendor_id);
-        return Object.assign({}, p, { vendor_name: vendor ? vendor.name : '' });
+        const bank = D.banks.find(b => b.id === p.bank_account_id);
+        return Object.assign({}, p, { vendor_name: vendor ? vendor.name : '', bank_name: bank ? bank.account_name : '' });
     }).filter(function(p) {
         const purchaseDate = p.created_at ? p.created_at.split('T')[0] : '';
         const matchSearch = !searchText || p.vendor_name.toLowerCase().includes(searchText);
@@ -1082,7 +1083,7 @@ function renderPurTable() {
         const p = list[i];
         const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
         const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
-        const invoiceLabel = p.is_invoice_purchase ? '<span class="text-green-600 font-bold">有</span>' : '<span class="text-gray-400">無</span>';
+        const paidLabel = p.is_paid ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">已付款</span>' : '<span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs">未付款</span>';
         const items = D.purchaseItems.filter(item => item.purchase_id === p.id) || [];
         const itemsText = items.map(function(item) {
             const prod = D.products.find(x => x.id === item.product_id);
@@ -1092,7 +1093,7 @@ function renderPurTable() {
         totalSum += amountDisplay;
         let amountHtml = '<span class="font-bold">' + amountDisplay.toLocaleString() + '</span>';
         if (p.is_invoice_purchase) { amountHtml = '<span class="font-bold text-orange-600">' + amountDisplay.toLocaleString() + '</span>'; }
-        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + invoiceLabel + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
+        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + paidLabel + (p.is_paid && p.bank_name ? '<br><span class="text-xs text-gray-500">' + p.bank_name + (p.payment_date ? ' ' + p.payment_date : '') + '</span>' : '') + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
     }
     html += '<tr class="total-row"><td colspan="5" class="text-right pr-4">總計</td><td class="font-bold text-lg">' + totalSum.toLocaleString() + '</td><td></td></tr>';
     const tbody = document.getElementById('pur-tbody');
@@ -1154,7 +1155,17 @@ async function openPurModal(isInvoicePurchase, editId) {
         whOptions += '<option value="' + w.id + '" ' + (existingData && existingData.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
     }
 
+    // 銀行選項（用於付款）
+    let bankOptions = '<option value="">請選擇付款銀行</option>';
+    for (let i=0; i<D.banks.length; i++) {
+        const b = D.banks[i];
+        const selected = (existingData && existingData.bank_account_id === b.id) ? 'selected' : '';
+        bankOptions += '<option value="' + b.id + '" ' + selected + '>' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+    }
+
     const defaultDate = existingData && existingData.created_at ? existingData.created_at.split('T')[0] : new Date().toISOString().split('T')[0];
+    const defaultPaymentDate = existingData && existingData.payment_date ? existingData.payment_date : new Date().toISOString().split('T')[0];
+    const isPaidChecked = existingData && existingData.is_paid ? 'checked' : '';
 
     let invoiceCheckHtml = '';
     if (!isInvoicePurchase) {
@@ -1171,8 +1182,13 @@ async function openPurModal(isInvoicePurchase, editId) {
         calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold text-lg">0</span></div></div>';
     }
 
-    const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (isInvoicePurchase ? '<div></div>' : '<div><label class="block text-sm font-bold mb-2">入庫倉庫 *</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>') + '</div><div class="mb-4"><label class="block text-sm font-bold mb-2">📅 採購日期</label><input type="date" id="pu-date" class="w-full px-3 py-2 border rounded input-field" value="' + defaultDate.slice(0,10) + '"></div>' + invoiceCheckHtml + '<div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細 *</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>' + calcHtml;
+    // ★★★ 新增付款區塊 ★★★
+    const paymentHtml = '<div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4"><h3 class="font-bold text-blue-800 mb-2">💰 付款資訊</h3><div class="form-row"><label>已付款</label><div class="checkbox-inline"><input type="checkbox" id="pu-is-paid" ' + isPaidChecked + ' onchange="togglePurPaymentFields()"><label for="pu-is-paid">勾選表示已付款</label></div></div><div id="pu-payment-fields" style="display:' + (existingData && existingData.is_paid ? 'block' : 'none') + '"><div class="form-row"><label>付款銀行</label><select id="pu-bank" class="form-control w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div><div class="form-row"><label>付款日期</label><input type="date" id="pu-payment-date" class="form-control w-full px-3 py-2 border rounded input-field" value="' + defaultPaymentDate + '"></div></div></div>';
+
+    const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (isInvoicePurchase ? '<div></div>' : '<div><label class="block text-sm font-bold mb-2">入庫倉庫 *</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>') + '</div><div class="mb-4"><label class="block text-sm font-bold mb-2">📅 採購日期</label><input type="date" id="pu-date" class="w-full px-3 py-2 border rounded input-field" value="' + defaultDate.slice(0,10) + '"></div>' + invoiceCheckHtml + '<div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細 *</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>' + calcHtml + paymentHtml;
+
     openModal(isInvoicePurchase ? '購買發票' : '一般採購入庫', html, savePur);
+    togglePurPaymentFields();
 
     if (editId && existingData) {
         const items = D.purchaseItems.filter(item => item.purchase_id === editId) || [];
@@ -1188,7 +1204,14 @@ async function openPurModal(isInvoicePurchase, editId) {
     }
     calcPur();
 }
-
+// ===== 控制付款欄位顯示/隱藏 =====
+function togglePurPaymentFields() {
+    const checked = document.getElementById('pu-is-paid').checked;
+    const fields = document.getElementById('pu-payment-fields');
+    if (fields) {
+        fields.style.display = checked ? 'block' : 'none';
+    }
+}
 function addPurItem(prod, qty, price) {
     const box = document.getElementById('pu-items');
     const div = document.createElement('div');
@@ -1289,12 +1312,18 @@ async function savePur() {
     }
     const purchaseDate = document.getElementById('pu-date').value || new Date().toISOString().split('T')[0];
 
+    // ★★★ 付款資訊 ★★★
+    const isPaid = document.getElementById('pu-is-paid').checked;
+    const bankId = isPaid ? document.getElementById('pu-bank').value : null;
+    const paymentDate = isPaid ? document.getElementById('pu-payment-date').value : null;
+
     const missing = [];
     if (!vendorId) missing.push('廠商');
     if (!isInvoiceMode) {
         const whId = document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : '';
         if (!whId) missing.push('入庫倉庫');
     }
+    if (isPaid && !bankId) missing.push('付款銀行');
 
     const items = [];
     let subtotal = 0;
@@ -1328,29 +1357,95 @@ async function savePur() {
         is_invoice_purchase: hasInvoice,
         total_amount: totalAmount,
         warehouse_id: document.getElementById('pu-wh') ? document.getElementById('pu-wh').value : null,
-        created_at: purchaseDate + 'T00:00:00'
+        created_at: purchaseDate + 'T00:00:00',
+        is_paid: isPaid,
+        bank_account_id: bankId,
+        payment_date: paymentDate
     };
 
     try {
+        let oldPurchase = null;
+
         if (editId) {
-            await sb.from('purchase_items').delete().eq('purchase_id', editId);
+            // 編輯模式：先取得舊採購資料，處理銀行退還
+            oldPurchase = D.purchases.find(p => p.id === editId);
+            if (oldPurchase && oldPurchase.is_paid && oldPurchase.bank_account_id && oldPurchase.total_amount > 0) {
+                // 退還舊付款（加回銀行）
+                const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldPurchase.bank_account_id).single();
+                if (oldBank.data) {
+                    await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldPurchase.total_amount }).eq('id', oldPurchase.bank_account_id);
+                }
+                // 刪除舊的 expenses（採購付款）
+                try {
+                    await sb.from('expenses').delete().eq('related_purchase_id', editId);
+                } catch (e) {
+                    // 如果欄位不存在，用 description 方式
+                    await sb.from('expenses').delete().like('description', '%purchase_id:' + editId + '%');
+                }
+            }
+            // 更新採購
             await sb.from('purchases').update(d).eq('id', editId);
         } else {
             d.purchase_no = 'PUR-' + Date.now();
             d.status = 'completed';
             const r = await sb.from('purchases').insert([d]).select().single();
+            if (r.error) throw new Error('新增採購失敗：' + r.error.message);
             editId = r.data.id;
         }
-        await sb.from('purchase_items').insert(items.map(function(i) { return Object.assign({}, i, { purchase_id: editId }); }));
 
+        // 插入採購明細（先刪除再插入，避免重複）
+        if (editId) {
+            await sb.from('purchase_items').delete().eq('purchase_id', editId);
+            await sb.from('purchase_items').insert(items.map(function(i) { return Object.assign({}, i, { purchase_id: editId }); }));
+        }
+
+        // 處理庫存（一般採購才入庫）
         if (!isInvoiceMode && d.warehouse_id) {
             for (let i=0; i<items.length; i++) {
                 const item = items[i];
                 const existing = D.warehouseInv.find(function(w) { return w.warehouse_id === d.warehouse_id && w.product_id === item.product_id; });
-                if (existing) await sb.from('warehouse_inventory').update({ quantity: (existing.quantity || 0) + item.quantity }).eq('id', existing.id);
-                else await sb.from('warehouse_inventory').insert([{ warehouse_id: d.warehouse_id, product_id: item.product_id, quantity: item.quantity, safety_stock: 0 }]);
+                if (existing) {
+                    await sb.from('warehouse_inventory').update({ quantity: (existing.quantity || 0) + item.quantity }).eq('id', existing.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: d.warehouse_id, product_id: item.product_id, quantity: item.quantity, safety_stock: 0 }]);
+                }
                 const prod = D.products.find(function(x) { return x.id === item.product_id; });
-                if (prod) await sb.from('products').update({ current_stock: (prod.current_stock || 0) + item.quantity }).eq('id', item.product_id);
+                if (prod) {
+                    await sb.from('products').update({ current_stock: (prod.current_stock || 0) + item.quantity }).eq('id', item.product_id);
+                }
+            }
+        }
+
+        // ★★★ 如果勾選已付款，插入費用記錄並扣銀行 ★★★
+        if (isPaid && bankId && totalAmount > 0) {
+            // 檢查 expense_categories 是否有「採購付款」
+            let purchasePayCat = D.expCats.find(c => c.name === '採購付款');
+            if (!purchasePayCat) {
+                const catRes = await sb.from('expense_categories').insert([{ name: '採購付款' }]).select().single();
+                if (catRes.data) {
+                    purchasePayCat = catRes.data;
+                    D.expCats.push(purchasePayCat);
+                } else {
+                    purchasePayCat = D.expCats.find(c => c.name === '採購');
+                }
+            }
+            if (purchasePayCat) {
+                const expData = {
+                    category_id: purchasePayCat.id,
+                    amount: totalAmount,
+                    description: '採購付款 #' + (d.purchase_no || '') + ' (purchase_id:' + editId + ')',
+                    payment_date: paymentDate || new Date().toISOString().split('T')[0],
+                    employee_id: null,
+                    is_reimbursed: true,
+                    reimbursement_bank_id: bankId,
+                    reimbursed_date: paymentDate || new Date().toISOString().split('T')[0]
+                };
+                await sb.from('expenses').insert([expData]);
+                // 扣銀行
+                const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+                if (bank.data) {
+                    await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
+                }
             }
         }
 
@@ -1365,14 +1460,53 @@ async function savePur() {
 }
 
 async function delPur(id) {
-    if (!confirm('確定刪除?')) return;
+    if (!confirm('確定刪除這筆採購？刪除後將退還付款銀行款項並扣除庫存。')) return;
     try {
+        const p = D.purchases.find(x => x.id === id);
+        if (!p) { showAlert('❌ 找不到採購資料！'); return; }
+
+        // 如果已付款，退還銀行
+        if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', p.bank_account_id).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + p.total_amount }).eq('id', p.bank_account_id);
+            }
+            // 刪除對應的 expenses
+            try {
+                await sb.from('expenses').delete().eq('related_purchase_id', id);
+            } catch (e) {
+                await sb.from('expenses').delete().like('description', '%purchase_id:' + id + '%');
+            }
+        }
+
+        // 刪除採購明細
         await sb.from('purchase_items').delete().eq('purchase_id', id);
+
+        // 如果是非發票採購，需扣除庫存
+        if (!p.is_invoice_purchase && p.warehouse_id) {
+            const items = D.purchaseItems.filter(item => item.purchase_id === id) || [];
+            for (const item of items) {
+                const prod = D.products.find(x => x.id === item.product_id);
+                if (!prod) continue;
+                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', p.warehouse_id).eq('product_id', prod.id).maybeSingle();
+                if (inv.data) {
+                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: p.warehouse_id, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+                }
+                await sb.from('products').update({ current_stock: (prod.current_stock || 0) - item.quantity }).eq('id', item.product_id);
+            }
+        }
+
+        // 刪除採購
         await sb.from('purchases').delete().eq('id', id);
+
+        showAlert('✅ 採購已刪除！');
         await loadAll();
         render();
-    } catch(e) {
-        showAlert('❌ 失敗：' + e.message);
+    } catch (e) {
+        showAlert('❌ 刪除失敗：' + e.message);
+        console.error('delPur error:', e);
     }
 }
 
