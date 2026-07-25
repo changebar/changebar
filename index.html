@@ -3381,33 +3381,21 @@ async function saveOrd() {
             if (itemResult.error) throw new Error('插入訂單明細失敗：' + itemResult.error.message);
         }
 
-        // ================================================================
-        //  11. 扣除新庫存
-        // ================================================================
-        for (const item of itemsData) {
-            const prod = D.products.find(p => p.id === item.product_id);
-            if (!prod) continue;
-            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
-                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
-                if (inv.data) {
-                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
-                }
-            }
-            const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-            for (const bom of bomItems) {
-                const required = bom.quantity * item.quantity;
-                const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-                if (matInv.data && matInv.data.length > 0) {
-                    let target = matInv.data.find(inv => inv.warehouse_id === wid);
-                    if (!target) target = matInv.data[0];
-                    await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) - required }).eq('id', target.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: bom.child_product_id, quantity: -required, safety_stock: 0 }]);
-                }
-            }
+        // ===============================================================
+     // 10. 扣除新庫存（只扣成品，不再扣 BOM 半成品）
+for (const item of itemsData) {
+    const prod = D.products.find(p => p.id === item.product_id);
+    if (!prod) continue;
+    if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
+        if (inv.data) {
+            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+        } else {
+            await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
         }
+    }
+    // ★★★ BOM 扣除邏輯已移除 ★★★
+}
 
         // ================================================================
         //  12. ★★★ 插入新的費用記錄，並執行扣款 ★★★
@@ -3553,30 +3541,20 @@ async function delOrd(id) {
         // 補回庫存
         const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
         const items = itemsResp.data || [];
-        for (const item of items) {
-            const prod = D.products.find(p => p.id === item.product_id);
-            if (!prod) continue;
-            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
-                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
-                if (inv.data) {
-                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
-                }
-            }
-            const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
-            for (const bom of bomItems) {
-                const restoreQty = bom.quantity * item.quantity;
-                const matInv = await sb.from('warehouse_inventory').select('id, quantity, warehouse_id').eq('product_id', bom.child_product_id);
-                if (matInv.data && matInv.data.length > 0) {
-                    let target = matInv.data.find(inv => inv.warehouse_id === o.warehouse_id);
-                    if (!target) target = matInv.data[0];
-                    await sb.from('warehouse_inventory').update({ quantity: (target.quantity || 0) + restoreQty }).eq('id', target.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: bom.child_product_id, quantity: restoreQty, safety_stock: 0 }]);
-                }
-            }
+        // 補回庫存（只補成品，不再補 BOM 半成品）
+for (const item of items) {
+    const prod = D.products.find(p => p.id === item.product_id);
+    if (!prod) continue;
+    if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
+        if (inv.data) {
+            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
+        } else {
+            await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
         }
+    }
+    // ★★★ BOM 補回邏輯已移除 ★★★
+}
 
         // 刪除關聯資料
         await sb.from('expenses').delete().eq('related_order_id', id);
