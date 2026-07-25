@@ -1038,7 +1038,7 @@ function saveInvItem(btn, pid, wid) {
 //  14. 採購入庫
 // ================================================================
 function renderPurchases(c) {
-    c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">付款狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
+    c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button><button onclick="batchPayPurchases()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">💳 批量付款</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><input type="checkbox" id="select-all-pur" onchange="toggleAllPurCheckboxes()"></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">付款狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
     renderPurTable();
 }
 
@@ -1093,9 +1093,11 @@ function renderPurTable() {
         totalSum += amountDisplay;
         let amountHtml = '<span class="font-bold">' + amountDisplay.toLocaleString() + '</span>';
         if (p.is_invoice_purchase) { amountHtml = '<span class="font-bold text-orange-600">' + amountDisplay.toLocaleString() + '</span>'; }
-        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + paidLabel + (p.is_paid && p.bank_name ? '<br><span class="text-xs text-gray-500">' + p.bank_name + (p.payment_date ? ' ' + p.payment_date : '') + '</span>' : '') + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
+        // ★★★ 加入勾選框 ★★★
+        const isPaidChecked = p.is_paid ? 'disabled checked' : '';
+        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-center"><input type="checkbox" class="pur-checkbox" data-id="' + p.id + '" ' + isPaidChecked + '></td><td class="px-4 py-3 whitespace-nowrap">' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</td><td class="px-4 py-3">' + (v?.name || '-') + '</td><td class="px-4 py-3">' + typeLabel + '</td><td class="px-4 py-3">' + paidLabel + (p.is_paid && p.bank_name ? '<br><span class="text-xs text-gray-500">' + p.bank_name + (p.payment_date ? ' ' + p.payment_date : '') + '</span>' : '') + '</td><td class="px-4 py-3 text-sm text-gray-600">' + (itemsText || '-') + '</td><td class="px-4 py-3">' + amountHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2"><button onclick="viewPurchaseDetail(\'' + p.id + '\')" class="text-blue-600 hover:text-blue-800 btn-touch">詳情</button><button onclick="openPurModal(' + (p.is_invoice_purchase ? 'true' : 'false') + ', \'' + p.id + '\')" class="text-green-600 hover:text-green-800 btn-touch">編輯</button><button onclick="delPur(\'' + p.id + '\')" class="text-red-600 hover:text-red-800 btn-touch">刪除</button></td></tr>';
     }
-    html += '<tr class="total-row"><td colspan="5" class="text-right pr-4">總計</td><td class="font-bold text-lg">' + totalSum.toLocaleString() + '</td><td></td></tr>';
+    html += '<tr class="total-row"><td colspan="6" class="text-right pr-4">總計</td><td class="font-bold text-lg">' + totalSum.toLocaleString() + '</td><td></td></tr>';
     const tbody = document.getElementById('pur-tbody');
     if (tbody) tbody.innerHTML = html;
 }
@@ -1210,6 +1212,14 @@ function togglePurPaymentFields() {
     const fields = document.getElementById('pu-payment-fields');
     if (fields) {
         fields.style.display = checked ? 'block' : 'none';
+    }
+}
+    // ===== 全選/取消全選採購勾選框 =====
+function toggleAllPurCheckboxes() {
+    const checked = document.getElementById('select-all-pur').checked;
+    const checkboxes = document.querySelectorAll('.pur-checkbox:not(:disabled)');
+    for (let i=0; i<checkboxes.length; i++) {
+        checkboxes[i].checked = checked;
     }
 }
 function addPurItem(prod, qty, price) {
@@ -1509,7 +1519,112 @@ async function delPur(id) {
         console.error('delPur error:', e);
     }
 }
-
+// ===== 批量付款 =====
+async function batchPayPurchases() {
+    // 1. 取得所有勾選的採購 ID
+    const checkboxes = document.querySelectorAll('.pur-checkbox:checked:not(:disabled)');
+    if (checkboxes.length === 0) {
+        showAlert('⚠️ 請先勾選要付款的採購訂單！');
+        return;
+    }
+    
+    const ids = [];
+    for (let i=0; i<checkboxes.length; i++) {
+        ids.push(checkboxes[i].dataset.id);
+    }
+    
+    // 2. 查詢這些採購的資料
+    const purchases = D.purchases.filter(p => ids.includes(p.id) && !p.is_paid);
+    if (purchases.length === 0) {
+        showAlert('⚠️ 勾選的訂單都已付款或不存在！');
+        return;
+    }
+    
+    // 3. 計算總金額
+    let totalAmount = 0;
+    for (let i=0; i<purchases.length; i++) {
+        totalAmount += purchases[i].total_amount || 0;
+    }
+    
+    // 4. 彈出對話框讓用戶選擇銀行和付款日期
+    let bankOptions = '<option value="">請選擇付款銀行</option>';
+    for (let i=0; i<D.banks.length; i++) {
+        const b = D.banks[i];
+        bankOptions += '<option value="' + b.id + '">' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
+    }
+    const today = new Date().toISOString().split('T')[0];
+    
+    const html = '<div class="space-y-4"><div class="bg-blue-50 p-4 rounded"><p>共選取 <strong>' + purchases.length + '</strong> 筆採購，總金額：<strong class="text-red-600">' + totalAmount.toLocaleString() + '</strong></p></div><div class="form-row"><label>付款銀行 *</label><select id="batch-bank" class="form-control w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div><div class="form-row"><label>付款日期 *</label><input type="date" id="batch-payment-date" class="form-control w-full px-3 py-2 border rounded input-field" value="' + today + '"></div></div>';
+    
+    openModal('批量付款', html, async function() {
+        const bankId = document.getElementById('batch-bank').value;
+        const paymentDate = document.getElementById('batch-payment-date').value;
+        
+        if (!bankId) {
+            throw new Error('⚠️ 請選擇付款銀行！');
+        }
+        if (!paymentDate) {
+            throw new Error('⚠️ 請選擇付款日期！');
+        }
+        
+        // 5. 檢查 expense_categories 是否有「採購付款」
+        let purchasePayCat = D.expCats.find(c => c.name === '採購付款');
+        if (!purchasePayCat) {
+            const catRes = await sb.from('expense_categories').insert([{ name: '採購付款' }]).select().single();
+            if (catRes.data) {
+                purchasePayCat = catRes.data;
+                D.expCats.push(purchasePayCat);
+            } else {
+                purchasePayCat = D.expCats.find(c => c.name === '採購');
+            }
+        }
+        
+        // 6. 逐筆更新採購
+        let successCount = 0;
+        for (let i=0; i<purchases.length; i++) {
+            const p = purchases[i];
+            try {
+                // 更新採購為已付款
+                await sb.from('purchases').update({
+                    is_paid: true,
+                    bank_account_id: bankId,
+                    payment_date: paymentDate
+                }).eq('id', p.id);
+                
+                // 插入費用記錄
+                if (purchasePayCat && p.total_amount > 0) {
+                    const expData = {
+                        category_id: purchasePayCat.id,
+                        amount: p.total_amount,
+                        description: '採購付款 #' + (p.purchase_no || 'PUR-' + p.id) + ' (批量)',
+                        payment_date: paymentDate,
+                        employee_id: null,
+                        is_reimbursed: true,
+                        reimbursement_bank_id: bankId,
+                        reimbursed_date: paymentDate
+                    };
+                    await sb.from('expenses').insert([expData]);
+                }
+                successCount++;
+            } catch (e) {
+                console.error('批量付款失敗（ID:' + p.id + '）:', e);
+            }
+        }
+        
+        // 7. 從銀行扣除總金額
+        if (bankId && totalAmount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
+            }
+        }
+        
+        showAlert('✅ 批量付款完成！共 ' + successCount + ' 筆採購已付款。');
+        window.closeModal();
+        await loadAll();
+        render();
+    }, false);
+}
 // ================================================================
 //  15. 廠商管理
 // ================================================================
