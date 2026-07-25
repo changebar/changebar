@@ -599,13 +599,25 @@ async function openCustModal(id) {
     const subAmount = (c && c.subscription_amount) || 0;
     const html = '<input type="hidden" id="c-id" value="'+(id||'')+'"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">類型</label><select id="c-type" class="w-full px-3 py-2 border rounded input-field"><option value="B2C" '+(c&&c.type==='B2C'?'selected':'')+'>B2C</option><option value="B2B" '+(c&&c.type==='B2B'?'selected':'')+'>B2B</option></select></div><div><label class="block text-sm font-bold mb-2">主要聯繫窗口</label><select id="c-win" class="w-full px-3 py-2 border rounded input-field">'+winOptions+'</select></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">公司/客戶名稱</label><input type="text" id="c-comp" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.company_name||'':'')+'" oninput="syncAddrContact()"></div><div><label class="block text-sm font-bold mb-2">聯絡人</label><input type="text" id="c-contact" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.contact_person||'':'')+'"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">電話 *</label><input type="text" id="c-phone" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.phone||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">Email</label><input type="email" id="c-email" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.email||'':'')+'"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">發票抬頭</label><input type="text" id="c-title" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.invoice_title||'':'')+'"></div><div><label class="block text-sm font-bold mb-2">統一編號</label><input type="text" id="c-tax" class="w-full px-3 py-2 border rounded input-field" value="'+(c?c.tax_id||'':'')+'"></div></div><div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200 mb-4"><h3 class="font-bold text-indigo-800 mb-2">🔄 訂閱客戶設定</h3><div class="form-row"><label>訂閱客戶</label><div class="checkbox-inline"><input type="checkbox" id="c-is-sub" '+subChecked+' onchange="toggleSubFields()"><label for="c-is-sub">啟用</label></div></div><div id="c-sub-fields" style="display:'+(c&&c.is_subscription?'block':'none')+'"><div class="form-row"><label>週期(天)</label><select id="c-sub-days" class="form-control w-full px-3 py-2 border rounded input-field"><option value="30" '+(subDays===30?'selected':'')+'>30 天 (月繳)</option><option value="45" '+(subDays===45?'selected':'')+'>45 天</option><option value="60" '+(subDays===60?'selected':'')+'>60 天 (雙月繳)</option></select></div><div class="form-row"><label>金額</label><input type="number" id="c-sub-amount" class="form-control w-full px-3 py-2 border rounded input-field" value="'+(subAmount||0)+'" min="0" step="0.01" placeholder="請輸入訂閱金額"></div></div></div><div class="mb-4"><label class="block text-sm font-bold mb-2">標籤</label><div id="c-tags" class="flex flex-wrap gap-2 p-3 border rounded bg-gray-50">'+tagHtml+'</div></div><div class="border-t pt-4"><div class="flex justify-between items-center mb-3"><h3 class="font-bold text-lg">寄送地址</h3><button type="button" onclick="addAddr()" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增地址</button></div><div id="addr-box" class="space-y-3"></div></div>';
     openModal(id?'編輯客戶':'新增客戶', html, saveCust);
-    if (id) {
-        const addrsResp = await sb.from('customer_addresses').select('*').eq('customer_id', id);
-        const addrs = addrsResp.data || [];
-        document.getElementById('addr-box').innerHTML = '';
-        if (addrs && addrs.length > 0) { for (let i=0; i<addrs.length; i++) addAddr(addrs[i]); }
-        else { addAddr(null, true); }
-    } else { addAddr(null, true); }
+   // 在 saveExp 中，获取旧费用数据后，如果 reimbursement_bank_id 变化，则处理余额
+if (id) {
+    const oldExp = D.expenses.find(e => e.id === id);
+    if (oldExp && oldExp.is_reimbursed) {
+        // 如果银行变化且旧银行存在，则加回旧金额
+        if (oldExp.reimbursement_bank_id && oldExp.reimbursement_bank_id !== bankId) {
+            const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldExp.reimbursement_bank_id).single();
+            if (oldBank.data) {
+                await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldExp.amount }).eq('id', oldExp.reimbursement_bank_id);
+            }
+        }
+        // 如果新银行存在且新银行与旧银行不同（或旧银行为空），则从新银行扣款
+        if (bankId && (oldExp.reimbursement_bank_id !== bankId || !oldExp.reimbursement_bank_id)) {
+            const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (newBank.data) {
+                await sb.from('bank_accounts').update({ balance: (newBank.data.balance || 0) - amount }).eq('id', bankId);
+            }
+        }
+    }
 }
 
 function toggleSubFields() {
@@ -1645,15 +1657,36 @@ async function saveExp() {
 
     try {
         if (id) {
+            // 編輯模式：先獲取舊費用
+            const oldExp = D.expenses.find(e => e.id === id);
+            if (!oldExp) throw new Error('找不到舊費用');
+
+            // ★★★ 處理銀行餘額變更 ★★★
+            // 如果舊費用已結帳且有銀行，則退還舊銀行扣款
+            if (oldExp.is_reimbursed && oldExp.reimbursement_bank_id && oldExp.amount > 0) {
+                const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldExp.reimbursement_bank_id).single();
+                if (oldBank.data) {
+                    await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldExp.amount }).eq('id', oldExp.reimbursement_bank_id);
+                }
+            }
+            // 更新費用
             await sb.from('expenses').update(d).eq('id', id);
+            // 如果新費用已結帳且銀行存在，則從新銀行扣款
+            if (d.is_reimbursed && d.reimbursement_bank_id && d.amount > 0) {
+                const newBank = await sb.from('bank_accounts').select('balance').eq('id', d.reimbursement_bank_id).single();
+                if (newBank.data) {
+                    await sb.from('bank_accounts').update({ balance: (newBank.data.balance || 0) - d.amount }).eq('id', d.reimbursement_bank_id);
+                }
+            }
             showAlert('✅ 已更新！');
         } else {
+            // 新增模式
             const newExp = await sb.from('expenses').insert([d]).select().single();
             if (newExp.error) throw newExp.error;
-            if (bankId && amount > 0) {
-                const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (d.is_reimbursed && d.reimbursement_bank_id && d.amount > 0) {
+                const bank = await sb.from('bank_accounts').select('balance').eq('id', d.reimbursement_bank_id).single();
                 if (bank.data) {
-                    await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - amount }).eq('id', bankId);
+                    await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - d.amount }).eq('id', d.reimbursement_bank_id);
                 }
             }
             showAlert('✅ 已記錄並扣款！');
@@ -1670,7 +1703,6 @@ async function saveExp() {
         throw e;
     }
 }
-
 async function delExp(id) {
     if (!confirm('確定刪除?')) return;
     try {
@@ -2943,11 +2975,10 @@ async function saveOrd() {
         let oldItems = [];
         let oldBankId = null;
         let oldTotalAmount = 0;
-        let oldExpensesTotal = 0;
-        let oldNetAmount = 0;
+        let oldExpenses = [];
 
         // ================================================================
-        //  8. 編輯模式：先取得舊資料，但先不處理銀行，等計算出新舊淨額後再統一處理
+        //  8. 編輯模式：收集舊資料，並撤銷舊訂單對銀行的影響
         // ================================================================
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
@@ -2956,11 +2987,33 @@ async function saveOrd() {
             oldBankId = oldOrder.bank_account_id;
             oldTotalAmount = oldOrder.total_amount || 0;
 
+            // 查詢舊的 expenses
             const oldExpensesResp = await sb.from('expenses').select('*').eq('related_order_id', editingId);
-            const oldExpensesData = oldExpensesResp.data || [];
-            oldExpensesTotal = oldExpensesData.reduce((sum, e) => sum + (e.amount || 0), 0);
-            oldNetAmount = oldTotalAmount - oldExpensesTotal;
+            oldExpenses = oldExpensesResp.data || [];
 
+            // ★★★ 撤銷舊訂單對銀行的影響 ★★★
+            // a. 從入款銀行退還舊總金額（即扣除之前入帳的總金額）
+            if (oldBankId && oldTotalAmount > 0) {
+                const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
+                if (oldBank.data) {
+                    await sb.from('bank_accounts').update({
+                        balance: (oldBank.data.balance || 0) - oldTotalAmount
+                    }).eq('id', oldBankId);
+                }
+            }
+            // b. 撤銷所有已結帳費用的扣款（將金額加回其出帳銀行）
+            for (const exp of oldExpenses) {
+                if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                    const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
+                    if (bank.data) {
+                        await sb.from('bank_accounts').update({
+                            balance: (bank.data.balance || 0) + exp.amount
+                        }).eq('id', exp.reimbursement_bank_id);
+                    }
+                }
+            }
+
+            // 取得舊的 order_items（用來補庫存）
             const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
             oldItems = oldItemsResp.data || [];
 
@@ -2990,7 +3043,7 @@ async function saveOrd() {
                 }
             }
 
-            // 刪除舊的 order_items 和 expenses（稍後會重新插入）
+            // 刪除舊的 order_items 和 expenses（之後會重新插入）
             await sb.from('order_items').delete().eq('order_id', editingId);
             await sb.from('expenses').delete().eq('related_order_id', editingId);
 
@@ -3045,7 +3098,7 @@ async function saveOrd() {
         }
 
         // ================================================================
-        //  12. ★★★ 準備新的費用記錄 ★★★
+        //  12. ★★★ 插入新的費用記錄，並執行扣款 ★★★
         // ================================================================
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
@@ -3098,57 +3151,37 @@ async function saveOrd() {
             });
         }
 
-        const newExpensesTotal = newExpenses.reduce((sum, e) => sum + e.amount, 0);
-        const newNetAmount = totalAmount - newExpensesTotal;
-
-        // ================================================================
-        //  13. ★★★ 銀行餘額處理：編輯模式一律先退舊銀行，再存新銀行 ★★★
-        // ================================================================
-        if (editingId) {
-            // 從舊銀行扣除舊淨額（如果舊銀行存在且舊淨額 > 0）
-            if (oldBankId && oldNetAmount > 0) {
-                const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
-                if (oldBank.data) {
-                    await sb.from('bank_accounts').update({
-                        balance: (oldBank.data.balance || 0) - oldNetAmount  // 注意是減去
-                    }).eq('id', oldBankId);
-                }
-            }
-            // 向新銀行存入新淨額（如果新銀行存在且新淨額 > 0）
-            if (bankId && newNetAmount > 0) {
-                const newBank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-                if (newBank.data) {
-                    await sb.from('bank_accounts').update({
-                        balance: (newBank.data.balance || 0) + newNetAmount
-                    }).eq('id', bankId);
-                }
-            }
-            // 注意：如果銀行相同，一減一加，淨影響為零（前提是 oldNetAmount == newNetAmount），
-            // 如果金額變了，則會正確調整差額。
-        } else {
-            // 新增模式：直接存入新銀行
-            if (bankId && newNetAmount > 0) {
-                const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-                if (bank.data) {
-                    await sb.from('bank_accounts').update({
-                        balance: (bank.data.balance || 0) + newNetAmount
-                    }).eq('id', bankId);
-                }
+        // ===== 13. ★★★ 向新訂單銀行存入總金額 ★★★
+        if (bankId && totalAmount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({
+                    balance: (bank.data.balance || 0) + totalAmount
+                }).eq('id', bankId);
             }
         }
 
-        // ================================================================
-        //  14. ★★★ 插入費用記錄 ★★★
-        // ================================================================
+        // ===== 14. ★★★ 插入新費用並執行扣款（如果已結帳） ★★★
         if (newExpenses.length > 0) {
             for (const exp of newExpenses) {
                 if (!exp.category_id) {
                     console.warn('⚠️ 跳過費用記錄，找不到對應類別：', exp.description);
                     continue;
                 }
+                // 插入費用
                 const insertExpResult = await sb.from('expenses').insert([exp]);
                 if (insertExpResult.error) {
                     console.warn('⚠️ 插入費用失敗：', insertExpResult.error.message);
+                    continue;
+                }
+                // 如果費用已結帳且需扣銀行，則執行扣款
+                if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                    const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
+                    if (bank.data) {
+                        await sb.from('bank_accounts').update({
+                            balance: (bank.data.balance || 0) - exp.amount
+                        }).eq('id', exp.reimbursement_bank_id);
+                    }
                 }
             }
         }
@@ -3183,7 +3216,8 @@ async function delOrd(id) {
         const o = orderResp.data;
         if (!o) { showAlert('❌ 找不到訂單！'); isDeleting = false; return; }
 
-        // ★★★ 刪除訂單：扣除銀行餘額（因為這筆收入被取消） ★★★
+        // ★★★ 1. 撤銷訂單對銀行的影響（反向操作） ★★★
+        // 1a. 從入款銀行扣除總金額（之前加過）
         if (o.bank_account_id && o.total_amount > 0) {
             const bank = D.banks.find(b => b.id === o.bank_account_id);
             if (bank) {
@@ -3193,11 +3227,23 @@ async function delOrd(id) {
             }
         }
 
-        // 取得舊訂單明細
+        // 1b. 撤銷所有已結帳費用的扣款（加回金額）
+        const expResp = await sb.from('expenses').select('*').eq('related_order_id', id);
+        const expenses = expResp.data || [];
+        for (const exp of expenses) {
+            if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+                const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
+                if (bank) {
+                    await sb.from('bank_accounts').update({
+                        balance: (bank.balance || 0) + exp.amount
+                    }).eq('id', exp.reimbursement_bank_id);
+                }
+            }
+        }
+
+        // ★★★ 2. 補回庫存 ★★★
         const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
         const items = itemsResp.data || [];
-
-        // 補回庫存
         for (const item of items) {
             const prod = D.products.find(p => p.id === item.product_id);
             if (!prod) continue;
@@ -3223,7 +3269,7 @@ async function delOrd(id) {
             }
         }
 
-        // 刪除關聯資料（包含 expenses）
+        // ★★★ 3. 刪除關聯資料（expenses 和 order_items） ★★★
         await sb.from('expenses').delete().eq('related_order_id', id);
         await sb.from('order_items').delete().eq('order_id', id);
         await sb.from('orders').delete().eq('id', id);
