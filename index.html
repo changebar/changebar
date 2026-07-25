@@ -1367,12 +1367,15 @@ async function savePur() {
 
     const totalAmount = isInvoiceMode ? Math.round(subtotal * 0.05) : Math.round(subtotal);
 
+    // ★★★ 取得採購成品的倉庫（用於成品入庫） ★★★
+    const targetWarehouseId = document.getElementById('pu-wh')?.value || null;
+
     const d = {
         vendor_id: vendorId,
         is_invoice_purchase: isInvoiceMode,
         has_invoice: hasInvoice,
         total_amount: totalAmount,
-        warehouse_id: document.getElementById('pu-wh')?.value || null,
+        warehouse_id: targetWarehouseId,
         created_at: purchaseDate + 'T00:00:00',
         is_paid: isPaid,
         bank_account_id: bankId,
@@ -1382,14 +1385,12 @@ async function savePur() {
     try {
         let oldItems = [];
         let oldPurchase = null;
-        let oldWarehouseId = null;
         let oldPaid = false;
         let oldBankId = null;
         let oldTotalAmount = 0;
 
         if (editId) {
             oldPurchase = D.purchases.find(p => p.id === editId);
-            oldWarehouseId = oldPurchase?.warehouse_id;
             oldPaid = oldPurchase?.is_paid || false;
             oldBankId = oldPurchase?.bank_account_id;
             oldTotalAmount = oldPurchase?.total_amount || 0;
@@ -1402,11 +1403,6 @@ async function savePur() {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
                     await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldTotalAmount }).eq('id', oldBankId);
-                }
-                try {
-                    await sb.from('expenses').delete().eq('related_purchase_id', editId);
-                } catch (e) {
-                    await sb.from('expenses').delete().like('description', '%purchase_id:' + editId + '%');
                 }
             }
 
@@ -1424,10 +1420,9 @@ async function savePur() {
         await sb.from('purchase_items').insert(items.map(i => ({ ...i, purchase_id: editId })));
 
         // ================================================================
-        // ★★★ 庫存處理（含 BOM 連動，符號已修正） ★★★
+        // ★★★ 庫存處理（含 BOM 連動，半成品從現有倉庫扣除） ★★★
         // ================================================================
-        const warehouseId = d.warehouse_id;
-        if (!isInvoiceMode && warehouseId) {
+        if (!isInvoiceMode && targetWarehouseId) {
             // 計算新舊明細差異
             const newMap = {};
             for (const item of items) newMap[item.product_id] = (newMap[item.product_id] || 0) + item.quantity;
@@ -1444,7 +1439,7 @@ async function savePur() {
             }
             
             // ★★★ BOM 展開 ★★★
-            const finalChanges = {};
+            const finalChanges = {}; // product_id => net_change
             
             for (const [pid, diff] of Object.entries(processMap)) {
                 const prod = D.products.find(p => p.id === pid);
@@ -1453,18 +1448,17 @@ async function savePur() {
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === pid);
                     if (bomItems.length > 0) {
-                        // ★★★ 成品有 BOM：成品 +diff，半成品 -（消耗） ★★★
+                        // 成品有 BOM：成品 +diff，半成品 -（消耗）
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                         for (const bom of bomItems) {
                             const required = bom.quantity * diff;
-                            finalChanges[bom.child_product_id] = (finalChanges[bom.child_product_id] || 0) - required; // ★ 負號：消耗
+                            finalChanges[bom.child_product_id] = (finalChanges[bom.child_product_id] || 0) - required;
                         }
                     } else {
-                        // 無 BOM：直接加
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                     }
                 } else {
-                    // 半成品：直接加
+                    // 半成品：直接加（採購半成品入庫）
                     finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                 }
             }
@@ -1474,23 +1468,57 @@ async function savePur() {
                 if (diff === 0) continue;
                 const prod = D.products.find(p => p.id === pid);
                 if (!prod) continue;
-                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', warehouseId).eq('product_id', pid).maybeSingle();
-                if (inv.data) {
-                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + diff }).eq('id', inv.data.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: warehouseId, product_id: pid, quantity: diff, safety_stock: 0 }]);
+                
+                // ★★★ 決定要更新的倉庫 ★★★
+                let warehouseIdToUse = targetWarehouseId; // 預設使用採購入庫的倉庫
+                
+                if (prod.type === 'semi') {
+                    // ★★★ 半成品：查詢該半成品目前在哪個倉庫有庫存 ★★★
+                    // 查詢 warehoue_inventory 中該半成品的第一條記錄（數量>0優先）
+                    const semiInv = await sb.from('warehouse_inventory')
+                        .select('warehouse_id, quantity')
+                        .eq('product_id', pid)
+                        .order('quantity', { ascending: false })
+                        .limit(1);
+                    
+                    if (semiInv.data && semiInv.data.length > 0) {
+                        warehouseIdToUse = semiInv.data[0].warehouse_id;
+                    } else {
+                        // ★★★ 如果該半成品完全沒有庫存記錄，使用採購成品的倉庫 ★★★
+                        // 並在該倉庫建立新記錄（數量為 diff）
+                        warehouseIdToUse = targetWarehouseId;
+                    }
                 }
-                await sb.from('products').update({ current_stock: (prod.current_stock || 0) + diff }).eq('id', pid);
+                
+                // 更新倉庫庫存
+                const inv = await sb.from('warehouse_inventory')
+                    .select('id, quantity')
+                    .eq('warehouse_id', warehouseIdToUse)
+                    .eq('product_id', pid)
+                    .maybeSingle();
+                
+                if (inv.data) {
+                    await sb.from('warehouse_inventory')
+                        .update({ quantity: (inv.data.quantity || 0) + diff })
+                        .eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory')
+                        .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
+                }
+                // 更新產品總庫存（所有倉庫加總）
+                await sb.from('products')
+                    .update({ current_stock: (prod.current_stock || 0) + diff })
+                    .eq('id', pid);
             }
         }
 
-     // ★★★ 付款處理：只扣銀行，不產生費用記錄 ★★★
-if (isPaid && bankId && totalAmount > 0) {
-    const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-    if (bank.data) {
-        await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
-    }
-}
+        // ★★★ 付款處理：只扣銀行，不產生費用記錄 ★★★
+        if (isPaid && bankId && totalAmount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
+            }
+        }
 
         showAlert('✅ 採購已儲存！');
         window.closeModal();
@@ -1507,18 +1535,18 @@ async function delPur(id) {
         const p = D.purchases.find(x => x.id === id);
         if (!p) { showAlert('❌ 找不到採購資料！'); return; }
 
-        // 如果已付款，退還銀行（不刪除費用記錄）
-if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
-    const bank = await sb.from('bank_accounts').select('balance').eq('id', p.bank_account_id).single();
-    if (bank.data) {
-        await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + p.total_amount }).eq('id', p.bank_account_id);
-    }
-}
+        // === 退還銀行（如果有付款） ===
+        if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', p.bank_account_id).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + p.total_amount }).eq('id', p.bank_account_id);
+            }
+        }
 
         const items = D.purchaseItems.filter(item => item.purchase_id === id) || [];
         await sb.from('purchase_items').delete().eq('purchase_id', id);
 
-        // === ★★★ 退回庫存（BOM 逆向：刪除成品時，半成品要加回） ★★★ ===
+        // === ★★★ 退回庫存（BOM 逆向：半成品加回原倉庫） ★★★ ===
         if (!p.is_invoice_purchase && p.warehouse_id) {
             const processMap = {};
             for (const item of items) {
@@ -1527,11 +1555,11 @@ if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
                     if (bomItems.length > 0) {
-                        // ★★★ 刪除成品：成品 -item.quantity，半成品 +（因為半成品被釋放） ★★★
+                        // 刪除成品：成品 -item.quantity，半成品 +（釋放）
                         processMap[prod.id] = (processMap[prod.id] || 0) - item.quantity;
                         for (const bom of bomItems) {
                             const required = bom.quantity * item.quantity;
-                            processMap[bom.child_product_id] = (processMap[bom.child_product_id] || 0) + required; // ★ 正號：加回
+                            processMap[bom.child_product_id] = (processMap[bom.child_product_id] || 0) + required;
                         }
                     } else {
                         processMap[prod.id] = (processMap[prod.id] || 0) - item.quantity;
@@ -1545,13 +1573,43 @@ if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
                 if (diff === 0) continue;
                 const prod = D.products.find(x => x.id === pid);
                 if (!prod) continue;
-                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', p.warehouse_id).eq('product_id', pid).maybeSingle();
-                if (inv.data) {
-                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + diff }).eq('id', inv.data.id);
-                } else {
-                    await sb.from('warehouse_inventory').insert([{ warehouse_id: p.warehouse_id, product_id: pid, quantity: diff, safety_stock: 0 }]);
+                
+                // ★★★ 決定倉庫 ★★★
+                let warehouseIdToUse = p.warehouse_id; // 預設使用採購入庫的倉庫
+                
+                if (prod.type === 'semi') {
+                    // ★★★ 半成品：查詢該半成品目前在哪個倉庫有記錄 ★★★
+                    const semiInv = await sb.from('warehouse_inventory')
+                        .select('warehouse_id, quantity')
+                        .eq('product_id', pid)
+                        .order('quantity', { ascending: false })
+                        .limit(1);
+                    
+                    if (semiInv.data && semiInv.data.length > 0) {
+                        warehouseIdToUse = semiInv.data[0].warehouse_id;
+                    } else {
+                        // 如果沒有記錄，使用採購入庫的倉庫
+                        warehouseIdToUse = p.warehouse_id;
+                    }
                 }
-                await sb.from('products').update({ current_stock: (prod.current_stock || 0) + diff }).eq('id', pid);
+                
+                const inv = await sb.from('warehouse_inventory')
+                    .select('id, quantity')
+                    .eq('warehouse_id', warehouseIdToUse)
+                    .eq('product_id', pid)
+                    .maybeSingle();
+                
+                if (inv.data) {
+                    await sb.from('warehouse_inventory')
+                        .update({ quantity: (inv.data.quantity || 0) + diff })
+                        .eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory')
+                        .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
+                }
+                await sb.from('products')
+                    .update({ current_stock: (prod.current_stock || 0) + diff })
+                    .eq('id', pid);
             }
         }
 
