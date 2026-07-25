@@ -2368,16 +2368,11 @@ function renderBoss(c) {
     });
     let pur = 0;
     for (let i=0; i<monthPurchases.length; i++) pur += monthPurchases[i].total_amount || 0;
-
-  // ★★★ 排除「採購付款」類別 ★★★
-const purchasePayCat = D.expCats.find(c => c.name === '採購付款');
-
 // ★★★ 排除「採購付款」類別 ★★★
 const purchasePayCat = D.expCats.find(c => c.name === '採購付款');
 
 const monthExpenses = D.expenses.filter(function(e) {
     if (!e.payment_date) return false;
-    // 排除採購付款（貨款不屬於營運費用）
     if (purchasePayCat && e.category_id === purchasePayCat.id) return false;
     const d = new Date(e.payment_date);
     const y = d.getFullYear();
