@@ -1394,27 +1394,22 @@ async function savePur() {
             oldBankId = oldPurchase?.bank_account_id;
             oldTotalAmount = oldPurchase?.total_amount || 0;
 
-            // 取得舊明細（用於庫存差異）
             const oldItemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
             oldItems = oldItemsResp.data || [];
 
-            // ★★★ 如果付款狀態變更：已付款 → 未付款 ★★★
+            // 付款狀態變更：已付款 → 未付款（退還銀行）
             if (oldPaid && !isPaid && oldBankId && oldTotalAmount > 0) {
-                // 退還銀行
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
                     await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldTotalAmount }).eq('id', oldBankId);
                 }
-                // 刪除費用記錄
                 try {
                     await sb.from('expenses').delete().eq('related_purchase_id', editId);
                 } catch (e) {
                     await sb.from('expenses').delete().like('description', '%purchase_id:' + editId + '%');
                 }
             }
-            // ★★★ 如果付款狀態變更：未付款 → 已付款 ★★★（下方統一處理）
 
-            // 更新採購
             await sb.from('purchases').update(d).eq('id', editId);
         } else {
             d.purchase_no = 'PUR-' + Date.now();
@@ -1428,7 +1423,9 @@ async function savePur() {
         await sb.from('purchase_items').delete().eq('purchase_id', editId);
         await sb.from('purchase_items').insert(items.map(i => ({ ...i, purchase_id: editId })));
 
-        // === ★★★ 庫存處理（含 BOM 連動） ★★★ ===
+        // ================================================================
+        // ★★★ 庫存處理（含 BOM 連動，符號已修正） ★★★
+        // ================================================================
         const warehouseId = d.warehouse_id;
         if (!isInvoiceMode && warehouseId) {
             // 計算新舊明細差異
@@ -1438,8 +1435,7 @@ async function savePur() {
             for (const item of oldItems) oldMap[item.product_id] = (oldMap[item.product_id] || 0) + item.quantity;
             const allIds = new Set([...Object.keys(newMap), ...Object.keys(oldMap)]);
             
-            // ★★★ 要處理的「成品」集合（含 BOM 展開） ★★★
-            const processMap = {}; // product_id => diff
+            const processMap = {};
             for (const pid of allIds) {
                 const diff = (newMap[pid] || 0) - (oldMap[pid] || 0);
                 if (diff !== 0) {
@@ -1447,37 +1443,30 @@ async function savePur() {
                 }
             }
             
-            // ★★★ 展開 BOM（如果採購的是成品） ★★★
-            const bomMap = {}; // child_product_id => total_required
-            const finalChanges = {}; // product_id => net_change
+            // ★★★ BOM 展開 ★★★
+            const finalChanges = {};
             
             for (const [pid, diff] of Object.entries(processMap)) {
                 const prod = D.products.find(p => p.id === pid);
                 if (!prod) continue;
                 
-                // 如果是成品，查 BOM
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === pid);
                     if (bomItems.length > 0) {
-                        // 有 BOM：成品直接加 diff，半成品要累加
+                        // ★★★ 成品有 BOM：成品 +diff，半成品 -（消耗） ★★★
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                         for (const bom of bomItems) {
                             const required = bom.quantity * diff;
-                            bomMap[bom.child_product_id] = (bomMap[bom.child_product_id] || 0) + required;
+                            finalChanges[bom.child_product_id] = (finalChanges[bom.child_product_id] || 0) - required; // ★ 負號：消耗
                         }
                     } else {
-                        // 無 BOM：直接加 diff
+                        // 無 BOM：直接加
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                     }
                 } else {
-                    // 非成品（半成品等）：直接加 diff
+                    // 半成品：直接加
                     finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                 }
-            }
-            
-            // 將 BOM 展開的半成品也加入 finalChanges
-            for (const [pid, qty] of Object.entries(bomMap)) {
-                finalChanges[pid] = (finalChanges[pid] || 0) + qty;
             }
             
             // ★★★ 執行庫存更新 ★★★
@@ -1485,33 +1474,28 @@ async function savePur() {
                 if (diff === 0) continue;
                 const prod = D.products.find(p => p.id === pid);
                 if (!prod) continue;
-                // 更新倉庫庫存
                 const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', warehouseId).eq('product_id', pid).maybeSingle();
                 if (inv.data) {
                     await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + diff }).eq('id', inv.data.id);
                 } else {
                     await sb.from('warehouse_inventory').insert([{ warehouse_id: warehouseId, product_id: pid, quantity: diff, safety_stock: 0 }]);
                 }
-                // 更新產品總庫存
                 await sb.from('products').update({ current_stock: (prod.current_stock || 0) + diff }).eq('id', pid);
             }
         }
 
-        // === ★★★ 付款處理（未付款 → 已付款） ★★★
+        // === 付款處理（未付款 → 已付款） ===
         if (isPaid && bankId && totalAmount > 0) {
-            // 檢查是否已存在費用記錄（避免重複）
             let existingExp = null;
             try {
                 const expRes = await sb.from('expenses').select('*').eq('related_purchase_id', editId).maybeSingle();
                 existingExp = expRes.data;
             } catch (e) {
-                // 如果欄位不存在，用 description 查詢
                 const expRes = await sb.from('expenses').select('*').like('description', '%purchase_id:' + editId + '%').maybeSingle();
                 existingExp = expRes.data;
             }
             
             if (!existingExp) {
-                // 只有沒有費用記錄時才新增
                 let purchasePayCat = D.expCats.find(c => c.name === '採購付款');
                 if (!purchasePayCat) {
                     const catRes = await sb.from('expense_categories').insert([{ name: '採購付款' }]).select().single();
@@ -1534,7 +1518,6 @@ async function savePur() {
                         reimbursed_date: paymentDate || new Date().toISOString().split('T')[0]
                     };
                     await sb.from('expenses').insert([expData]);
-                    // 扣銀行
                     const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
                     if (bank.data) {
                         await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
@@ -1571,28 +1554,23 @@ async function delPur(id) {
             }
         }
 
-        // === 取得明細 ===
         const items = D.purchaseItems.filter(item => item.purchase_id === id) || [];
-
-        // === 刪除明細 ===
         await sb.from('purchase_items').delete().eq('purchase_id', id);
 
-        // === ★★★ 退回庫存（含 BOM 逆向） ★★★ ===
+        // === ★★★ 退回庫存（BOM 逆向：刪除成品時，半成品要加回） ★★★ ===
         if (!p.is_invoice_purchase && p.warehouse_id) {
-            // 建立要處理的 map
             const processMap = {};
             for (const item of items) {
                 const prod = D.products.find(x => x.id === item.product_id);
                 if (!prod) continue;
-                // 如果是成品，檢查 BOM
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
                     if (bomItems.length > 0) {
-                        // 有 BOM：成品退 -item.quantity，半成品也要退
+                        // ★★★ 刪除成品：成品 -item.quantity，半成品 +（因為半成品被釋放） ★★★
                         processMap[prod.id] = (processMap[prod.id] || 0) - item.quantity;
                         for (const bom of bomItems) {
                             const required = bom.quantity * item.quantity;
-                            processMap[bom.child_product_id] = (processMap[bom.child_product_id] || 0) - required;
+                            processMap[bom.child_product_id] = (processMap[bom.child_product_id] || 0) + required; // ★ 正號：加回
                         }
                     } else {
                         processMap[prod.id] = (processMap[prod.id] || 0) - item.quantity;
@@ -1602,7 +1580,6 @@ async function delPur(id) {
                 }
             }
             
-            // 執行庫存更新（所有變動都是負數，即減少）
             for (const [pid, diff] of Object.entries(processMap)) {
                 if (diff === 0) continue;
                 const prod = D.products.find(x => x.id === pid);
@@ -1617,7 +1594,6 @@ async function delPur(id) {
             }
         }
 
-        // === 刪除採購 ===
         await sb.from('purchases').delete().eq('id', id);
 
         showAlert('✅ 採購已刪除！');
