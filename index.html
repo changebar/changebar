@@ -1811,7 +1811,38 @@ async function saveSub() {
         throw e;
     }
 }
+async function delExp(id) {
+    if (!confirm('確定刪除這筆收支記錄？刪除後銀行餘額也會同步調整。')) return;
+    try {
+        // 1. 取得要刪除的費用資料
+        const exp = D.expenses.find(e => e.id === id);
+        if (!exp) { showAlert('❌ 找不到該筆收支記錄！'); return; }
 
+        // 2. ★★★ 撤銷銀行扣款（如果已結帳且有出帳銀行） ★★★
+        if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
+            // 直接查詢資料庫最新餘額
+            const bankResult = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
+            if (bankResult.data) {
+                const newBalance = (bankResult.data.balance || 0) + exp.amount;
+                await sb.from('bank_accounts').update({ balance: newBalance }).eq('id', exp.reimbursement_bank_id);
+            }
+        }
+
+        // 3. 刪除該筆費用記錄
+        await sb.from('expenses').delete().eq('id', id);
+
+        showAlert('✅ 收支記錄已刪除，銀行餘額已調整！');
+        await loadAll();
+        if (currentView === 'finance') {
+            renderFinance(document.getElementById('main-content'));
+        } else {
+            render();
+        }
+    } catch (e) {
+        showAlert('❌ 刪除失敗：' + e.message);
+        console.error('delExp error:', e);
+    }
+}
 async function delSub(id) {
     if (!confirm('確定刪除這筆訂閱？刪除後會將款項退回原銀行帳戶。')) return;
     try {
