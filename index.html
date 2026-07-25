@@ -3186,36 +3186,40 @@ async function delOrd(id) {
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
     isDeleting = true;
     try {
+        // ===== 1. 取得訂單資料 =====
         const orderResp = await sb.from('orders').select('*').eq('id', id).maybeSingle();
         const o = orderResp.data;
         if (!o) { showAlert('❌ 找不到訂單！'); isDeleting = false; return; }
 
-        // ★★★ 1. 撤銷訂單對銀行的影響（反向操作） ★★★
-        // 1a. 從入款銀行扣除總金額（之前加過）
+        // ===== 2. 取得該訂單的所有費用記錄 =====
+        const expResp = await sb.from('expenses').select('*').eq('related_order_id', id);
+        const expenses = expResp.data || [];
+
+        // ===== 3. ★★★ 撤銷銀行影響（直接從資料庫查詢最新餘額） ★★★
+        
+        // 3a. 撤銷入款銀行：扣除總金額（因為之前加了總金額）
         if (o.bank_account_id && o.total_amount > 0) {
-            const bank = D.banks.find(b => b.id === o.bank_account_id);
-            if (bank) {
-                await sb.from('bank_accounts').update({
-                    balance: (bank.balance || 0) - o.total_amount
-                }).eq('id', o.bank_account_id);
+            // ★ 直接查詢資料庫最新餘額，不用 D.banks ★
+            const bankResult = await sb.from('bank_accounts').select('balance').eq('id', o.bank_account_id).single();
+            if (bankResult.data) {
+                const newBalance = (bankResult.data.balance || 0) - o.total_amount;
+                await sb.from('bank_accounts').update({ balance: newBalance }).eq('id', o.bank_account_id);
             }
         }
 
-        // 1b. 撤銷所有已結帳費用的扣款（加回金額）
-        const expResp = await sb.from('expenses').select('*').eq('related_order_id', id);
-        const expenses = expResp.data || [];
+        // 3b. 撤銷所有已結帳費用的扣款（加回金額）
         for (const exp of expenses) {
             if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
-                const bank = D.banks.find(b => b.id === exp.reimbursement_bank_id);
-                if (bank) {
-                    await sb.from('bank_accounts').update({
-                        balance: (bank.balance || 0) + exp.amount
-                    }).eq('id', exp.reimbursement_bank_id);
+                // ★ 直接查詢資料庫最新餘額，不用 D.banks ★
+                const bankResult = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
+                if (bankResult.data) {
+                    const newBalance = (bankResult.data.balance || 0) + exp.amount;
+                    await sb.from('bank_accounts').update({ balance: newBalance }).eq('id', exp.reimbursement_bank_id);
                 }
             }
         }
 
-        // ★★★ 2. 補回庫存 ★★★
+        // ===== 4. 補回庫存 =====
         const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
         const items = itemsResp.data || [];
         for (const item of items) {
@@ -3243,7 +3247,7 @@ async function delOrd(id) {
             }
         }
 
-        // ★★★ 3. 刪除關聯資料（expenses 和 order_items） ★★★
+        // ===== 5. 刪除關聯資料（expenses、order_items、orders） =====
         await sb.from('expenses').delete().eq('related_order_id', id);
         await sb.from('order_items').delete().eq('order_id', id);
         await sb.from('orders').delete().eq('id', id);
