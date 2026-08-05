@@ -3609,9 +3609,12 @@ async function viewOrdDetail(id) {
     const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
     const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
     const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+    
+    // ⚠️ 重點修復：確保這行最後確實有 `';` 結尾！
     const html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div><div><b>📮 寄送地址:</b> '+(o.shipping_address||'無')+'</div><div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div><div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div><div><b>📦 產品明細:</b>'+itemsHtml+'</div><div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div></div>';
-    openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 
+    // 保持這一行不變
+    openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
 }
 console.log('✅ 全部模組已載入，所有功能完整。');
 </script>
