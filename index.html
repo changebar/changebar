@@ -1514,12 +1514,13 @@ async function savePur() {
 
         // ★★★ 付款處理：只扣銀行，不產生費用記錄 ★★★
 if (isPaid && bankId && totalAmount > 0) {
-    const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
-    if (bank.data) {
-        await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
-    }
-}
-async function delPur(id) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
+            }
+        }
+    }  // ✅【關鍵在這裡】加上這行，用來結尾 savePur 函式
+    async function delPur(id) {
     if (!confirm('確定刪除這筆採購？刪除後將退還付款銀行款項並扣除庫存。')) return;
     try {
         const p = D.purchases.find(x => x.id === id);
