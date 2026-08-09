@@ -3374,49 +3374,51 @@ async function saveOrd() {
         const channelCat = expCats.find(c => c.name === '通路抽成');
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
+        const expenseDate = shippedDate ? shippedDate : new Date().toISOString().split('T')[0];
 
-        const newExpenses = [];
-        if (companyShippingCost > 0 && shippingCat) {
-            const isReimbursed = !advanceEmpId;
-            newExpenses.push({
-                category_id: shippingCat.id,
-                amount: Math.round(companyShippingCost),
-                description: descPrefix + ' 運費（公司吸收）',
-                payment_date: new Date().toISOString().split('T')[0],
-                employee_id: advanceEmpId || null,
-                is_reimbursed: isReimbursed,
-                reimbursement_bank_id: isReimbursed ? bankId : null,
-                reimbursed_date: isReimbursed ? new Date().toISOString().split('T')[0] : null,
-                related_order_id: orderId
-            });
-        }
-        if (chCommission > 0 && channelCat) {
-            newExpenses.push({
-                category_id: channelCat.id,
-                amount: chCommission,
-                description: descPrefix + ' 通路抽成 (' + chRate + '%)',
-                payment_date: new Date().toISOString().split('T')[0],
-                employee_id: null,
-                is_reimbursed: true,
-                reimbursement_bank_id: bankId,
-                reimbursed_date: new Date().toISOString().split('T')[0],
-                related_order_id: orderId
-            });
-        }
-        if (pmCommission > 0 && paymentCat) {
-            newExpenses.push({
-                category_id: paymentCat.id,
-                amount: pmCommission,
-                description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
-                payment_date: new Date().toISOString().split('T')[0],
-                employee_id: null,
-                is_reimbursed: true,
-                reimbursement_bank_id: bankId,
-                reimbursed_date: new Date().toISOString().split('T')[0],
-                related_order_id: orderId
-            });
-        }
-
+        // 運費（公司吸收）
+      if (companyShippingCost > 0 && shippingCat) {
+          const isReimbursed = !advanceEmpId;
+          newExpenses.push({
+              category_id: shippingCat.id,
+              amount: Math.round(companyShippingCost),
+              description: descPrefix + ' 運費（公司吸收）',
+              payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
+              employee_id: advanceEmpId || null,
+              is_reimbursed: isReimbursed,
+              reimbursement_bank_id: isReimbursed ? bankId : null,
+              reimbursed_date: isReimbursed ? expenseDate : null,  // ★★★ 改用 expenseDate ★★★
+              related_order_id: orderId
+       });
+}
+       // 通路抽成
+       if (chCommission > 0 && channelCat) {
+           newExpenses.push({
+               category_id: channelCat.id,
+               amount: chCommission,
+               description: descPrefix + ' 通路抽成 (' + chRate + '%)',
+               payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
+               employee_id: null,
+               is_reimbursed: true,
+               reimbursement_bank_id: bankId,
+               reimbursed_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
+               related_order_id: orderId
+      });
+}
+      // 付款手續費
+       if (pmCommission > 0 && paymentCat) {
+           newExpenses.push({
+               category_id: paymentCat.id,
+               amount: pmCommission,
+               description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
+               payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
+               employee_id: null,
+               is_reimbursed: true,
+               reimbursement_bank_id: bankId,
+               reimbursed_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
+               related_order_id: orderId
+      });
+}
         // ===== 13. ★★★ 向新訂單銀行存入總金額 ★★★
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
