@@ -1082,9 +1082,7 @@ function renderPurTable() {
     for (let i=0; i<list.length; i++) {
         const p = list[i];
         const v = D.vendors.find(function(x) { return x.id === p.vendor_id; });
-        // 類型
         const typeLabel = p.is_invoice_purchase ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">購買發票</span>' : '<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">一般採購</span>';
-        // ★★★ 發票欄位 ★★★
         let invoiceLabel = '無';
         if (p.is_invoice_purchase) {
             invoiceLabel = '有';
@@ -1139,7 +1137,6 @@ function viewPurchaseDetail(id) {
     const totalDisplay = isInvoice ? '稅金' : '總金額';
     const bank = D.banks.find(b => b.id === p.bank_account_id);
     const paidStatus = p.is_paid ? '已付款' : '未付款';
-    // ★★★ 發票顯示 ★★★
     const invoiceLabel = p.has_invoice ? '有' : '無';
     const typeLabel = p.is_invoice_purchase ? '購買發票' : '一般採購';
     const html = '<div class="space-y-4"><div class="grid grid-cols-2 gap-4"><div><span class="text-gray-600">日期：</span>' + (p.created_at ? new Date(p.created_at).toLocaleDateString() : '-') + '</div><div><span class="text-gray-600">廠商：</span>' + (vendor ? vendor.name : '-') + '</div><div><span class="text-gray-600">類型：</span>' + typeLabel + '</div><div><span class="text-gray-600">發票：</span>' + invoiceLabel + '</div><div><span class="text-gray-600">付款狀態：</span>' + paidStatus + (bank ? ' (' + bank.account_name + ')' : '') + '</div><div><span class="text-gray-600">' + totalDisplay + '：</span>$' + (p.total_amount || 0).toLocaleString() + '</div></div><div class="border-t pt-4"><h3 class="font-bold mb-2">採購明細</h3>' + itemsHTML + '</div></div>';
@@ -1169,7 +1166,6 @@ async function openPurModal(isInvoicePurchase, editId) {
         whOptions += '<option value="' + w.id + '" ' + (existingData && existingData.warehouse_id === w.id ? 'selected' : '') + '>' + w.name + '</option>';
     }
 
-    // 銀行選項（用於付款）
     let bankOptions = '<option value="">請選擇付款銀行</option>';
     for (let i=0; i<D.banks.length; i++) {
         const b = D.banks[i];
@@ -1181,14 +1177,11 @@ async function openPurModal(isInvoicePurchase, editId) {
     const defaultPaymentDate = existingData && existingData.payment_date ? existingData.payment_date : new Date().toISOString().split('T')[0];
     const isPaidChecked = existingData && existingData.is_paid ? 'checked' : '';
 
-    // ★★★ 發票勾選（僅一般採購） ★★★
     let invoiceCheckHtml = '';
     if (!isInvoicePurchase) {
-        // 一般採購：顯示「有發票」勾選
         const checked = existingData && existingData.has_invoice ? 'checked' : '';
         invoiceCheckHtml = '<div class="form-row"><label>有發票</label><div class="checkbox-inline"><input type="checkbox" id="pu-has-invoice" ' + checked + '><label for="pu-has-invoice">勾選表示此採購有發票</label></div></div>';
     } else {
-        // 購買發票：預設有發票，隱藏勾選（但傳值為 true）
         invoiceCheckHtml = '<input type="hidden" id="pu-has-invoice" value="true"><div class="text-sm text-gray-600">此為購買發票，預設有發票</div>';
     }
 
@@ -1199,7 +1192,6 @@ async function openPurModal(isInvoicePurchase, editId) {
         calcHtml = '<div class="bg-gray-50 p-4 rounded mb-4"><div><span class="text-sm text-gray-600">成本小計：</span><span id="pu-cost" class="font-bold text-lg">0</span></div></div>';
     }
 
-    // 付款區塊
     const paymentHtml = '<div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-4"><h3 class="font-bold text-blue-800 mb-2">💰 付款資訊</h3><div class="form-row"><label>已付款</label><div class="checkbox-inline"><input type="checkbox" id="pu-is-paid" ' + isPaidChecked + ' onchange="togglePurPaymentFields()"><label for="pu-is-paid">勾選表示已付款</label></div></div><div id="pu-payment-fields" style="display:' + (existingData && existingData.is_paid ? 'block' : 'none') + '"><div class="form-row"><label>付款銀行</label><select id="pu-bank" class="form-control w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div><div class="form-row"><label>付款日期</label><input type="date" id="pu-payment-date" class="form-control w-full px-3 py-2 border rounded input-field" value="' + defaultPaymentDate + '"></div></div></div>';
 
     const html = '<input type="hidden" id="pu-invoice-mode" value="' + (isInvoicePurchase ? 'true' : 'false') + '"><input type="hidden" id="pu-edit-id" value="' + (editId || '') + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">廠商 *</label><select id="pu-v" class="w-full px-3 py-2 border rounded input-field">' + vendorOptions + '</select></div>' + (isInvoicePurchase ? '<div></div>' : '<div><label class="block text-sm font-bold mb-2">入庫倉庫 *</label><select id="pu-wh" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>') + '</div><div class="mb-4"><label class="block text-sm font-bold mb-2">📅 採購日期</label><input type="date" id="pu-date" class="w-full px-3 py-2 border rounded input-field" value="' + defaultDate.slice(0,10) + '"></div>' + invoiceCheckHtml + '<div class="mb-4"><label class="block text-sm font-bold mb-2">採購商品明細 *</label><div id="pu-items" class="space-y-3"></div><button type="button" onclick="addPurItem()" class="mt-2 px-4 py-2 bg-gray-200 rounded text-sm btn-touch">+ 新增商品</button></div>' + calcHtml + paymentHtml;
@@ -1221,7 +1213,6 @@ async function openPurModal(isInvoicePurchase, editId) {
     }
     calcPur();
 }
-// ===== 控制付款欄位顯示/隱藏 =====
 function togglePurPaymentFields() {
     const checked = document.getElementById('pu-is-paid').checked;
     const fields = document.getElementById('pu-payment-fields');
@@ -1229,7 +1220,6 @@ function togglePurPaymentFields() {
         fields.style.display = checked ? 'block' : 'none';
     }
 }
-    // ===== 全選/取消全選採購勾選框 =====
 function toggleAllPurCheckboxes() {
     const checked = document.getElementById('select-all-pur').checked;
     const checkboxes = document.querySelectorAll('.pur-checkbox:not(:disabled)');
@@ -1338,7 +1328,6 @@ async function savePur() {
     const bankId = isPaid ? document.getElementById('pu-bank').value : null;
     const paymentDate = isPaid ? document.getElementById('pu-payment-date').value : null;
 
-    // === 驗證 ===
     const missing = [];
     if (!vendorId) missing.push('廠商');
     if (!isInvoiceMode) {
@@ -1366,8 +1355,6 @@ async function savePur() {
     }
 
     const totalAmount = isInvoiceMode ? Math.round(subtotal * 0.05) : Math.round(subtotal);
-
-    // ★★★ 取得採購成品的倉庫（用於成品入庫） ★★★
     const targetWarehouseId = document.getElementById('pu-wh')?.value || null;
 
     const d = {
@@ -1398,7 +1385,6 @@ async function savePur() {
             const oldItemsResp = await sb.from('purchase_items').select('*').eq('purchase_id', editId);
             oldItems = oldItemsResp.data || [];
 
-            // 付款狀態變更：已付款 → 未付款（退還銀行）
             if (oldPaid && !isPaid && oldBankId && oldTotalAmount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
@@ -1415,15 +1401,10 @@ async function savePur() {
             editId = r.data.id;
         }
 
-        // === 插入採購明細 ===
         await sb.from('purchase_items').delete().eq('purchase_id', editId);
         await sb.from('purchase_items').insert(items.map(i => ({ ...i, purchase_id: editId })));
 
-        // ================================================================
-        // ★★★ 庫存處理（含 BOM 連動，半成品從現有倉庫扣除） ★★★
-        // ================================================================
         if (!isInvoiceMode && targetWarehouseId) {
-            // 計算新舊明細差異
             const newMap = {};
             for (const item of items) newMap[item.product_id] = (newMap[item.product_id] || 0) + item.quantity;
             const oldMap = {};
@@ -1438,17 +1419,13 @@ async function savePur() {
                 }
             }
             
-            // ★★★ BOM 展開 ★★★
-            const finalChanges = {}; // product_id => net_change
-            
+            const finalChanges = {};
             for (const [pid, diff] of Object.entries(processMap)) {
                 const prod = D.products.find(p => p.id === pid);
                 if (!prod) continue;
-                
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === pid);
                     if (bomItems.length > 0) {
-                        // 成品有 BOM：成品 +diff，半成品 -（消耗）
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                         for (const bom of bomItems) {
                             const required = bom.quantity * diff;
@@ -1458,45 +1435,32 @@ async function savePur() {
                         finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                     }
                 } else {
-                    // 半成品：直接加（採購半成品入庫）
                     finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                 }
             }
             
-            // ★★★ 執行庫存更新 ★★★
             for (const [pid, diff] of Object.entries(finalChanges)) {
                 if (diff === 0) continue;
                 const prod = D.products.find(p => p.id === pid);
                 if (!prod) continue;
-                
-                // ★★★ 決定要更新的倉庫 ★★★
-                let warehouseIdToUse = targetWarehouseId; // 預設使用採購入庫的倉庫
-                
+                let warehouseIdToUse = targetWarehouseId;
                 if (prod.type === 'semi') {
-                    // ★★★ 半成品：查詢該半成品目前在哪個倉庫有庫存 ★★★
-                    // 查詢 warehoue_inventory 中該半成品的第一條記錄（數量>0優先）
                     const semiInv = await sb.from('warehouse_inventory')
                         .select('warehouse_id, quantity')
                         .eq('product_id', pid)
                         .order('quantity', { ascending: false })
                         .limit(1);
-                    
                     if (semiInv.data && semiInv.data.length > 0) {
                         warehouseIdToUse = semiInv.data[0].warehouse_id;
                     } else {
-                        // ★★★ 如果該半成品完全沒有庫存記錄，使用採購成品的倉庫 ★★★
-                        // 並在該倉庫建立新記錄（數量為 diff）
                         warehouseIdToUse = targetWarehouseId;
                     }
                 }
-                
-                // 更新倉庫庫存
                 const inv = await sb.from('warehouse_inventory')
                     .select('id, quantity')
                     .eq('warehouse_id', warehouseIdToUse)
                     .eq('product_id', pid)
                     .maybeSingle();
-                
                 if (inv.data) {
                     await sb.from('warehouse_inventory')
                         .update({ quantity: (inv.data.quantity || 0) + diff })
@@ -1505,40 +1469,44 @@ async function savePur() {
                     await sb.from('warehouse_inventory')
                         .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
                 }
-                // 更新產品總庫存（所有倉庫加總）
                 await sb.from('products')
                     .update({ current_stock: (prod.current_stock || 0) + diff })
                     .eq('id', pid);
             }
         }
 
-        // ★★★ 付款處理：只扣銀行，不產生費用記錄 ★★★
-if (isPaid && bankId && totalAmount > 0) {
+        if (isPaid && bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (bank.data) {
                 await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
             }
         }
-    }  // ✅【關鍵在這裡】加上這行，用來結尾 savePur 函式
-    async function delPur(id) {
+        showAlert('✅ 採購已儲存！');
+        window.closeModal();
+        await loadAll();
+        render();
+    } catch(e) {
+        console.error('savePur error:', e);
+        throw e;
+    }
+}
+
+async function delPur(id) {
     if (!confirm('確定刪除這筆採購？刪除後將退還付款銀行款項並扣除庫存。')) return;
     try {
         const p = D.purchases.find(x => x.id === id);
         if (!p) { showAlert('❌ 找不到採購資料！'); return; }
 
-        // === 退還銀行（如果有付款） ===
-        // 如果已付款，退還銀行（不影響收支）
-if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
-    const bank = await sb.from('bank_accounts').select('balance').eq('id', p.bank_account_id).single();
-    if (bank.data) {
-        await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + p.total_amount }).eq('id', p.bank_account_id);
-    }
-}
+        if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
+            const bank = await sb.from('bank_accounts').select('balance').eq('id', p.bank_account_id).single();
+            if (bank.data) {
+                await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) + p.total_amount }).eq('id', p.bank_account_id);
+            }
+        }
 
         const items = D.purchaseItems.filter(item => item.purchase_id === id) || [];
         await sb.from('purchase_items').delete().eq('purchase_id', id);
 
-        // === ★★★ 退回庫存（BOM 逆向：半成品加回原倉庫） ★★★ ===
         if (!p.is_invoice_purchase && p.warehouse_id) {
             const processMap = {};
             for (const item of items) {
@@ -1547,7 +1515,6 @@ if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
                 if (prod.type === 'finished') {
                     const bomItems = D.bom.filter(b => b.parent_product_id === prod.id);
                     if (bomItems.length > 0) {
-                        // 刪除成品：成品 -item.quantity，半成品 +（釋放）
                         processMap[prod.id] = (processMap[prod.id] || 0) - item.quantity;
                         for (const bom of bomItems) {
                             const required = bom.quantity * item.quantity;
@@ -1565,32 +1532,24 @@ if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
                 if (diff === 0) continue;
                 const prod = D.products.find(x => x.id === pid);
                 if (!prod) continue;
-                
-                // ★★★ 決定倉庫 ★★★
-                let warehouseIdToUse = p.warehouse_id; // 預設使用採購入庫的倉庫
-                
+                let warehouseIdToUse = p.warehouse_id;
                 if (prod.type === 'semi') {
-                    // ★★★ 半成品：查詢該半成品目前在哪個倉庫有記錄 ★★★
                     const semiInv = await sb.from('warehouse_inventory')
                         .select('warehouse_id, quantity')
                         .eq('product_id', pid)
                         .order('quantity', { ascending: false })
                         .limit(1);
-                    
                     if (semiInv.data && semiInv.data.length > 0) {
                         warehouseIdToUse = semiInv.data[0].warehouse_id;
                     } else {
-                        // 如果沒有記錄，使用採購入庫的倉庫
                         warehouseIdToUse = p.warehouse_id;
                     }
                 }
-                
                 const inv = await sb.from('warehouse_inventory')
                     .select('id, quantity')
                     .eq('warehouse_id', warehouseIdToUse)
                     .eq('product_id', pid)
                     .maybeSingle();
-                
                 if (inv.data) {
                     await sb.from('warehouse_inventory')
                         .update({ quantity: (inv.data.quantity || 0) + diff })
@@ -1615,55 +1574,42 @@ if (p.is_paid && p.bank_account_id && p.total_amount > 0) {
         console.error('delPur error:', e);
     }
 }
-// ===== 批量付款 =====
+
 async function batchPayPurchases() {
-    // 1. 取得所有勾選的採購 ID
     const checkboxes = document.querySelectorAll('.pur-checkbox:checked:not(:disabled)');
     if (checkboxes.length === 0) {
         showAlert('⚠️ 請先勾選要付款的採購訂單！');
         return;
     }
-    
     const ids = [];
     for (let i=0; i<checkboxes.length; i++) {
         ids.push(checkboxes[i].dataset.id);
     }
-    
-    // 2. 查詢這些採購的資料
     const purchases = D.purchases.filter(p => ids.includes(p.id) && !p.is_paid);
     if (purchases.length === 0) {
         showAlert('⚠️ 勾選的訂單都已付款或不存在！');
         return;
     }
-    
-    // 3. 計算總金額
     let totalAmount = 0;
     for (let i=0; i<purchases.length; i++) {
         totalAmount += purchases[i].total_amount || 0;
     }
-    
-    // 4. 彈出對話框讓用戶選擇銀行和付款日期
     let bankOptions = '<option value="">請選擇付款銀行</option>';
     for (let i=0; i<D.banks.length; i++) {
         const b = D.banks[i];
         bankOptions += '<option value="' + b.id + '">' + b.account_name + ' (餘額: ' + (b.balance||0).toLocaleString() + ')</option>';
     }
     const today = new Date().toISOString().split('T')[0];
-    
     const html = '<div class="space-y-4"><div class="bg-blue-50 p-4 rounded"><p>共選取 <strong>' + purchases.length + '</strong> 筆採購，總金額：<strong class="text-red-600">' + totalAmount.toLocaleString() + '</strong></p></div><div class="form-row"><label>付款銀行 *</label><select id="batch-bank" class="form-control w-full px-3 py-2 border rounded input-field">' + bankOptions + '</select></div><div class="form-row"><label>付款日期 *</label><input type="date" id="batch-payment-date" class="form-control w-full px-3 py-2 border rounded input-field" value="' + today + '"></div></div>';
-    
     openModal('批量付款', html, async function() {
         const bankId = document.getElementById('batch-bank').value;
         const paymentDate = document.getElementById('batch-payment-date').value;
-        
         if (!bankId) {
             throw new Error('⚠️ 請選擇付款銀行！');
         }
         if (!paymentDate) {
             throw new Error('⚠️ 請選擇付款日期！');
         }
-        
-        // 5. 檢查 expense_categories 是否有「採購付款」
         let purchasePayCat = D.expCats.find(c => c.name === '採購付款');
         if (!purchasePayCat) {
             const catRes = await sb.from('expense_categories').insert([{ name: '採購付款' }]).select().single();
@@ -1674,20 +1620,15 @@ async function batchPayPurchases() {
                 purchasePayCat = D.expCats.find(c => c.name === '採購');
             }
         }
-        
-        // 6. 逐筆更新採購
         let successCount = 0;
         for (let i=0; i<purchases.length; i++) {
             const p = purchases[i];
             try {
-                // 更新採購為已付款
                 await sb.from('purchases').update({
                     is_paid: true,
                     bank_account_id: bankId,
                     payment_date: paymentDate
                 }).eq('id', p.id);
-                
-                // 插入費用記錄
                 if (purchasePayCat && p.total_amount > 0) {
                     const expData = {
                         category_id: purchasePayCat.id,
@@ -1706,21 +1647,19 @@ async function batchPayPurchases() {
                 console.error('批量付款失敗（ID:' + p.id + '）:', e);
             }
         }
-        
-        // 7. 從銀行扣除總金額
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (bank.data) {
                 await sb.from('bank_accounts').update({ balance: (bank.data.balance || 0) - totalAmount }).eq('id', bankId);
             }
         }
-        
         showAlert('✅ 批量付款完成！共 ' + successCount + ' 筆採購已付款。');
         window.closeModal();
         await loadAll();
         render();
     }, false);
 }
+
 // ================================================================
 //  15. 廠商管理
 // ================================================================
@@ -1957,7 +1896,6 @@ function toggleExpBankSelect() {
     }
 }
 
-// ★★★ 修正後的 saveExp（收支編輯時銀行餘額同步）★★★
 async function saveExp() {
     const id = document.getElementById('e-id').value;
     const empId = document.getElementById('e-emp').value || null;
@@ -1993,18 +1931,13 @@ async function saveExp() {
         if (id) {
             const oldExp = D.expenses.find(e => e.id === id);
             if (!oldExp) throw new Error('找不到舊費用');
-
-            // ★★★ 處理銀行餘額變更（差異調整） ★★★
-            // 如果舊費用已結帳且有銀行，退還舊銀行
             if (oldExp.is_reimbursed && oldExp.reimbursement_bank_id && oldExp.amount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldExp.reimbursement_bank_id).single();
                 if (oldBank.data) {
                     await sb.from('bank_accounts').update({ balance: (oldBank.data.balance || 0) + oldExp.amount }).eq('id', oldExp.reimbursement_bank_id);
                 }
             }
-            // 更新費用
             await sb.from('expenses').update(d).eq('id', id);
-            // 如果新費用已結帳且銀行存在，從新銀行扣款
             if (d.is_reimbursed && d.reimbursement_bank_id && d.amount > 0) {
                 const newBank = await sb.from('bank_accounts').select('balance').eq('id', d.reimbursement_bank_id).single();
                 if (newBank.data) {
@@ -2013,7 +1946,6 @@ async function saveExp() {
             }
             showAlert('✅ 已更新！');
         } else {
-            // 新增模式
             const newExp = await sb.from('expenses').insert([d]).select().single();
             if (newExp.error) throw newExp.error;
             if (d.is_reimbursed && d.reimbursement_bank_id && d.amount > 0) {
@@ -2036,6 +1968,7 @@ async function saveExp() {
         throw e;
     }
 }
+
 function sortSubTable(field) {
     if (subSortField === field) subSortAsc = !subSortAsc;
     else { subSortField = field; subSortAsc = true; }
@@ -2154,13 +2087,13 @@ async function saveSub() {
         throw e;
     }
 }
+
 async function delExp(id) {
     if (!confirm('確定刪除這筆收支記錄？刪除後銀行餘額也會同步調整。')) return;
     try {
         const exp = D.expenses.find(e => e.id === id);
         if (!exp) { showAlert('❌ 找不到該筆收支記錄！'); return; }
 
-        // ★★★ 撤銷銀行扣款（如果已結帳） ★★★
         if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
             if (bank.data) {
@@ -2182,6 +2115,7 @@ async function delExp(id) {
         console.error('delExp error:', e);
     }
 }
+
 // ================================================================
 //  17. 銀行帳戶
 // ================================================================
@@ -2343,7 +2277,7 @@ async function delEmp(id) {
 }
 
 // ================================================================
-//  19. 老闆查閱（已修正淨利計算）
+//  19. 老闆查閱
 // ================================================================
 function renderBoss(c) {
     const startY = parseInt(bossDateRange.start.split('-')[0]);
@@ -2370,7 +2304,6 @@ function renderBoss(c) {
     let pur = 0;
     for (let i=0; i<monthPurchases.length; i++) pur += monthPurchases[i].total_amount || 0;
 
-    // ★★★ 排除「採購付款」類別（貨款不屬於營運費用） ★★★
     const purchasePayCat = D.expCats.find(c => c.name === '採購付款');
 
     const monthExpenses = D.expenses.filter(function(e) {
@@ -2404,7 +2337,6 @@ function renderBoss(c) {
     let totalCash = 0;
     for (let i=0; i<D.banks.length; i++) totalCash += D.banks[i].balance || 0;
 
-    // ★★★ 商品總成本（只算已出貨的商品） ★★★
     let totalProductCost = 0;
     let giftCost = 0;
     for (let i=0; i<monthOrders.length; i++) {
@@ -2425,11 +2357,9 @@ function renderBoss(c) {
         }
     }
 
-    // ★★★ 淨利 = 營收 - 商品成本 - 營運費用 - 訂閱攤提（不扣採購） ★★★
     const totalCostAll = totalProductCost + exp + subMonthlyTotal;
     const monthlyProfit = rev - totalCostAll;
 
-    // 其餘統計（通路抽成、手續費等從 expenses 抓取）
     const channelCat = D.expCats.find(c => c.name === '通路抽成');
     const paymentCat = D.expCats.find(c => c.name === '付款手續費');
     const shippingCat = D.expCats.find(c => c.name === '運費');
@@ -2461,7 +2391,6 @@ function renderBoss(c) {
 
     const totalOrderExpenses = totalChannelCommission + totalPaymentCommission + totalShippingCost;
 
-    // 客戶統計
     const subTag = D.tags.find(function(t) { return t.name.indexOf('訂閱') !== -1; });
     let subCustomerCount = 0;
     if (subTag && D.customerTags) {
@@ -2483,7 +2412,6 @@ function renderBoss(c) {
     const totalCustomers = D.customers.length;
     const monthOrderCount = monthOrders.length;
 
-    // 通路與付款統計
     let channelStatsHtml = '';
     if (channelCat) {
         const channelExpenses = periodExpenses.filter(e => e.category_id === channelCat.id);
@@ -2504,7 +2432,6 @@ function renderBoss(c) {
         paymentStatsHtml = '<div class="text-gray-400">無數據</div>';
     }
 
-    // 員工代墊明細
     const unreimbursedExpenses = D.expenses.filter(function(e) { return e.employee_id && !e.is_reimbursed; });
     const unreimbursedByEmp = {};
     for (let i=0; i<unreimbursedExpenses.length; i++) {
@@ -2530,7 +2457,6 @@ function renderBoss(c) {
     }
     if (!unreimbursedHtml) unreimbursedHtml = '<p class="text-gray-500">目前無待結帳代墊款項</p>';
 
-    // 庫存明細
     const inventoryByType = {};
     for (let i=0; i<D.products.length; i++) {
         const p = D.products[i];
@@ -2573,7 +2499,6 @@ function renderBoss(c) {
         inventoryDetailHtml += '<div class="border rounded-lg p-3"><h5 class="font-bold text-sm mb-2">'+typeName+'</h5><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50"><tr><th class="px-3 py-2 text-left text-xs">產品名稱</th><th class="px-3 py-2 text-left text-xs">SKU</th><th class="px-3 py-2 text-left text-xs">數量</th><th class="px-3 py-2 text-left text-xs">成本</th><th class="px-3 py-2 text-left text-xs">總價值</th></tr></thead><tbody>'+rowsHtml+'</tbody></table></div></div>';
     }
 
-    // 銀行餘額
     let banksHtml = '';
     for (let i=0; i<D.banks.length; i++) {
         const b = D.banks[i];
@@ -2585,6 +2510,7 @@ function renderBoss(c) {
 
     c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><div><h1 class="text-3xl font-bold">👑 老闆查閱</h1><p class="text-sm text-gray-600 mt-1">查看期間：'+bossDateRange.start+' ~ '+bossDateRange.end+'</p></div><div class="flex flex-wrap gap-2 w-full md:w-auto"><input type="month" value="'+startMonth+'" onchange="bossDateRange.start=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto"><span class="flex items-center text-gray-500">至</span><input type="month" value="'+endMonth+'" onchange="bossDateRange.end=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto"><button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch">📥 下載 Excel</button></div></div><div class="card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"><div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間業績</p><p class="text-3xl font-bold mt-2">'+rev.toLocaleString()+'</p><p class="text-xs mt-2 opacity-75">訂單數：'+monthOrderCount+' 單</p></div><div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間採購</p><p class="text-3xl font-bold mt-2">'+pur.toLocaleString()+'</p></div><div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間營運費用(含訂閱攤提)</p><p class="text-3xl font-bold mt-2">'+(exp+subMonthlyTotal).toLocaleString()+'</p><p class="text-xs opacity-75">訂閱攤提：'+subMonthlyTotal.toLocaleString()+'</p></div><div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">期間淨利</p><p class="text-3xl font-bold mt-2">'+monthlyProfit.toLocaleString()+'</p></div></div><div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3><div class="space-y-4">'+unreimbursedHtml+'</div></div><div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4><div class="space-y-1 text-sm">'+channelStatsHtml+'</div><div class="border-t mt-2 pt-2 font-bold">合計：'+totalChannelCommission.toLocaleString()+'</div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4><div class="space-y-1 text-sm">'+paymentStatsHtml+'</div><div class="border-t mt-2 pt-2 font-bold">合計：'+totalPaymentCommission.toLocaleString()+'</div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">'+totalShippingCost.toLocaleString()+'</span></div><div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">'+customerShipping.toLocaleString()+'</span></div></div><div class="border-t mt-2 pt-2 font-bold">公司支出：'+totalShippingCost.toLocaleString()+'</div></div></div><div class="mt-4 p-4 bg-red-50 rounded-lg"><div class="flex justify-between items-center"><span class="font-bold text-lg">期間出貨總支出</span><span class="text-2xl font-bold text-red-600">'+totalOrderExpenses.toLocaleString()+'</span></div></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3><div class="space-y-4"><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">'+totalCustomers+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">'+subCustomerCount+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">'+Math.round(subMonthlyRevenue).toLocaleString()+'</span></div></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3><p class="text-4xl font-bold text-orange-600 mb-6">現金總額：'+totalCash.toLocaleString()+'</p><div class="space-y-2">'+banksHtml+'</div></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-teal-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📦 商品成本與庫存</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">📦 商品總成本 (含贈品)</p><p class="text-2xl font-bold text-blue-600">'+totalProductCost.toLocaleString()+'</p></div><div class="p-4 bg-red-50 rounded-lg"><p class="text-sm text-gray-600">🎁 贈品總成本 (僅贈品)</p><p class="text-2xl font-bold text-red-600">'+giftCost.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">📦 庫存總價值 (目前)</p><p class="text-2xl font-bold text-purple-600">'+totalInventoryValue.toLocaleString()+'</p></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">成品</p><p class="text-2xl font-bold text-blue-600">'+inventoryAssets.finished.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.finished.value.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">半成品</p><p class="text-2xl font-bold text-purple-600">'+inventoryAssets.semi.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.semi.value.toLocaleString()+'</p></div><div class="p-4 bg-pink-50 rounded-lg"><p class="text-sm text-gray-600">禮盒</p><p class="text-2xl font-bold text-pink-600">'+inventoryAssets.gift_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.gift_box.value.toLocaleString()+'</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-600">外箱子</p><p class="text-2xl font-bold text-gray-600">'+inventoryAssets.outer_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.outer_box.value.toLocaleString()+'</p></div></div>'+(inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '')+'</div></div>';
 }
+
 // ================================================================
 //  20. 下載 Excel 報表
 // ================================================================
@@ -2726,9 +2652,35 @@ function downloadBossReport() {
     XLSX.writeFile(wb, fileName);
     showAlert('Excel 報表已下載！');
 }
-
-// ================================================================
-//  21. 訂單出貨 - 完整模組（已修正銀行餘額邏輯）
+    async function viewOrdDetail(id) {
+    const o = D.orders.find(function(x) { return x.id === id; });
+    if (!o) return showAlert('找不到訂單');
+    const c = D.customers.find(function(x) { return x.id === o.customer_id; });
+    const w = D.warehouses.find(function(x) { return x.id === o.warehouse_id; });
+    const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
+    const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
+    const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
+    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
+    const items = itemsResp.data || [];
+    let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th><th class="p-2 text-center">贈品</th></tr></thead><tbody>';
+    let totalCost = 0;
+    for (let i=0; i<items.length; i++) {
+        const item = items[i];
+        const p = D.products.find(function(x) { return x.id === item.product_id; });
+        const subtotal = item.quantity * item.unit_price;
+        const cost = p ? (p.cost_price || 0) * item.quantity : 0;
+        totalCost += cost;
+        itemsHtml += '<tr class="border-b"><td class="p-2">' + (p ? p.name : '未知') + '</td><td class="p-2 text-right">' + item.quantity + '</td><td class="p-2 text-right">' + item.unit_price + '</td><td class="p-2 text-right">' + subtotal.toLocaleString() + '</td><td class="p-2 text-center">' + (item.is_gift ? '🎁' : '') + '</td></tr>';
+    }
+    itemsHtml += '</tbody></table>';
+    const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
+    const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
+    const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
+    const html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div><div><b>📮 寄送地址:</b> '+(o.shipping_address||'無')+'</div><div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div><div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div><div><b>📦 產品明細:</b>'+itemsHtml+'</div><div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div></div>';
+    openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
+}
+    // ================================================================
+//  21. 訂單出貨 - 完整模組
 // ================================================================
 function renderOrders(c) {
     c.innerHTML = '<div class="content-card">' +
@@ -2865,7 +2817,6 @@ function clearOrdFilters() {
     renderOrdTable();
 }
 
-// ====== 開啓訂單 Modal ======
 async function openOrdModal(id) {
     try {
         editingId = id || null;
@@ -3166,14 +3117,10 @@ function calcOrd() {
     document.getElementById('o-margin').className = margin >= 0 ? 'text-green-600' : 'text-red-600';
 }
 
-// ================================================================
-//  saveOrd - 已修正銀行餘額邏輯（編輯時撤銷舊影響，應用新影響）
-// ================================================================
 async function saveOrd() {
     if (isSaving) return;
     isSaving = true;
     try {
-        // ===== 1. 收集表單值 =====
         const cid = document.getElementById('o-cust').value;
         const wid = document.getElementById('o-warehouse').value;
         const bankId = document.getElementById('o-bank').value;
@@ -3193,7 +3140,6 @@ async function saveOrd() {
         const hasAdvance = document.getElementById('o-has-advance').checked;
         const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
 
-        // ===== 2. 收集商品 =====
         const rows = document.querySelectorAll('#o-items .ord-item-row');
         const itemsData = [];
         let totalCost = 0;
@@ -3220,7 +3166,6 @@ async function saveOrd() {
             }
         }
 
-        // ===== 3. 驗證必填 =====
         const missing = [];
         if (!cid) missing.push('客戶');
         if (!wid) missing.push('出貨倉庫');
@@ -3234,7 +3179,6 @@ async function saveOrd() {
             return;
         }
 
-        // ===== 4. 計算總金額 =====
         let productTotal = 0;
         for (const item of itemsData) {
             const prod = D.products.find(p => p.id === item.product_id);
@@ -3249,7 +3193,6 @@ async function saveOrd() {
         if (totalAmount < 0) totalAmount = 0;
         totalAmount = Math.round(totalAmount);
 
-        // ===== 5. 計算費用 =====
         const chSelect = document.getElementById('o-channel');
         const chRate = chSelect.selectedIndex > 0 ? parseFloat(chSelect.options[chSelect.selectedIndex].dataset.rate) || 0 : 0;
         const pmSelect = document.getElementById('o-payment');
@@ -3258,11 +3201,9 @@ async function saveOrd() {
         const pmCommission = Math.round(totalAmount * (pmRate / 100));
         const companyShippingCost = companyShipping;
 
-        // ===== 6. 毛利率 =====
         const grossProfit = totalAmount - totalCost - chCommission - pmCommission - companyShippingCost;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
 
-        // ===== 7. 準備訂單資料 =====
         const orderNo = editingId ? (D.orders.find(o => o.id === editingId)?.order_no || 'ORD-' + Date.now()) : 'ORD-' + Date.now();
         const orderDate = new Date().toISOString();
         const dateStr = new Date(orderDate).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
@@ -3304,9 +3245,6 @@ async function saveOrd() {
         let oldTotalAmount = 0;
         let oldExpenses = [];
 
-        // ================================================================
-        //  8. 編輯模式：撤銷舊訂單對銀行的影響
-        // ================================================================
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
             const oldOrder = oldOrderResp.data;
@@ -3314,12 +3252,9 @@ async function saveOrd() {
             oldBankId = oldOrder.bank_account_id;
             oldTotalAmount = oldOrder.total_amount || 0;
 
-            // 查詢舊的 expenses
             const oldExpensesResp = await sb.from('expenses').select('*').eq('related_order_id', editingId);
             oldExpenses = oldExpensesResp.data || [];
 
-            // ★★★ 撤銷舊訂單對銀行的影響 ★★★
-            // a. 從入款銀行退還舊總金額（即扣除之前入帳的總金額）
             if (oldBankId && oldTotalAmount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
@@ -3328,7 +3263,6 @@ async function saveOrd() {
                     }).eq('id', oldBankId);
                 }
             }
-            // b. 撤銷所有已結帳費用的扣款（將金額加回其出帳銀行）
             for (const exp of oldExpenses) {
                 if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
                     const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
@@ -3340,11 +3274,9 @@ async function saveOrd() {
                 }
             }
 
-            // 取得舊的 order_items（用來補庫存）
             const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
             oldItems = oldItemsResp.data || [];
 
-            // 補回舊庫存
             for (const oldItem of oldItems) {
                 const prod = D.products.find(p => p.id === oldItem.product_id);
                 if (!prod) continue;
@@ -3370,51 +3302,37 @@ async function saveOrd() {
                 }
             }
 
-            // 刪除舊的 order_items 和 expenses（稍後重新插入）
             await sb.from('order_items').delete().eq('order_id', editingId);
             await sb.from('expenses').delete().eq('related_order_id', editingId);
 
-            // 更新訂單
             const updateResult = await sb.from('orders').update(orderData).eq('id', editingId);
             if (updateResult.error) throw new Error('更新訂單失敗：' + updateResult.error.message);
             orderId = editingId;
         } else {
-            // ================================================================
-            //  9. 新增模式
-            // ================================================================
             const insertResult = await sb.from('orders').insert([orderData]).select().single();
             if (insertResult.error) throw new Error('新增訂單失敗：' + insertResult.error.message);
             orderId = insertResult.data.id;
         }
 
-        // ================================================================
-        //  10. 插入新的 order_items
-        // ================================================================
         if (itemsData.length > 0) {
             const itemsWithOrder = itemsData.map(item => ({ ...item, order_id: orderId }));
             const itemResult = await sb.from('order_items').insert(itemsWithOrder);
             if (itemResult.error) throw new Error('插入訂單明細失敗：' + itemResult.error.message);
         }
 
-        // ===============================================================
-     // 10. 扣除新庫存（只扣成品，不再扣 BOM 半成品）
-for (const item of itemsData) {
-    const prod = D.products.find(p => p.id === item.product_id);
-    if (!prod) continue;
-    if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
-        if (inv.data) {
-            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
-        } else {
-            await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+        for (const item of itemsData) {
+            const prod = D.products.find(p => p.id === item.product_id);
+            if (!prod) continue;
+            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', wid).eq('product_id', prod.id).maybeSingle();
+                if (inv.data) {
+                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) - item.quantity }).eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
+                }
+            }
         }
-    }
-    // ★★★ BOM 扣除邏輯已移除 ★★★
-}
 
-        // ================================================================
-        //  12. ★★★ 插入新的費用記錄，並執行扣款 ★★★
-        // ================================================================
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const channelCat = expCats.find(c => c.name === '通路抽成');
@@ -3422,7 +3340,6 @@ for (const item of itemsData) {
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
 
         const newExpenses = [];
-        // 運費（公司吸收）
         if (companyShippingCost > 0 && shippingCat) {
             const isReimbursed = !advanceEmpId;
             newExpenses.push({
@@ -3437,7 +3354,6 @@ for (const item of itemsData) {
                 related_order_id: orderId
             });
         }
-        // 通路抽成
         if (chCommission > 0 && channelCat) {
             newExpenses.push({
                 category_id: channelCat.id,
@@ -3451,7 +3367,6 @@ for (const item of itemsData) {
                 related_order_id: orderId
             });
         }
-        // 付款手續費
         if (pmCommission > 0 && paymentCat) {
             newExpenses.push({
                 category_id: paymentCat.id,
@@ -3466,7 +3381,6 @@ for (const item of itemsData) {
             });
         }
 
-        // ===== 13. ★★★ 向新訂單銀行存入總金額 ★★★
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (bank.data) {
@@ -3476,20 +3390,17 @@ for (const item of itemsData) {
             }
         }
 
-        // ===== 14. ★★★ 插入新費用並執行扣款（如果已結帳） ★★★
         if (newExpenses.length > 0) {
             for (const exp of newExpenses) {
                 if (!exp.category_id) {
                     console.warn('⚠️ 跳過費用記錄，找不到對應類別：', exp.description);
                     continue;
                 }
-                // 插入費用
                 const insertExpResult = await sb.from('expenses').insert([exp]);
                 if (insertExpResult.error) {
                     console.warn('⚠️ 插入費用失敗：', insertExpResult.error.message);
                     continue;
                 }
-                // 如果費用已結帳且需扣銀行，則執行扣款
                 if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
                     const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
                     if (bank.data) {
@@ -3501,9 +3412,6 @@ for (const item of itemsData) {
             }
         }
 
-        // ================================================================
-        //  15. 完成
-        // ================================================================
         showAlert('✅ 出貨單已儲存！');
         window.closeModal();
         await loadAll();
@@ -3520,9 +3428,6 @@ for (const item of itemsData) {
     }
 }
 
-// ================================================================
-//  delOrd - 刪除訂單時正確扣除銀行餘額
-// ================================================================
 async function delOrd(id) {
     if (isDeleting) return;
     if (!confirm('確定刪除這筆訂單？刪除後庫存將自動補回，銀行款項也會退回。')) return;
@@ -3532,8 +3437,6 @@ async function delOrd(id) {
         const o = orderResp.data;
         if (!o) { showAlert('❌ 找不到訂單！'); isDeleting = false; return; }
 
-        // ★★★ 退還銀行 ★★★
-        // 1. 從入款銀行扣除總金額（之前加過）
         if (o.bank_account_id && o.total_amount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', o.bank_account_id).single();
             if (bank.data) {
@@ -3541,7 +3444,6 @@ async function delOrd(id) {
             }
         }
 
-        // 2. 撤銷所有已結帳費用的扣款（加回金額）
         const expResp = await sb.from('expenses').select('*').eq('related_order_id', id);
         const expenses = expResp.data || [];
         for (const exp of expenses) {
@@ -3553,25 +3455,21 @@ async function delOrd(id) {
             }
         }
 
-        // 補回庫存
         const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
         const items = itemsResp.data || [];
-        // 補回庫存（只補成品，不再補 BOM 半成品）
-for (const item of items) {
-    const prod = D.products.find(p => p.id === item.product_id);
-    if (!prod) continue;
-    if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
-        const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
-        if (inv.data) {
-            await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
-        } else {
-            await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+        for (const item of items) {
+            const prod = D.products.find(p => p.id === item.product_id);
+            if (!prod) continue;
+            if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
+                const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', o.warehouse_id).eq('product_id', prod.id).maybeSingle();
+                if (inv.data) {
+                    await sb.from('warehouse_inventory').update({ quantity: (inv.data.quantity || 0) + item.quantity }).eq('id', inv.data.id);
+                } else {
+                    await sb.from('warehouse_inventory').insert([{ warehouse_id: o.warehouse_id, product_id: prod.id, quantity: item.quantity, safety_stock: 0 }]);
+                }
+            }
         }
-    }
-    // ★★★ BOM 補回邏輯已移除 ★★★
-}
 
-        // 刪除關聯資料
         await sb.from('expenses').delete().eq('related_order_id', id);
         await sb.from('order_items').delete().eq('order_id', id);
         await sb.from('orders').delete().eq('id', id);
@@ -3586,36 +3484,6 @@ for (const item of items) {
         isDeleting = false;
     }
 }
-async function viewOrdDetail(id) {
-    const o = D.orders.find(function(x) { return x.id === id; });
-    if (!o) return showAlert('找不到訂單');
-    const c = D.customers.find(function(x) { return x.id === o.customer_id; });
-    const w = D.warehouses.find(function(x) { return x.id === o.warehouse_id; });
-    const ch = D.channels.find(function(x) { return x.id === o.sales_channel_id; });
-    const pm = D.payments.find(function(x) { return x.id === o.payment_method_id; });
-    const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
-    const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
-    const items = itemsResp.data || [];
-    let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th><th class="p-2 text-center">贈品</th></tr></thead><tbody>';
-    let totalCost = 0;
-    for (let i=0; i<items.length; i++) {
-        const item = items[i];
-        const p = D.products.find(function(x) { return x.id === item.product_id; });
-        const subtotal = item.quantity * item.unit_price;
-        const cost = p ? (p.cost_price || 0) * item.quantity : 0;
-        totalCost += cost;
-        itemsHtml += '<tr class="border-b"><td class="p-2">' + (p ? p.name : '未知') + '</td><td class="p-2 text-right">' + item.quantity + '</td><td class="p-2 text-right">' + item.unit_price + '</td><td class="p-2 text-right">' + subtotal.toLocaleString() + '</td><td class="p-2 text-center">' + (item.is_gift ? '🎁' : '') + '</td></tr>';
-    }
-    itemsHtml += '</tbody></table>';
-    const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
-    const shipPayer = o.customer_paid_shipping > 0 ? '客戶支付' : '公司吸收';
-    const marginColor = (o.gross_profit_margin || 0) >= 0 ? 'text-green-600' : 'text-red-600';
-    
- const html = '<div class="space-y-4 text-sm"><div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded"><div><b>訂單編號:</b> '+o.order_no+'</div><div><b>日期:</b> '+new Date(o.created_at).toLocaleDateString()+'</div><div><b>客戶:</b> '+(c?c.company_name||c.contact_person:'-')+'</div><div><b>倉庫:</b> '+(w?w.name:'-')+'</div></div><div><b>📮 寄送地址:</b> '+(o.shipping_address||'無')+'</div><div class="grid grid-cols-2 gap-4 bg-yellow-50 p-3 rounded"><div><b> 發票:</b> '+invTypeText+'</div><div><b>號碼:</b> '+(o.invoice_no||'-')+'</div><div><b>抬頭:</b> '+(o.invoice_title||'-')+'</div><div><b>統編:</b> '+(o.invoice_tax_id||'-')+'</div></div><div class="grid grid-cols-2 gap-4 bg-blue-50 p-3 rounded"><div><b>️ 銷售通路:</b> '+(ch?ch.name:'-')+'</div><div><b>💳 付款方式:</b> '+(pm?pm.name:'-')+'</div><div><b>🏦 入款銀行:</b> '+(bank?bank.account_name:'-')+'</div><div><b>🚚 運費處理:</b> '+shipPayer+' ('+(o.shipping_fee||0)+')</div></div><div><b>📦 產品明細:</b>'+itemsHtml+'</div><div class="grid grid-cols-2 gap-4 bg-indigo-50 p-3 rounded font-bold text-lg"><div>總金額: <span class="text-indigo-600">'+(o.total_amount||0).toLocaleString()+'</span></div><div>毛利率: <span class="'+marginColor+'">'+(o.gross_profit_margin||0).toFixed(1)+'%</span></div></div></div>';`
-
-    // 保持這一行不變
-    openModal('訂單詳情', html, function(){return Promise.resolve();}, true);
-}  // <--- 👑 这里必须确保有这一行，闭合 viewOrdDetail 函数！ 
 
 console.log('✅ 全部模組已載入，所有功能完整。');
 </script>
