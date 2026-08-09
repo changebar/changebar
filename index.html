@@ -3160,7 +3160,6 @@ async function saveOrd() {
 
         // ★★★ 讀取使用者選擇的出貨日期 ★★★
         const shippedDate = document.getElementById('o-shipped-date').value;
-        // 如果使用者有選日期就用那個日期，否則用現在時間
         const orderDate = shippedDate ? shippedDate + 'T00:00:00' : new Date().toISOString();
 
         // ===== 2. 收集商品 =====
@@ -3264,7 +3263,7 @@ async function saveOrd() {
             shipping_advance_reimbursed: false,
             shipping_advance_bank_id: null,
             shipping_advance_reimbursed_date: null,
-            created_at: orderDate  // ★★★ 這裡寫入使用者選擇的出貨日期 ★★★
+            created_at: orderDate
         };
 
         let orderId = editingId;
@@ -3274,7 +3273,7 @@ async function saveOrd() {
         let oldExpenses = [];
 
         // ================================================================
-        //  8. 編輯模式：撤銷舊訂單對銀行的影響，並補回舊庫存（僅成品，不影響半成品）
+        //  8. 編輯模式：撤銷舊訂單對銀行的影響，並補回舊庫存（僅成品）
         // ================================================================
         if (editingId) {
             const oldOrderResp = await sb.from('orders').select('*').eq('id', editingId).maybeSingle();
@@ -3286,7 +3285,6 @@ async function saveOrd() {
             const oldExpensesResp = await sb.from('expenses').select('*').eq('related_order_id', editingId);
             oldExpenses = oldExpensesResp.data || [];
 
-            // ★★★ 退還舊入款 ★★★
             if (oldBankId && oldTotalAmount > 0) {
                 const oldBank = await sb.from('bank_accounts').select('balance').eq('id', oldBankId).single();
                 if (oldBank.data) {
@@ -3295,7 +3293,6 @@ async function saveOrd() {
                     }).eq('id', oldBankId);
                 }
             }
-            // ★★★ 撤銷舊費用扣款 ★★★
             for (const exp of oldExpenses) {
                 if (exp.is_reimbursed && exp.reimbursement_bank_id && exp.amount > 0) {
                     const bank = await sb.from('bank_accounts').select('balance').eq('id', exp.reimbursement_bank_id).single();
@@ -3307,13 +3304,11 @@ async function saveOrd() {
                 }
             }
 
-            // ★★★ 補回舊庫存（僅成品，不處理 BOM）★★★
             const oldItemsResp = await sb.from('order_items').select('*').eq('order_id', editingId);
             oldItems = oldItemsResp.data || [];
             for (const oldItem of oldItems) {
                 const prod = D.products.find(p => p.id === oldItem.product_id);
                 if (!prod) continue;
-                // 只補回成品（finished, gift_box, outer_box）
                 if (['finished', 'gift_box', 'outer_box'].includes(prod.type)) {
                     const inv = await sb.from('warehouse_inventory').select('id, quantity').eq('warehouse_id', oldOrder.warehouse_id).eq('product_id', prod.id).maybeSingle();
                     if (inv.data) {
@@ -3324,18 +3319,13 @@ async function saveOrd() {
                 }
             }
 
-            // 刪除舊的 order_items 和 expenses
             await sb.from('order_items').delete().eq('order_id', editingId);
             await sb.from('expenses').delete().eq('related_order_id', editingId);
 
-            // 更新訂單
             const updateResult = await sb.from('orders').update(orderData).eq('id', editingId);
             if (updateResult.error) throw new Error('更新訂單失敗：' + updateResult.error.message);
             orderId = editingId;
         } else {
-            // ================================================================
-            //  9. 新增模式
-            // ================================================================
             const insertResult = await sb.from('orders').insert([orderData]).select().single();
             if (insertResult.error) throw new Error('新增訂單失敗：' + insertResult.error.message);
             orderId = insertResult.data.id;
@@ -3351,7 +3341,7 @@ async function saveOrd() {
         }
 
         // ================================================================
-        //  11. ★★★ 扣除新庫存（僅成品，不處理 BOM）★★★
+        //  11. 扣除新庫存（僅成品）
         // ================================================================
         for (const item of itemsData) {
             const prod = D.products.find(p => p.id === item.product_id);
@@ -3367,59 +3357,62 @@ async function saveOrd() {
         }
 
         // ================================================================
-        //  12. ★★★ 插入新的費用記錄，並執行扣款 ★★★
+        //  12. ★★★ 插入費用記錄（使用出貨日期 expenseDate）★★★
         // ================================================================
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const channelCat = expCats.find(c => c.name === '通路抽成');
         const paymentCat = expCats.find(c => c.name === '付款手續費');
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
+
+        // ★★★ 費用日期與出貨日期一致 ★★★
         const expenseDate = shippedDate ? shippedDate : new Date().toISOString().split('T')[0];
 
-        // 運費（公司吸收）
-      if (companyShippingCost > 0 && shippingCat) {
-          const isReimbursed = !advanceEmpId;
-          newExpenses.push({
-              category_id: shippingCat.id,
-              amount: Math.round(companyShippingCost),
-              description: descPrefix + ' 運費（公司吸收）',
-              payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
-              employee_id: advanceEmpId || null,
-              is_reimbursed: isReimbursed,
-              reimbursement_bank_id: isReimbursed ? bankId : null,
-              reimbursed_date: isReimbursed ? expenseDate : null,  // ★★★ 改用 expenseDate ★★★
-              related_order_id: orderId
-       });
-}
-       // 通路抽成
-       if (chCommission > 0 && channelCat) {
-           newExpenses.push({
-               category_id: channelCat.id,
-               amount: chCommission,
-               description: descPrefix + ' 通路抽成 (' + chRate + '%)',
-               payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
-               employee_id: null,
-               is_reimbursed: true,
-               reimbursement_bank_id: bankId,
-               reimbursed_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
-               related_order_id: orderId
-      });
-}
-      // 付款手續費
-       if (pmCommission > 0 && paymentCat) {
-           newExpenses.push({
-               category_id: paymentCat.id,
-               amount: pmCommission,
-               description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
-               payment_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
-               employee_id: null,
-               is_reimbursed: true,
-               reimbursement_bank_id: bankId,
-               reimbursed_date: expenseDate,  // ★★★ 改用 expenseDate ★★★
-               related_order_id: orderId
-      });
-}
-        // ===== 13. ★★★ 向新訂單銀行存入總金額 ★★★
+        // ★★★ 這裡定義 newExpenses ★★★
+        const newExpenses = [];
+
+        if (companyShippingCost > 0 && shippingCat) {
+            const isReimbursed = !advanceEmpId;
+            newExpenses.push({
+                category_id: shippingCat.id,
+                amount: Math.round(companyShippingCost),
+                description: descPrefix + ' 運費（公司吸收）',
+                payment_date: expenseDate,
+                employee_id: advanceEmpId || null,
+                is_reimbursed: isReimbursed,
+                reimbursement_bank_id: isReimbursed ? bankId : null,
+                reimbursed_date: isReimbursed ? expenseDate : null,
+                related_order_id: orderId
+            });
+        }
+        if (chCommission > 0 && channelCat) {
+            newExpenses.push({
+                category_id: channelCat.id,
+                amount: chCommission,
+                description: descPrefix + ' 通路抽成 (' + chRate + '%)',
+                payment_date: expenseDate,
+                employee_id: null,
+                is_reimbursed: true,
+                reimbursement_bank_id: bankId,
+                reimbursed_date: expenseDate,
+                related_order_id: orderId
+            });
+        }
+        if (pmCommission > 0 && paymentCat) {
+            newExpenses.push({
+                category_id: paymentCat.id,
+                amount: pmCommission,
+                description: descPrefix + ' 付款手續費 (' + pmRate + '%)',
+                payment_date: expenseDate,
+                employee_id: null,
+                is_reimbursed: true,
+                reimbursement_bank_id: bankId,
+                reimbursed_date: expenseDate,
+                related_order_id: orderId
+            });
+        }
+
+        // ===== 13. 向新訂單銀行存入總金額 =====
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
             if (bank.data) {
@@ -3429,7 +3422,7 @@ async function saveOrd() {
             }
         }
 
-        // ===== 14. ★★★ 插入新費用並執行扣款（如果已結帳） ★★★
+        // ===== 14. 插入新費用並執行扣款 =====
         if (newExpenses.length > 0) {
             for (const exp of newExpenses) {
                 if (!exp.category_id) {
