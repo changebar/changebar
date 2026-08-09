@@ -2795,7 +2795,9 @@ function renderOrdTable() {
                 advanceHtml = '<div class="text-xs text-center"><div class="text-orange-600">' + emp.name + '</div><div class="font-bold">' + o.shipping_advance_amount.toLocaleString() + '</div></div>';
             }
         }
-        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-center whitespace-nowrap">' + new Date(o.created_at).toLocaleDateString() + '</td><td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td><td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td><td class="px-4 py-3 text-center">' + advanceHtml + '</td><td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-center">' + marginHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
+        // ★★★ 顯示「出貨日期」（從 created_at 讀取） ★★★
+        const displayDate = o.created_at ? new Date(o.created_at).toLocaleDateString() : '-';
+        html += '<tr class="hover:bg-gray-50"><td class="px-4 py-3 text-center whitespace-nowrap">' + displayDate + '</td><td class="px-4 py-3 text-center">' + (c ? c.company_name || c.contact_person : '-') + '</td><td class="px-4 py-3 text-center">' + (bank ? bank.account_name : '-') + '</td><td class="px-4 py-3 text-center">' + advanceHtml + '</td><td class="px-4 py-3 text-center font-bold">' + (o.total_amount || 0).toLocaleString() + '</td><td class="px-4 py-3 text-center">' + marginHtml + '</td><td class="px-4 py-3 whitespace-nowrap space-x-2 text-center">' +
             '<button onclick="viewOrdDetail(\'' + o.id + '\')" class="text-blue-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">詳情</button>' +
             '<button onclick="openOrdModal(\'' + o.id + '\')" class="text-green-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">編輯</button>' +
             '<button onclick="delOrd(\'' + o.id + '\')" class="text-red-600 text-sm hover:underline btn-touch" style="min-height:auto; padding:0.25rem 0.5rem;">刪除</button>' +
@@ -2870,9 +2872,21 @@ async function openOrdModal(id) {
         const pointsAmount = o ? o.points_amount || 0 : 0;
         const invType = o ? o.invoice_type || 'no' : 'no';
         const shippingFeeValue = o ? Number(o.shipping_fee || 0) : 0;
+        
+        // ★★★ 取得預設出貨日期（編輯時帶入舊日期，新增時為今天） ★★★
+        const defaultShippedDate = o ? new Date(o.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
+        // ★★★ 修改後的 HTML（在最上方加入了「出貨日期」欄位） ★★★
         const html = '<input type="hidden" id="o-id" value="' + (id || '') + '">' +
-            '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">選擇客戶 *</label><input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field mb-2" placeholder="輸入名稱或電話搜尋..." oninput="searchCustomerInOrder()"><select id="o-cust" class="w-full px-3 py-2 border rounded input-field" onchange="fillCustomerData()">' + custOptions + '</select></div><div><label class="block text-sm font-bold mb-2">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div></div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+            '<div><label class="block text-sm font-bold mb-2">📅 出貨日期 *</label>' +
+            '<input type="date" id="o-shipped-date" class="w-full px-3 py-2 border rounded input-field" value="' + defaultShippedDate + '"></div>' +
+            '<div class="md:col-span-2"><label class="block text-sm font-bold mb-2">選擇客戶 *</label>' +
+            '<input type="text" id="o-cust-search" class="w-full px-3 py-2 border rounded input-field mb-2" placeholder="輸入名稱或電話搜尋..." oninput="searchCustomerInOrder()">' +
+            '<select id="o-cust" class="w-full px-3 py-2 border rounded input-field" onchange="fillCustomerData()">' + custOptions + '</select></div></div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
+            '<div><label class="block text-sm font-bold mb-2">出貨倉庫 *</label><select id="o-warehouse" class="w-full px-3 py-2 border rounded input-field">' + whOptions + '</select></div>' +
+            '<div></div></div>' +
             '<div class="bg-gray-50 p-4 rounded-lg mb-4"><h3 class="font-bold mb-3">📮 寄送地址 (自動帶入可修改)</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">收件人</label><input type="text" id="o-recv-name" class="w-full px-3 py-2 border rounded input-field"></div><div><label class="block text-xs font-bold mb-1">電話</label><input type="text" id="o-recv-phone" class="w-full px-3 py-2 border rounded input-field"></div><div class="md:col-span-2"><label class="block text-xs font-bold mb-1">地址/門市</label><input type="text" id="o-recv-addr" class="w-full px-3 py-2 border rounded input-field"></div></div></div>' +
             '<div class="mb-4"><label class="block text-sm font-bold mb-2">產品明細 *</label><div class="flex gap-2 mb-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded text-sm btn-touch">+ 成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-3 py-2 bg-pink-100 text-pink-700 rounded text-sm btn-touch">+ 禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-3 py-2 bg-gray-200 text-gray-700 rounded text-sm btn-touch">+ 外箱</button></div><div id="o-items" class="space-y-3"></div>' +
             '<div class="mt-2 flex gap-2 flex-wrap"><button type="button" onclick="addOrdItem(\'finished\')" class="px-4 py-2 bg-blue-600 text-white rounded text-sm btn-touch">+ 新增成品</button><button type="button" onclick="addOrdItem(\'gift_box\')" class="px-4 py-2 bg-pink-600 text-white rounded text-sm btn-touch">+ 新增禮盒</button><button type="button" onclick="addOrdItem(\'outer_box\')" class="px-4 py-2 bg-gray-600 text-white rounded text-sm btn-touch">+ 新增外箱</button></div></div>' +
@@ -3144,6 +3158,11 @@ async function saveOrd() {
         const hasAdvance = document.getElementById('o-has-advance').checked;
         const advanceEmpId = hasAdvance ? (document.getElementById('o-advance-emp').value || null) : null;
 
+        // ★★★ 讀取使用者選擇的出貨日期 ★★★
+        const shippedDate = document.getElementById('o-shipped-date').value;
+        // 如果使用者有選日期就用那個日期，否則用現在時間
+        const orderDate = shippedDate ? shippedDate + 'T00:00:00' : new Date().toISOString();
+
         // ===== 2. 收集商品 =====
         const rows = document.querySelectorAll('#o-items .ord-item-row');
         const itemsData = [];
@@ -3215,7 +3234,6 @@ async function saveOrd() {
 
         // ===== 7. 準備訂單資料 =====
         const orderNo = editingId ? (D.orders.find(o => o.id === editingId)?.order_no || 'ORD-' + Date.now()) : 'ORD-' + Date.now();
-        const orderDate = new Date().toISOString();
         const dateStr = new Date(orderDate).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '/');
         const orderData = {
             customer_id: cid,
@@ -3246,7 +3264,7 @@ async function saveOrd() {
             shipping_advance_reimbursed: false,
             shipping_advance_bank_id: null,
             shipping_advance_reimbursed_date: null,
-            created_at: orderDate
+            created_at: orderDate  // ★★★ 這裡寫入使用者選擇的出貨日期 ★★★
         };
 
         let orderId = editingId;
@@ -3304,7 +3322,6 @@ async function saveOrd() {
                         await sb.from('warehouse_inventory').insert([{ warehouse_id: oldOrder.warehouse_id, product_id: prod.id, quantity: oldItem.quantity, safety_stock: 0 }]);
                     }
                 }
-                // ★★★ 不再處理半成品（BOM）★★★
             }
 
             // 刪除舊的 order_items 和 expenses
@@ -3347,7 +3364,6 @@ async function saveOrd() {
                     await sb.from('warehouse_inventory').insert([{ warehouse_id: wid, product_id: prod.id, quantity: -item.quantity, safety_stock: 0 }]);
                 }
             }
-            // ★★★ 不再處理 BOM 半成品 ★★★
         }
 
         // ================================================================
@@ -3360,7 +3376,6 @@ async function saveOrd() {
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
 
         const newExpenses = [];
-        // 運費（公司吸收）
         if (companyShippingCost > 0 && shippingCat) {
             const isReimbursed = !advanceEmpId;
             newExpenses.push({
@@ -3375,7 +3390,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-        // 通路抽成
         if (chCommission > 0 && channelCat) {
             newExpenses.push({
                 category_id: channelCat.id,
@@ -3389,7 +3403,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-        // 付款手續費
         if (pmCommission > 0 && paymentCat) {
             newExpenses.push({
                 category_id: paymentCat.id,
