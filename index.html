@@ -952,13 +952,27 @@ async function delWarehouse(id) {
 //  13. 庫存盤點
 // ================================================================
 function renderInventory(c) {
+    // 先取得所有啟用的倉庫（排除半成品倉庫，因為它只放半成品）
+    const allWh = D.warehouses.filter(function(w) { return w.is_active; });
+    const semiWh = allWh.find(w => w.name === '半成品倉庫');
+    const displayWh = allWh.filter(w => w.name !== '半成品倉庫');
+    
     let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
-    const activeWh = D.warehouses.filter(function(w) { return w.is_active; });
-    for (let i=0; i<activeWh.length; i++) {
-        const w = activeWh[i];
+    for (let i=0; i<displayWh.length; i++) {
+        const w = displayWh[i];
         tabsHtml += '<button onclick="showWhTab(\'' + w.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + w.id + '">' + w.name + '</button>';
     }
-    c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1><div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div><div class="mb-4"><input type="text" id="inv-search" placeholder="🔍 搜尋產品名稱或SKU..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="showWhTab(document.querySelector(\'.wh-tab.bg-blue-600\')?.dataset.wh || \'all\')"></div><div id="inv-content"></div></div>';
+    // ★★★ 加入半成品倉庫頁籤 ★★★
+    if (semiWh) {
+        tabsHtml += '<button onclick="showWhTab(\'' + semiWh.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + semiWh.id + '">🧩 ' + semiWh.name + '</button>';
+    }
+    
+    c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1>' +
+        '<div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div>' +
+        '<div class="mb-4"><input type="text" id="inv-search" placeholder="🔍 搜尋產品名稱或SKU..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="showWhTab(document.querySelector(\'.wh-tab.bg-blue-600\')?.dataset.wh || \'all\')"></div>' +
+        // ★★★ 加入「全部儲存」按鈕（僅在個別倉庫模式顯示） ★★★
+        '<div id="inv-batch-save-area" class="mb-4 hidden"><button onclick="saveAllInvItems()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold btn-touch w-full md:w-auto">💾 全部儲存</button><span class="text-sm text-gray-500 ml-3">一次儲存此倉庫所有修改</span></div>' +
+        '<div id="inv-content"></div></div>';
     showWhTab('all');
 }
 
@@ -971,6 +985,15 @@ function sortInvTable(field) {
 }
 
 function showWhTab(whId) {
+    // ★★★ 控制「全部儲存」按鈕顯示 ★★★
+    const batchArea = document.getElementById('inv-batch-save-area');
+    if (batchArea) {
+        if (whId === 'all') {
+            batchArea.classList.add('hidden');
+        } else {
+            batchArea.classList.remove('hidden');
+        }
+    }
     const tabs = document.querySelectorAll('.wh-tab');
     for (let i=0; i<tabs.length; i++) {
         const t = tabs[i];
@@ -996,36 +1019,305 @@ function showWhTab(whId) {
         return 0;
     });
     let rows = '';
-    if (whId === 'all') {
-        for (let i=0; i<productList.length; i++) {
-            const p = productList[i];
-            let totalQty = 0;
-            const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
-            for (let j=0; j<invs.length; j++) { totalQty += invs[j].quantity || 0; }
-            const initialStock = p.initial_stock || 0;
-            const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
-            const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
-            const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-            rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 text-center">' + p.name + '</td><td class="px-4 py-3 text-center">' + (p.sku || '-') + '</td><td class="px-4 py-3 text-center font-bold text-lg">' + totalQty + '</td><td class="px-4 py-3 text-center">' + initialStock + '</td><td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td></tr>';
+    // 取代原本 whId === 'all' 的區塊
+if (whId === 'all') {
+    // 取得所有倉庫（排除半成品倉庫，因為總覽要顯示正常倉庫）
+    const allWh = D.warehouses.filter(function(w) { return w.is_active && w.name !== '半成品倉庫'; });
+    // 也要顯示半成品倉庫，但只顯示半成品
+    const semiWh = D.warehouses.find(w => w.name === '半成品倉庫' && w.is_active);
+    
+    // 建立倉庫標題列
+    let warehouseHeaders = '';
+    let warehouseIds = [];
+    for (let i=0; i<allWh.length; i++) {
+        const w = allWh[i];
+        warehouseHeaders += '<th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase">' + w.name + '</th>';
+        warehouseIds.push(w.id);
+    }
+    // 加入半成品倉庫的標題（只顯示半成品）
+    if (semiWh) {
+        warehouseHeaders += '<th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase bg-purple-50">🧩 ' + semiWh.name + '</th>';
+        warehouseIds.push(semiWh.id);
+    }
+    
+    // 先過濾產品：半成品倉庫只顯示半成品，一般倉庫不顯示半成品
+    let productList = D.products.slice();
+    // 如果有搜尋關鍵字
+    if (searchKw) {
+        productList = productList.filter(function(p) {
+            return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
+                   (p.sku || '').toLowerCase().indexOf(searchKw) !== -1;
+        });
+    }
+    
+    // 排序
+    productList.sort(function(a, b) {
+        let aVal = a[invSortField] || '';
+        let bVal = b[invSortField] || '';
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        if (aVal < bVal) return invSortAsc ? -1 : 1;
+        if (aVal > bVal) return invSortAsc ? 1 : -1;
+        return 0;
+    });
+    
+    let rows = '';
+    for (let i=0; i<productList.length; i++) {
+        const p = productList[i];
+        
+        // 判斷這個產品是否應該在總覽中顯示
+        // 如果是半成品，只顯示在半成品倉庫的欄位，不顯示在其他倉庫
+        const isSemi = (p.type === 'semi');
+        
+        let totalQty = 0;
+        let warehouseQtys = {};
+        let semiQty = 0;
+        
+        // 查詢所有倉庫的庫存
+        const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
+        for (let j=0; j<invs.length; j++) {
+            const inv = invs[j];
+            // 檢查這個倉庫是否為半成品倉庫
+            const wh = D.warehouses.find(w => w.id === inv.warehouse_id);
+            if (wh && wh.name === '半成品倉庫') {
+                semiQty += inv.quantity || 0;
+            } else {
+                warehouseQtys[inv.warehouse_id] = (warehouseQtys[inv.warehouse_id] || 0) + (inv.quantity || 0);
+                totalQty += inv.quantity || 0;
+            }
         }
+        
+        // 如果是半成品，只顯示在半成品倉庫的欄位
+        let qtyCells = '';
+        for (let k=0; k<allWh.length; k++) {
+            const wid = allWh[k].id;
+            const qty = warehouseQtys[wid] || 0;
+            // 如果是半成品，在其他倉庫顯示 0
+            qtyCells += '<td class="px-2 py-2 text-center text-sm ' + (isSemi ? 'text-gray-300' : '') + '">' + (isSemi ? '-' : qty) + '</td>';
+        }
+        // 半成品倉庫欄位：只顯示半成品
+        if (semiWh) {
+            qtyCells += '<td class="px-2 py-2 text-center text-sm font-bold ' + (isSemi ? 'text-purple-600' : 'text-gray-300') + '">' + (isSemi ? semiQty : '-') + '</td>';
+        }
+        
+        // 計算總庫存（只算一般倉庫）
+        const initialStock = p.initial_stock || 0;
+        const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
+        const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+        const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+        
+        // 只顯示有庫存或半成品的產品（如果完全沒有庫存則隱藏）
+        if (totalQty === 0 && semiQty === 0 && !searchKw) continue;
+        
+        rows += '<tr class="border-b hover:bg-gray-50">' +
+            '<td class="px-3 py-2 text-left font-medium">' + p.name + '</td>' +
+            '<td class="px-3 py-2 text-center text-sm">' + (p.sku || '-') + '</td>' +
+            '<td class="px-3 py-2 text-center text-sm">' + (PRODUCT_TYPE_MAP[p.type] || p.type) + '</td>' +
+            qtyCells +
+            '<td class="px-3 py-2 text-center font-bold text-lg">' + totalQty + '</td>' +
+            '<td class="px-3 py-2 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
+            '</tr>';
+    }
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
+        '<div class="p-3 bg-gray-50 border-b flex justify-between items-center"><h3 class="font-bold">📦 全部倉庫庫存總覽</h3><span class="text-sm text-gray-500">（半成品僅顯示於 🧩 半成品倉庫）</span></div>' +
+        '<table class="min-w-full divide-y divide-gray-200">' +
+        '<thead class="bg-gray-50"><tr>' +
+        '<th class="px-3 py-2 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th>' +
+        '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th>' +
+        '<th class="px-3 py-2 text-center text-xs">類型</th>' +
+        warehouseHeaders +
+        '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">總庫存 <span class="sort-icon">↕</span></th>' +
+        '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">誤差率 <span class="sort-icon">↕</span></th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
         container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">📦 全部倉庫庫存總覽</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">總庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     } else {
-        const wh = D.warehouses.find(function(w) { return w.id === whId; });
-        const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
-        for (let i=0; i<productList.length; i++) {
-            const p = productList[i];
-            const wInv = inv.find(function(x) { return x.product_id === p.id; });
-            const qty = wInv ? wInv.quantity : 0;
-            const initialStock = p.initial_stock || 0;
-            const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
-            const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
-            const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
-            rows += '<tr class="border-b hover:bg-gray-50"><td class="px-4 py-3 text-center">' + p.name + '</td><td class="px-4 py-3 text-center font-bold">' + qty + '</td><td class="px-4 py-3 text-center">' + initialStock + '</td><td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td><td class="px-4 py-3 text-center"><input type="number" class="inv-qty w-20 px-2 py-1 border rounded text-center" value="' + qty + '"><button onclick="saveInvItem(this, \'' + p.id + '\', \'' + whId + '\')" class="ml-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs btn-touch">儲存</button></td></tr>';
+    // ★★★ 個別倉庫模式 ★★★
+    const wh = D.warehouses.find(function(w) { return w.id === whId; });
+    if (!wh) { container.innerHTML = '<p class="text-gray-500">找不到倉庫</p>'; return; }
+    
+    // 判斷是否為半成品倉庫
+    const isSemiWarehouse = (wh.name === '半成品倉庫');
+    
+    // 根據倉庫類型決定顯示哪些產品
+    let productList = D.products.slice();
+    if (isSemiWarehouse) {
+        // 半成品倉庫只顯示半成品
+        productList = productList.filter(p => p.type === 'semi');
+    } else {
+        // 一般倉庫不顯示半成品
+        productList = productList.filter(p => p.type !== 'semi');
+    }
+    
+    if (searchKw) {
+        productList = productList.filter(function(p) {
+            return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
+                   (p.sku || '').toLowerCase().indexOf(searchKw) !== -1;
+        });
+    }
+    
+    productList.sort(function(a, b) {
+        let aVal = a[invSortField] || '';
+        let bVal = b[invSortField] || '';
+        if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+        if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+        if (aVal < bVal) return invSortAsc ? -1 : 1;
+        if (aVal > bVal) return invSortAsc ? 1 : -1;
+        return 0;
+    });
+    
+    const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
+    let rows = '';
+    for (let i=0; i<productList.length; i++) {
+        const p = productList[i];
+        const wInv = inv.find(function(x) { return x.product_id === p.id; });
+        const qty = wInv ? wInv.quantity : 0;
+        const inventoryId = wInv ? wInv.id : '';
+        const initialStock = p.initial_stock || 0;
+        const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
+        const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+        const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+        
+        rows += '<tr class="border-b hover:bg-gray-50" data-product-id="' + p.id + '" data-inv-id="' + inventoryId + '">' +
+            '<td class="px-4 py-3 text-left">' + p.name + '</td>' +
+            '<td class="px-4 py-3 text-center">' + (p.sku || '-') + '</td>' +
+            '<td class="px-4 py-3 text-center font-bold">' + qty + '</td>' +
+            '<td class="px-4 py-3 text-center">' + initialStock + '</td>' +
+            '<td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
+            '<td class="px-4 py-3 text-center"><input type="number" class="inv-qty-input w-24 px-2 py-1 border rounded text-center" value="' + qty + '" data-product-id="' + p.id + '" data-inv-id="' + inventoryId + '"></td>' +
+            '</tr>';
+    }
+    
+    // ★★★ 顯示「全部儲存」按鈕 ★★★
+    document.getElementById('inv-batch-save-area').classList.remove('hidden');
+    
+    container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
+        '<div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">🏚️ ' + wh.name + ' - 庫存明細' + (isSemiWarehouse ? ' (僅半成品)' : '') + '</h3></div>' +
+        '<table class="min-w-full divide-y divide-gray-200">' +
+        '<thead class="bg-gray-50"><tr>' +
+        '<th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th>' +
+        '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th>' +
+        '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">庫存 <span class="sort-icon">↕</span></th>' +
+        '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th>' +
+        '<th class="px-4 py-3 text-center text-xs">誤差率</th>' +
+        '<th class="px-4 py-3 text-center text-xs">調整數量</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+// ★★★ 批量儲存所有庫存調整 ★★★
+async function saveAllInvItems() {
+    // 取得目前顯示的倉庫 ID（從當前作用中的頁籤取得）
+    const activeTab = document.querySelector('.wh-tab.bg-blue-600');
+    if (!activeTab) {
+        showAlert('⚠️ 請先選擇一個倉庫頁籤！');
+        return;
+    }
+    const whId = activeTab.dataset.wh;
+    if (whId === 'all') {
+        showAlert('⚠️ 請選擇個別倉庫頁籤進行調整，總覽頁面無法儲存！');
+        return;
+    }
+    
+    // 取得所有庫存輸入框
+    const inputs = document.querySelectorAll('.inv-qty-input');
+    if (inputs.length === 0) {
+        showAlert('⚠️ 沒有可儲存的庫存資料！');
+        return;
+    }
+    
+    // 收集所有要更新的資料
+    let updates = [];
+    let hasError = false;
+    for (const input of inputs) {
+        const productId = input.dataset.productId;
+        const invId = input.dataset.invId;
+        const newQty = parseInt(input.value) || 0;
+        
+        // 驗證數值是否有效
+        if (newQty < 0) {
+            showAlert('⚠️ 數量不能為負數！產品 ID: ' + productId);
+            hasError = true;
+            break;
         }
-        container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto"><div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">🏚️ ' + (wh ? wh.name : '') + ' - 庫存明細</h3></div><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs">誤差率</th><th class="px-4 py-3 text-center text-xs">調整</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+        
+        updates.push({
+            product_id: productId,
+            inventory_id: invId,
+            quantity: newQty,
+            warehouse_id: whId
+        });
+    }
+    
+    if (hasError) return;
+    if (updates.length === 0) {
+        showAlert('⚠️ 沒有需要更新的資料！');
+        return;
+    }
+    
+    // 顯示儲存中狀態
+    const saveBtn = document.querySelector('#inv-batch-save-area button');
+    const originalText = saveBtn ? saveBtn.textContent : '儲存中...';
+    if (saveBtn) {
+        saveBtn.textContent = '儲存中...';
+        saveBtn.disabled = true;
+    }
+    
+    try {
+        // 逐筆更新庫存
+        let successCount = 0;
+        for (const update of updates) {
+            if (update.inventory_id) {
+                // 更新現有記錄
+                await sb.from('warehouse_inventory')
+                    .update({ quantity: update.quantity })
+                    .eq('id', update.inventory_id);
+            } else {
+                // 新增記錄
+                await sb.from('warehouse_inventory')
+                    .insert([{
+                        warehouse_id: update.warehouse_id,
+                        product_id: update.product_id,
+                        quantity: update.quantity,
+                        safety_stock: 0
+                    }]);
+            }
+            successCount++;
+        }
+        
+        // 更新產品總庫存（所有倉庫加總）
+        for (const update of updates) {
+            const prod = D.products.find(p => p.id === update.product_id);
+            if (prod) {
+                // 重新計算該產品的所有倉庫庫存總和
+                const allInv = await sb.from('warehouse_inventory')
+                    .select('quantity')
+                    .eq('product_id', update.product_id);
+                let totalQty = 0;
+                if (allInv.data) {
+                    for (const inv of allInv.data) {
+                        totalQty += inv.quantity || 0;
+                    }
+                }
+                await sb.from('products')
+                    .update({ current_stock: totalQty })
+                    .eq('id', update.product_id);
+            }
+        }
+        
+        showAlert('✅ 已成功儲存 ' + successCount + ' 筆庫存資料！');
+        
+        // 重新載入並刷新頁面
+        await loadAll();
+        showWhTab(whId);
+        
+    } catch (e) {
+        console.error('批量儲存失敗：', e);
+        showAlert('❌ 儲存失敗：' + e.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+        }
     }
 }
-
 function saveInvItem(btn, pid, wid) {
     const tr = btn.closest('tr');
     const qty = parseInt(tr.querySelector('.inv-qty').value) || 0;
@@ -1441,42 +1733,46 @@ async function savePur() {
                     finalChanges[pid] = (finalChanges[pid] || 0) + diff;
                 }
             }
-            
-            for (const [pid, diff] of Object.entries(finalChanges)) {
-                if (diff === 0) continue;
-                const prod = D.products.find(p => p.id === pid);
-                if (!prod) continue;
-                let warehouseIdToUse = targetWarehouseId;
-                if (prod.type === 'semi') {
-                    const semiInv = await sb.from('warehouse_inventory')
-                        .select('warehouse_id, quantity')
-                        .eq('product_id', pid)
-                        .order('quantity', { ascending: false })
-                        .limit(1);
-                    if (semiInv.data && semiInv.data.length > 0) {
-                        warehouseIdToUse = semiInv.data[0].warehouse_id;
-                    } else {
-                        warehouseIdToUse = targetWarehouseId;
-                    }
-                }
-                const inv = await sb.from('warehouse_inventory')
-                    .select('id, quantity')
-                    .eq('warehouse_id', warehouseIdToUse)
-                    .eq('product_id', pid)
-                    .maybeSingle();
-                if (inv.data) {
-                    await sb.from('warehouse_inventory')
-                        .update({ quantity: (inv.data.quantity || 0) + diff })
-                        .eq('id', inv.data.id);
-                } else {
-                    await sb.from('warehouse_inventory')
-                        .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
-                }
-                await sb.from('products')
-                    .update({ current_stock: (prod.current_stock || 0) + diff })
-                    .eq('id', pid);
-            }
+            // ★★★ 執行庫存更新 ★★★
+for (const [pid, diff] of Object.entries(finalChanges)) {
+    if (diff === 0) continue;
+    const prod = D.products.find(p => p.id === pid);
+    if (!prod) continue;
+    
+    // ★★★ 決定要更新的倉庫 ★★★
+    let warehouseIdToUse = targetWarehouseId; // 預設使用採購入庫的倉庫
+    
+    if (prod.type === 'semi') {
+        // ★★★ 半成品：固定使用「半成品倉庫」 ★★★
+        const semiWarehouse = D.warehouses.find(w => w.name === '半成品倉庫' && w.is_active);
+        if (semiWarehouse) {
+            warehouseIdToUse = semiWarehouse.id;
+        } else {
+            // 如果找不到半成品倉庫，才使用採購入庫的倉庫
+            warehouseIdToUse = targetWarehouseId;
         }
+    }
+    
+    // 更新倉庫庫存
+    const inv = await sb.from('warehouse_inventory')
+        .select('id, quantity')
+        .eq('warehouse_id', warehouseIdToUse)
+        .eq('product_id', pid)
+        .maybeSingle();
+    
+    if (inv.data) {
+        await sb.from('warehouse_inventory')
+            .update({ quantity: (inv.data.quantity || 0) + diff })
+            .eq('id', inv.data.id);
+    } else {
+        await sb.from('warehouse_inventory')
+            .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
+    }
+    // 更新產品總庫存（所有倉庫加總）
+    await sb.from('products')
+        .update({ current_stock: (prod.current_stock || 0) + diff })
+        .eq('id', pid);
+}
 
         if (isPaid && bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
