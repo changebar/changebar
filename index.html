@@ -983,14 +983,10 @@ function sortInvTable(field) {
 }
 
 function showWhTab(whId) {
-    // 控制「全部儲存」按鈕顯示
+    // 控制「全部儲存」按鈕顯示：總覽頁面也顯示按鈕
     const batchArea = document.getElementById('inv-batch-save-area');
     if (batchArea) {
-        if (whId === 'all') {
-            batchArea.classList.add('hidden');
-        } else {
-            batchArea.classList.remove('hidden');
-        }
+        batchArea.classList.remove('hidden'); // 所有頁籤都顯示按鈕
     }
     
     const tabs = document.querySelectorAll('.wh-tab');
@@ -1003,7 +999,7 @@ function showWhTab(whId) {
     const searchKw = (document.getElementById('inv-search')?.value || '').toLowerCase();
     
     if (whId === 'all') {
-        // ★★★ 全部總覽：顯示各倉庫數量 ★★★
+        // ★★★ 全部總覽：顯示各倉庫的可編輯輸入框 ★★★
         const allWh = D.warehouses.filter(function(w) { return w.is_active && w.name !== '半成品倉庫'; });
         const semiWh = D.warehouses.find(w => w.name === '半成品倉庫' && w.is_active);
         
@@ -1046,6 +1042,7 @@ function showWhTab(whId) {
             let warehouseQtys = {};
             let semiQty = 0;
             
+            // 查詢各倉庫庫存
             const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
             for (let j=0; j<invs.length; j++) {
                 const inv = invs[j];
@@ -1058,21 +1055,43 @@ function showWhTab(whId) {
                 }
             }
             
+            // ★★★ 為每個倉庫產生輸入框（或唯讀顯示） ★★★
             let qtyCells = '';
             for (let k=0; k<allWh.length; k++) {
                 const wid = allWh[k].id;
                 const qty = warehouseQtys[wid] || 0;
-                qtyCells += '<td class="px-2 py-2 text-center text-sm ' + (isSemi ? 'text-gray-300' : '') + '">' + (isSemi ? '-' : qty) + '</td>';
+                const invRecord = D.warehouseInv.find(function(inv) {
+                    return inv.warehouse_id === wid && inv.product_id === p.id;
+                });
+                const invId = invRecord ? invRecord.id : '';
+                // 如果是半成品，在其他倉庫顯示「-」且不可編輯
+                if (isSemi) {
+                    qtyCells += '<td class="px-2 py-2 text-center text-sm text-gray-300">-</td>';
+                } else {
+                    qtyCells += '<td class="px-2 py-2 text-center"><input type="number" class="inv-qty-input w-16 px-1 py-1 border rounded text-center text-sm" value="' + qty + '" data-product-id="' + p.id + '" data-wh-id="' + wid + '" data-inv-id="' + invId + '" style="min-width:50px;"></td>';
+                }
             }
+            // 半成品倉庫欄位：只有半成品才顯示輸入框
             if (semiWh) {
-                qtyCells += '<td class="px-2 py-2 text-center text-sm font-bold ' + (isSemi ? 'text-purple-600' : 'text-gray-300') + '">' + (isSemi ? semiQty : '-') + '</td>';
+                const wid = semiWh.id;
+                const invRecord = D.warehouseInv.find(function(inv) {
+                    return inv.warehouse_id === wid && inv.product_id === p.id;
+                });
+                const invId = invRecord ? invRecord.id : '';
+                if (isSemi) {
+                    qtyCells += '<td class="px-2 py-2 text-center"><input type="number" class="inv-qty-input w-16 px-1 py-1 border rounded text-center text-sm" value="' + semiQty + '" data-product-id="' + p.id + '" data-wh-id="' + wid + '" data-inv-id="' + invId + '" style="min-width:50px;"></td>';
+                } else {
+                    qtyCells += '<td class="px-2 py-2 text-center text-sm text-gray-300">-</td>';
+                }
             }
             
+            // 總庫存（只算一般倉庫）
             const initialStock = p.initial_stock || 0;
             const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
             const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
             const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
             
+            // 只顯示有庫存或搜尋到的產品
             if (totalQty === 0 && semiQty === 0 && !searchKw) continue;
             
             rows += '<tr class="border-b hover:bg-gray-50">' +
@@ -1085,7 +1104,7 @@ function showWhTab(whId) {
                 '</tr>';
         }
         container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
-            '<div class="p-3 bg-gray-50 border-b flex justify-between items-center"><h3 class="font-bold">📦 全部倉庫庫存總覽</h3><span class="text-sm text-gray-500">（半成品僅顯示於 🧩 半成品倉庫）</span></div>' +
+            '<div class="p-3 bg-gray-50 border-b flex justify-between items-center"><h3 class="font-bold">📦 全部倉庫庫存總覽</h3><span class="text-sm text-gray-500">（半成品僅顯示於 🧩 半成品倉庫，可直接在表格中調整）</span></div>' +
             '<table class="min-w-full divide-y divide-gray-200">' +
             '<thead class="bg-gray-50"><tr>' +
             '<th class="px-3 py-2 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th>' +
@@ -1096,7 +1115,7 @@ function showWhTab(whId) {
             '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">誤差率 <span class="sort-icon">↕</span></th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table></div>';
     } else {
-        // ★★★ 個別倉庫模式 ★★★
+        // ★★★ 個別倉庫模式（與之前相同，但略作修改以確保一致性） ★★★
         const wh = D.warehouses.find(function(w) { return w.id === whId; });
         if (!wh) { container.innerHTML = '<p class="text-gray-500">找不到倉庫</p>'; return; }
         
@@ -1144,11 +1163,9 @@ function showWhTab(whId) {
                 '<td class="px-4 py-3 text-center font-bold">' + qty + '</td>' +
                 '<td class="px-4 py-3 text-center">' + initialStock + '</td>' +
                 '<td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
-                '<td class="px-4 py-3 text-center"><input type="number" class="inv-qty-input w-24 px-2 py-1 border rounded text-center" value="' + qty + '" data-product-id="' + p.id + '" data-inv-id="' + inventoryId + '"></td>' +
+                '<td class="px-4 py-3 text-center"><input type="number" class="inv-qty-input w-24 px-2 py-1 border rounded text-center" value="' + qty + '" data-product-id="' + p.id + '" data-wh-id="' + whId + '" data-inv-id="' + inventoryId + '"></td>' +
                 '</tr>';
         }
-        
-        if (batchArea) batchArea.classList.remove('hidden');
         
         container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
             '<div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">🏚️ ' + wh.name + ' - 庫存明細' + (isSemiWarehouse ? ' (僅半成品)' : '') + '</h3></div>' +
@@ -1162,8 +1179,7 @@ function showWhTab(whId) {
             '<th class="px-4 py-3 text-center text-xs">調整數量</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     }
 }
-
-// ★★★ 批量儲存所有庫存調整 ★★★
+// ★★★ 批量儲存所有庫存調整（支援總覽頁面與個別倉庫） ★★★
 async function saveAllInvItems() {
     const activeTab = document.querySelector('.wh-tab.bg-blue-600');
     if (!activeTab) {
@@ -1171,35 +1187,35 @@ async function saveAllInvItems() {
         return;
     }
     const whId = activeTab.dataset.wh;
-    if (whId === 'all') {
-        showAlert('⚠️ 請選擇個別倉庫頁籤進行調整，總覽頁面無法儲存！');
-        return;
-    }
     
+    // 取得所有庫存輸入框
     const inputs = document.querySelectorAll('.inv-qty-input');
     if (inputs.length === 0) {
         showAlert('⚠️ 沒有可儲存的庫存資料！');
         return;
     }
     
+    // 收集所有要更新的資料
     let updates = [];
     let hasError = false;
     for (const input of inputs) {
         const productId = input.dataset.productId;
+        const warehouseId = input.dataset.whId;
         const invId = input.dataset.invId;
         const newQty = parseInt(input.value) || 0;
         
         if (newQty < 0) {
-            showAlert('⚠️ 數量不能為負數！');
+            showAlert('⚠️ 數量不能為負數！產品 ID: ' + productId);
             hasError = true;
             break;
         }
         
+        // 如果產品是半成品且倉庫不是半成品倉庫，應該跳過（但表格中已設定為唯讀，不會有輸入框）
         updates.push({
             product_id: productId,
+            warehouse_id: warehouseId,
             inventory_id: invId,
-            quantity: newQty,
-            warehouse_id: whId
+            quantity: newQty
         });
     }
     
@@ -1209,6 +1225,7 @@ async function saveAllInvItems() {
         return;
     }
     
+    // 顯示儲存中狀態
     const saveBtn = document.querySelector('#inv-batch-save-area button');
     const originalText = saveBtn ? saveBtn.textContent : '儲存中...';
     if (saveBtn) {
@@ -1218,12 +1235,15 @@ async function saveAllInvItems() {
     
     try {
         let successCount = 0;
+        // 逐筆更新庫存
         for (const update of updates) {
             if (update.inventory_id) {
+                // 更新現有記錄
                 await sb.from('warehouse_inventory')
                     .update({ quantity: update.quantity })
                     .eq('id', update.inventory_id);
             } else {
+                // 新增記錄（如果原本沒有該產品在該倉庫的記錄）
                 await sb.from('warehouse_inventory')
                     .insert([{
                         warehouse_id: update.warehouse_id,
@@ -1235,27 +1255,30 @@ async function saveAllInvItems() {
             successCount++;
         }
         
-        for (const update of updates) {
-            const prod = D.products.find(p => p.id === update.product_id);
-            if (prod) {
-                const allInv = await sb.from('warehouse_inventory')
-                    .select('quantity')
-                    .eq('product_id', update.product_id);
-                let totalQty = 0;
-                if (allInv.data) {
-                    for (const inv of allInv.data) {
-                        totalQty += inv.quantity || 0;
-                    }
+        // 重新計算並更新所有產品的 total_stock（所有倉庫加總）
+        // 為了避免重複查詢，我們先收集所有修改過的產品 ID
+        const productIds = [...new Set(updates.map(u => u.product_id))];
+        for (const pid of productIds) {
+            const allInv = await sb.from('warehouse_inventory')
+                .select('quantity')
+                .eq('product_id', pid);
+            let totalQty = 0;
+            if (allInv.data) {
+                for (const inv of allInv.data) {
+                    totalQty += inv.quantity || 0;
                 }
-                await sb.from('products')
-                    .update({ current_stock: totalQty })
-                    .eq('id', update.product_id);
             }
+            await sb.from('products')
+                .update({ current_stock: totalQty })
+                .eq('id', pid);
         }
         
         showAlert('✅ 已成功儲存 ' + successCount + ' 筆庫存資料！');
+        
+        // 重新載入並刷新頁面
         await loadAll();
         showWhTab(whId);
+        
     } catch (e) {
         console.error('批量儲存失敗：', e);
         showAlert('❌ 儲存失敗：' + e.message);
