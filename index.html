@@ -975,6 +975,338 @@ async function delWarehouse(id) {
     }
 }
     // ================================================================
+//  13. 庫存盤點（完整模組）
+// ================================================================
+function renderInventory(c) {
+    const allWh = D.warehouses.filter(function(w) { return w.is_active; });
+    const semiWh = allWh.find(w => w.name === '半成品倉庫');
+    const displayWh = allWh.filter(w => w.name !== '半成品倉庫');
+    
+    let tabsHtml = '<button onclick="showWhTab(\'all\')" class="wh-tab px-4 py-2 rounded-lg bg-blue-600 text-white btn-touch" data-wh="all">📦 全部庫存總覽</button>';
+    for (let i=0; i<displayWh.length; i++) {
+        const w = displayWh[i];
+        tabsHtml += '<button onclick="showWhTab(\'' + w.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + w.id + '">' + w.name + '</button>';
+    }
+    if (semiWh) {
+        tabsHtml += '<button onclick="showWhTab(\'' + semiWh.id + '\')" class="wh-tab px-4 py-2 rounded-lg bg-gray-200 text-gray-700 btn-touch" data-wh="' + semiWh.id + '">🧩 ' + semiWh.name + '</button>';
+    }
+    
+    c.innerHTML = '<div class="content-card"><h1 class="text-3xl font-bold mb-6">📊 庫存盤點</h1>' +
+        '<div class="flex gap-2 mb-4 flex-wrap overflow-x-auto pb-2">' + tabsHtml + '</div>' +
+        '<div class="mb-4"><input type="text" id="inv-search" placeholder="🔍 搜尋產品名稱或SKU..." class="w-full px-4 py-3 border rounded-lg input-field" oninput="showWhTab(document.querySelector(\'.wh-tab.bg-blue-600\')?.dataset.wh || \'all\')"></div>' +
+        '<div id="inv-batch-save-area" class="mb-4"><button onclick="saveAllInvItems()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold btn-touch w-full md:w-auto">💾 全部儲存</button><span class="text-sm text-gray-500 ml-3">一次儲存此頁面所有修改</span></div>' +
+        '<div id="inv-content"></div></div>';
+    showWhTab('all');
+}
+
+function sortInvTable(field) {
+    if (invSortField === field) invSortAsc = !invSortAsc;
+    else { invSortField = field; invSortAsc = true; }
+    const activeTab = document.querySelector('.wh-tab.bg-blue-600');
+    const whId = activeTab ? activeTab.dataset.wh : 'all';
+    showWhTab(whId);
+}
+
+function showWhTab(whId) {
+    const batchArea = document.getElementById('inv-batch-save-area');
+    if (batchArea) batchArea.classList.remove('hidden');
+    
+    const tabs = document.querySelectorAll('.wh-tab');
+    for (let i=0; i<tabs.length; i++) {
+        const t = tabs[i];
+        t.className = t.className.replace('bg-blue-600 text-white', 'bg-gray-200 text-gray-700');
+        if (t.dataset.wh === whId) t.className = t.className.replace('bg-gray-200 text-gray-700', 'bg-blue-600 text-white');
+    }
+    const container = document.getElementById('inv-content');
+    const searchKw = (document.getElementById('inv-search')?.value || '').toLowerCase();
+    
+    if (whId === 'all') {
+        const allWh = D.warehouses.filter(function(w) { return w.is_active; });
+        let warehouseHeaders = '';
+        for (let i=0; i<allWh.length; i++) {
+            const w = allWh[i];
+            const isSemi = (w.name === '半成品倉庫');
+            warehouseHeaders += '<th class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase ' + (isSemi ? 'bg-purple-50' : '') + '">' + w.name + '</th>';
+        }
+        
+        let productList = D.products.slice();
+        if (searchKw) {
+            productList = productList.filter(function(p) {
+                return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
+                       (p.sku || '').toLowerCase().indexOf(searchKw) !== -1;
+            });
+        }
+        productList.sort(function(a, b) {
+            let aVal = a[invSortField] || '';
+            let bVal = b[invSortField] || '';
+            if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+            if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+            if (aVal < bVal) return invSortAsc ? -1 : 1;
+            if (aVal > bVal) return invSortAsc ? 1 : -1;
+            return 0;
+        });
+        
+        let rows = '';
+        for (let i=0; i<productList.length; i++) {
+            const p = productList[i];
+            let totalQty = 0;
+            let warehouseQtys = {};
+            const invs = D.warehouseInv.filter(function(inv) { return inv.product_id === p.id; });
+            for (let j=0; j<invs.length; j++) {
+                const inv = invs[j];
+                warehouseQtys[inv.warehouse_id] = (warehouseQtys[inv.warehouse_id] || 0) + (inv.quantity || 0);
+                totalQty += inv.quantity || 0;
+            }
+            
+            let qtyCells = '';
+            for (let k=0; k<allWh.length; k++) {
+                const wid = allWh[k].id;
+                const qty = warehouseQtys[wid] || 0;
+                const invRecord = D.warehouseInv.find(function(inv) {
+                    return inv.warehouse_id === wid && inv.product_id === p.id;
+                });
+                const invId = invRecord ? invRecord.id : '';
+                qtyCells += '<td class="px-2 py-2 text-center"><input type="number" class="inv-qty-input w-16 px-1 py-1 border rounded text-center text-sm" value="' + qty + '" data-product-id="' + p.id + '" data-wh-id="' + wid + '" data-inv-id="' + invId + '" onchange="updateTotalStock(this)" style="min-width:50px;"></td>';
+            }
+            
+            const initialStock = p.initial_stock || 0;
+            const variance = initialStock > 0 ? ((totalQty - initialStock) / initialStock * 100) : 0;
+            const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+            const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+            
+            if (totalQty === 0 && !searchKw) continue;
+            
+            rows += '<tr class="border-b hover:bg-gray-50">' +
+                '<td class="px-3 py-2 text-left font-medium">' + p.name + '</td>' +
+                '<td class="px-3 py-2 text-center text-sm">' + (p.sku || '-') + '</td>' +
+                qtyCells +
+                '<td class="px-3 py-2 text-center"><input type="number" class="inv-total-input w-20 px-1 py-1 border rounded text-center text-sm font-bold" value="' + totalQty + '" data-product-id="' + p.id + '" onchange="distributeTotalStock(this)" style="min-width:60px;"></td>' +
+                '<td class="px-3 py-2 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
+                '</tr>';
+        }
+        container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
+            '<div class="p-3 bg-gray-50 border-b flex justify-between items-center"><h3 class="font-bold">📦 全部倉庫庫存總覽</h3><span class="text-sm text-gray-500">（所有倉庫數量皆可編輯，修改總庫存將自動平均分配）</span></div>' +
+            '<table class="min-w-full divide-y divide-gray-200">' +
+            '<thead class="bg-gray-50"><tr>' +
+            '<th class="px-3 py-2 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th>' +
+            warehouseHeaders +
+            '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">總庫存 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-3 py-2 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">誤差率 <span class="sort-icon">↕</span></th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+    } else {
+        const wh = D.warehouses.find(function(w) { return w.id === whId; });
+        if (!wh) { container.innerHTML = '<p class="text-gray-500">找不到倉庫</p>'; return; }
+        const isSemiWarehouse = (wh.name === '半成品倉庫');
+        let productList = D.products.slice();
+        if (isSemiWarehouse) {
+            productList = productList.filter(p => p.type === 'semi');
+        } else {
+            productList = productList.filter(p => p.type !== 'semi');
+        }
+        if (searchKw) {
+            productList = productList.filter(function(p) {
+                return p.name.toLowerCase().indexOf(searchKw) !== -1 ||
+                       (p.sku || '').toLowerCase().indexOf(searchKw) !== -1;
+            });
+        }
+        productList.sort(function(a, b) {
+            let aVal = a[invSortField] || '';
+            let bVal = b[invSortField] || '';
+            if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+            if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+            if (aVal < bVal) return invSortAsc ? -1 : 1;
+            if (aVal > bVal) return invSortAsc ? 1 : -1;
+            return 0;
+        });
+        const inv = D.warehouseInv.filter(function(i) { return i.warehouse_id === whId; });
+        let rows = '';
+        for (let i=0; i<productList.length; i++) {
+            const p = productList[i];
+            const wInv = inv.find(function(x) { return x.product_id === p.id; });
+            const qty = wInv ? wInv.quantity : 0;
+            const inventoryId = wInv ? wInv.id : '';
+            const initialStock = p.initial_stock || 0;
+            const variance = initialStock > 0 ? ((qty - initialStock) / initialStock * 100) : 0;
+            const varianceClass = variance < 0 ? 'text-red-600' : (variance > 5 ? 'text-orange-600' : 'text-green-600');
+            const varianceText = initialStock > 0 ? variance.toFixed(1) + '%' : '-';
+            rows += '<tr class="border-b hover:bg-gray-50" data-product-id="' + p.id + '" data-inv-id="' + inventoryId + '">' +
+                '<td class="px-4 py-3 text-left">' + p.name + '</td>' +
+                '<td class="px-4 py-3 text-center">' + (p.sku || '-') + '</td>' +
+                '<td class="px-4 py-3 text-center font-bold">' + qty + '</td>' +
+                '<td class="px-4 py-3 text-center">' + initialStock + '</td>' +
+                '<td class="px-4 py-3 text-center ' + varianceClass + ' font-bold">' + varianceText + '</td>' +
+                '<td class="px-4 py-3 text-center"><input type="number" class="inv-qty-input w-24 px-2 py-1 border rounded text-center" value="' + qty + '" data-product-id="' + p.id + '" data-wh-id="' + whId + '" data-inv-id="' + inventoryId + '"></td>' +
+                '</tr>';
+        }
+        container.innerHTML = '<div class="bg-white rounded-lg shadow overflow-x-auto">' +
+            '<div class="p-3 bg-gray-50 border-b"><h3 class="font-bold text-center">🏚️ ' + wh.name + ' - 庫存明細' + (isSemiWarehouse ? ' (僅半成品)' : '') + '</h3></div>' +
+            '<table class="min-w-full divide-y divide-gray-200">' +
+            '<thead class="bg-gray-50"><tr>' +
+            '<th class="px-4 py-3 text-left text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'name\')">產品 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'sku\')">SKU <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'quantity\')">庫存 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs cursor-pointer sortable-header" onclick="sortInvTable(\'initial_stock\')">初始庫存 <span class="sort-icon">↕</span></th>' +
+            '<th class="px-4 py-3 text-center text-xs">誤差率</th>' +
+            '<th class="px-4 py-3 text-center text-xs">調整數量</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+}
+
+function distributeTotalStock(input) {
+    const productId = input.dataset.productId;
+    const newTotal = parseInt(input.value) || 0;
+    if (newTotal < 0) {
+        showAlert('⚠️ 總庫存不能為負數！');
+        input.value = 0;
+        return;
+    }
+    const qtyInputs = document.querySelectorAll('.inv-qty-input[data-product-id="' + productId + '"]');
+    if (qtyInputs.length === 0) return;
+    let currentTotal = 0;
+    for (const qInput of qtyInputs) {
+        currentTotal += parseInt(qInput.value) || 0;
+    }
+    if (newTotal === currentTotal) return;
+    const diff = newTotal - currentTotal;
+    let editableInputs = [];
+    for (const qInput of qtyInputs) {
+        if (!qInput.disabled && qInput.type === 'number') {
+            editableInputs.push(qInput);
+        }
+    }
+    if (editableInputs.length === 0) {
+        showAlert('⚠️ 沒有可分配的倉庫！');
+        input.value = currentTotal;
+        return;
+    }
+    const perWarehouse = Math.floor(diff / editableInputs.length);
+    const remainder = diff - (perWarehouse * editableInputs.length);
+    let appliedDiff = 0;
+    for (let i=0; i<editableInputs.length; i++) {
+        const qInput = editableInputs[i];
+        let addAmount = perWarehouse;
+        if (i < remainder) addAmount += 1;
+        const newVal = (parseInt(qInput.value) || 0) + addAmount;
+        qInput.value = newVal;
+        appliedDiff += addAmount;
+    }
+    if (appliedDiff !== diff) {
+        const finalAdjust = diff - appliedDiff;
+        if (editableInputs.length > 0) {
+            const firstInput = editableInputs[0];
+            const newVal = (parseInt(firstInput.value) || 0) + finalAdjust;
+            firstInput.value = newVal;
+        }
+    }
+    let newTotalCalc = 0;
+    for (const qInput of qtyInputs) {
+        newTotalCalc += parseInt(qInput.value) || 0;
+    }
+    input.value = newTotalCalc;
+}
+
+function updateTotalStock(input) {
+    const productId = input.dataset.productId;
+    const qtyInputs = document.querySelectorAll('.inv-qty-input[data-product-id="' + productId + '"]');
+    let total = 0;
+    for (const qInput of qtyInputs) {
+        total += parseInt(qInput.value) || 0;
+    }
+    const totalInput = document.querySelector('.inv-total-input[data-product-id="' + productId + '"]');
+    if (totalInput) {
+        totalInput.value = total;
+    }
+}
+
+async function saveAllInvItems() {
+    const activeTab = document.querySelector('.wh-tab.bg-blue-600');
+    if (!activeTab) {
+        showAlert('⚠️ 請先選擇一個倉庫頁籤！');
+        return;
+    }
+    const whId = activeTab.dataset.wh;
+    const inputs = document.querySelectorAll('.inv-qty-input');
+    if (inputs.length === 0) {
+        showAlert('⚠️ 沒有可儲存的庫存資料！');
+        return;
+    }
+    let updates = [];
+    let hasError = false;
+    for (const input of inputs) {
+        const productId = input.dataset.productId;
+        const warehouseId = input.dataset.whId;
+        const invId = input.dataset.invId;
+        const newQty = parseInt(input.value) || 0;
+        if (newQty < 0) {
+            showAlert('⚠️ 數量不能為負數！');
+            hasError = true;
+            break;
+        }
+        updates.push({
+            product_id: productId,
+            warehouse_id: warehouseId,
+            inventory_id: invId,
+            quantity: newQty
+        });
+    }
+    if (hasError) return;
+    if (updates.length === 0) {
+        showAlert('⚠️ 沒有需要更新的資料！');
+        return;
+    }
+    const saveBtn = document.querySelector('#inv-batch-save-area button');
+    const originalText = saveBtn ? saveBtn.textContent : '儲存中...';
+    if (saveBtn) {
+        saveBtn.textContent = '儲存中...';
+        saveBtn.disabled = true;
+    }
+    try {
+        let successCount = 0;
+        for (const update of updates) {
+            if (update.inventory_id) {
+                await sb.from('warehouse_inventory')
+                    .update({ quantity: update.quantity })
+                    .eq('id', update.inventory_id);
+            } else {
+                await sb.from('warehouse_inventory')
+                    .insert([{
+                        warehouse_id: update.warehouse_id,
+                        product_id: update.product_id,
+                        quantity: update.quantity,
+                        safety_stock: 0
+                    }]);
+            }
+            successCount++;
+        }
+        const productIds = [...new Set(updates.map(u => u.product_id))];
+        for (const pid of productIds) {
+            const allInv = await sb.from('warehouse_inventory')
+                .select('quantity')
+                .eq('product_id', pid);
+            let totalQty = 0;
+            if (allInv.data) {
+                for (const inv of allInv.data) {
+                    totalQty += inv.quantity || 0;
+                }
+            }
+            await sb.from('products')
+                .update({ current_stock: totalQty })
+                .eq('id', pid);
+        }
+        showAlert('✅ 已成功儲存 ' + successCount + ' 筆庫存資料！');
+        await loadAll();
+        showWhTab(whId);
+    } catch (e) {
+        console.error('批量儲存失敗：', e);
+        showAlert('❌ 儲存失敗：' + e.message);
+    } finally {
+        if (saveBtn) {
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+        }
+    }
+}
+    // ================================================================
 //  14. 採購入庫（包含 BOM 半成品倉庫邏輯）
 // ================================================================
 function renderPurchases(c) {
