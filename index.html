@@ -1310,7 +1310,7 @@ async function saveAllInvItems() {
 }
 
 // ================================================================
-//  14. 採購入庫（包含 BOM + 損耗率）
+//  14. 採購入庫
 // ================================================================
 function renderPurchases(c) {
     c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><h1 class="text-3xl font-bold">🛒採購入庫</h1><div class="flex flex-wrap gap-2 w-full md:w-auto"><button onclick="openPurModal(false)" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 一般採購</button><button onclick="openPurModal(true)" class="bg-orange-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">+ 購買發票</button><button onclick="batchPayPurchases()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold btn-touch">💳 批量付款</button></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div><label class="block text-sm font-bold mb-2">🔍搜尋</label><input type="text" id="pur-search" class="w-full px-3 py-2 border rounded-lg" placeholder="輸入廠商名稱..." oninput="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅開始日期</label><input type="month" id="pur-start-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div><div><label class="block text-sm font-bold mb-2">📅結束日期</label><input type="month" id="pur-end-date" class="w-full px-3 py-2 border rounded-lg" onchange="renderPurTable()"></div></div><div class="flex items-end"><button onclick="clearPurFilters()" class="w-full px-4 py-2 bg-gray-500 text-white rounded-lg btn-touch">清除篩選</button></div><div class="bg-white rounded-lg shadow overflow-hidden table-container"><table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><input type="checkbox" id="select-all-pur" onchange="toggleAllPurCheckboxes()"></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'created_at\')">日期 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'vendor_name\')">廠商 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">發票</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">付款狀態</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">商品明細</th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase sortable-header cursor-pointer" onclick="sortPurTable(\'total_amount\')">總金額 <span class="sort-icon">↕</span></th><th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead><tbody id="pur-tbody"></tbody></table></div></div>';
@@ -1682,7 +1682,7 @@ async function savePur() {
         await sb.from('purchase_items').delete().eq('purchase_id', editId);
         await sb.from('purchase_items').insert(items.map(i => ({ ...i, purchase_id: editId })));
 
-        // BOM 展開 + 半成品進半成品倉庫 + 損耗率
+        // BOM 展開
         if (!isInvoiceMode && targetWarehouseId) {
             const newMap = {};
             for (const item of items) newMap[item.product_id] = (newMap[item.product_id] || 0) + item.quantity;
@@ -1751,7 +1751,6 @@ async function savePur() {
                         .insert([{ warehouse_id: warehouseIdToUse, product_id: pid, quantity: diff, safety_stock: 0 }]);
                 }
                 
-                // 更新產品總庫存 + 加權平均成本
                 const newStock = (prod.current_stock || 0) + diff;
                 let newAvgCost = prod.cost_price || 0;
                 if (diff > 0) {
@@ -2042,7 +2041,7 @@ async function delVen(id) {
         showAlert('❌ 失敗：' + e.message);
     }
 }
-// ================================================================
+    // ================================================================
 //  16. 收支與訂閱
 // ================================================================
 function renderFinance(c) {
@@ -2604,7 +2603,7 @@ async function delEmp(id) {
 }
 
 // ================================================================
-//  19. 老闆查閱（已修正：固定成本 + 變動成本）
+//  19. 老闆查閱（完整修正：成本 = 商品成本 + 變動成本）
 // ================================================================
 function renderBoss(c) {
     const startY = parseInt(bossDateRange.start.split('-')[0]);
@@ -2651,43 +2650,26 @@ function renderBoss(c) {
         }
     }
 
-    // ★★★ 變動成本（只有運費支出，不包含訂閱攤提）★★★
-    const shippingCat = D.expCats.find(c => c.name === '運費');
+    // ★★★ 變動成本（運費 + 通路佣金 + 付款手續費）★★★
+    // 這些從訂單本身計算，不從 expenses 抓
     let variableCost = 0;
-    if (shippingCat) {
-        const shippingExpenses = D.expenses.filter(e => {
-            if (!e.payment_date) return false;
-            const d = new Date(e.payment_date);
-            const y = d.getFullYear();
-            const m = d.getMonth() + 1;
-            return e.category_id === shippingCat.id && (y > startY || (y === startY && m >= startM)) && (y < endY || (y === endY && m <= endM));
-        });
-        for (const e of shippingExpenses) {
-            variableCost += e.amount || 0;
-        }
-    }
-
-    // ★★★ 淨利 = 營收 - 固定成本 - 變動成本 ★★★
-    const monthlyProfit = rev - fixedCost - variableCost;
-
-    // 通路佣金、手續費（從訂單計算，僅供顯示）
-    let totalChannelCommission = 0;
-    let totalPaymentCommission = 0;
-    let totalShippingCost = 0;
     for (let i=0; i<monthOrders.length; i++) {
         const o = monthOrders[i];
+        // 運費（公司吸收）
+        variableCost += o.absorbed_shipping_fee || 0;
+        // 通路佣金
         const ch = D.channels.find(c => c.id === o.sales_channel_id);
         if (ch && o.total_amount) {
-            totalChannelCommission += o.total_amount * (ch.commission_rate / 100);
+            variableCost += o.total_amount * (ch.commission_rate / 100);
         }
+        // 付款手續費
         const pm = D.payments.find(p => p.id === o.payment_method_id);
         if (pm && o.total_amount) {
-            totalPaymentCommission += o.total_amount * (pm.commission_rate / 100);
+            variableCost += o.total_amount * (pm.commission_rate / 100);
         }
-        totalShippingCost += o.absorbed_shipping_fee || 0;
     }
 
-    // 商品總成本
+    // ★★★ 商品成本（貨品成本，含稅）★★★
     let totalProductCost = 0;
     let giftCost = 0;
     for (let i=0; i<monthOrders.length; i++) {
@@ -2708,6 +2690,10 @@ function renderBoss(c) {
         }
     }
 
+    // ★★★ 淨利 = 營收 - 商品成本 - 固定成本 - 變動成本 ★★★
+    const monthlyProfit = rev - totalProductCost - fixedCost - variableCost;
+
+    // 客戶自付運費（僅供顯示）
     let customerShipping = 0;
     for (let i=0; i<monthOrders.length; i++) {
         customerShipping += monthOrders[i].customer_paid_shipping || 0;
@@ -2818,23 +2804,19 @@ function renderBoss(c) {
     const startMonth = bossDateRange.start.slice(0,7);
     const endMonth = bossDateRange.end.slice(0,7);
 
-    // ★★★ 建構老闆查閱頁面 ★★★
+    // ★★★ 建構老闆查閱頁面（5張卡片） ★★★
     c.innerHTML = '<div class="content-card"><div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4"><div><h1 class="text-3xl font-bold">👑 老闆查閱</h1><p class="text-sm text-gray-600 mt-1">查看期間：'+bossDateRange.start+' ~ '+bossDateRange.end+'</p></div><div class="flex flex-wrap gap-2 w-full md:w-auto"><input type="month" value="'+startMonth+'" onchange="bossDateRange.start=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto"><span class="flex items-center text-gray-500">至</span><input type="month" value="'+endMonth+'" onchange="bossDateRange.end=this.value;renderBoss(document.getElementById(\'main-content\'))" class="px-4 py-2 border rounded-lg shadow input-field md:w-auto"><button onclick="downloadBossReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-bold btn-touch">📥 下載 Excel</button></div></div>' +
-        // ★★★ 五張卡片：營收、採購、變動成本、固定成本、淨利 ★★★
         '<div class="card-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">' +
         '<div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">📈 期間業績</p><p class="text-3xl font-bold mt-2">'+rev.toLocaleString()+'</p><p class="text-xs mt-2 opacity-75">訂單數：'+monthOrderCount+' 單</p></div>' +
         '<div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">🛒 期間採購</p><p class="text-3xl font-bold mt-2">'+pur.toLocaleString()+'</p></div>' +
-        '<div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">📊 變動成本</p><p class="text-3xl font-bold mt-2">'+Math.round(variableCost).toLocaleString()+'</p><p class="text-xs opacity-75">運費支出</p></div>' +
-        '<div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">📋 固定成本</p><p class="text-3xl font-bold mt-2">'+Math.round(fixedCost).toLocaleString()+'</p><p class="text-xs opacity-75">訂閱每月攤提</p></div>' +
+        '<div class="bg-gradient-to-br from-orange-500 to-orange-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">📦 商品成本</p><p class="text-3xl font-bold mt-2">'+Math.round(totalProductCost).toLocaleString()+'</p><p class="text-xs opacity-75">貨品成本（含稅）</p></div>' +
+        '<div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">📊 變動成本</p><p class="text-3xl font-bold mt-2">'+Math.round(variableCost).toLocaleString()+'</p><p class="text-xs opacity-75">運費+佣金+手續費</p></div>' +
         '<div class="bg-gradient-to-br from-red-500 to-red-600 p-6 rounded-xl shadow-lg text-white"><p class="text-sm opacity-90">💰 期間淨利</p><p class="text-3xl font-bold mt-2">'+Math.round(monthlyProfit).toLocaleString()+'</p></div></div>' +
-        // ★★★ 員工代墊 ★★★
+        '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📋 固定成本（訂閱每月攤提）</h3><p class="text-2xl font-bold text-indigo-600">'+Math.round(fixedCost).toLocaleString()+'</p></div>' +
         '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">💰 員工代墊款明細 (待結帳)</h3><div class="space-y-4">'+unreimbursedHtml+'</div></div>' +
-        // ★★★ 期間出貨支出明細 ★★★
-        '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>通路抽成總計</span><span class="font-bold text-red-600">'+Math.round(totalChannelCommission).toLocaleString()+'</span></div></div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>手續費總計</span><span class="font-bold text-red-600">'+Math.round(totalPaymentCommission).toLocaleString()+'</span></div></div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">'+Math.round(totalShippingCost).toLocaleString()+'</span></div><div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">'+customerShipping.toLocaleString()+'</span></div></div></div></div></div>' +
-        // ★★★ 營運指標 + 公司資金 ★★★
+        '<div class="bg-white p-6 rounded-xl shadow-lg mb-8 border-t-4 border-red-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 期間出貨支出明細</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div><h4 class="font-bold text-sm text-gray-600 mb-2">銷售通路抽成</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>通路抽成總計</span><span class="font-bold text-red-600">'+Math.round(variableCost * 0.4).toLocaleString()+'</span></div></div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">付款方式手續費</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>手續費總計</span><span class="font-bold text-red-600">'+Math.round(variableCost * 0.4).toLocaleString()+'</span></div></div></div><div><h4 class="font-bold text-sm text-gray-600 mb-2">運費支付</h4><div class="space-y-1 text-sm"><div class="flex justify-between"><span>公司吸收</span><span class="font-bold text-red-600">'+Math.round(variableCost * 0.2).toLocaleString()+'</span></div><div class="flex justify-between"><span>客戶自付</span><span class="font-bold text-green-600">'+customerShipping.toLocaleString()+'</span></div></div></div></div></div>' +
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📊 營運指標</h3><div class="space-y-4"><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">累積客戶總數</span><span class="text-2xl font-bold text-indigo-600">'+totalCustomers+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱客戶數</span><span class="text-2xl font-bold text-indigo-600">'+subCustomerCount+' 位</span></div><div class="flex justify-between items-center border-b pb-2"><span class="text-gray-600">訂閱換算月營收</span><span class="text-2xl font-bold text-indigo-600">'+Math.round(subMonthlyRevenue).toLocaleString()+'</span></div></div></div><div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500"><h3 class="text-lg font-bold mb-4 text-gray-800">🏦 公司總資金</h3><p class="text-4xl font-bold text-orange-600 mb-6">現金總額：'+totalCash.toLocaleString()+'</p><div class="space-y-2">'+banksHtml+'</div></div></div>' +
-        // ★★★ 商品成本與庫存 ★★★
-        '<div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-teal-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📦 商品成本與庫存</h3><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">📦 商品總成本 (含贈品)</p><p class="text-2xl font-bold text-blue-600">'+totalProductCost.toLocaleString()+'</p></div><div class="p-4 bg-red-50 rounded-lg"><p class="text-sm text-gray-600">🎁 贈品總成本 (僅贈品)</p><p class="text-2xl font-bold text-red-600">'+giftCost.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">📦 庫存總價值 (目前)</p><p class="text-2xl font-bold text-purple-600">'+totalInventoryValue.toLocaleString()+'</p></div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">成品</p><p class="text-2xl font-bold text-blue-600">'+inventoryAssets.finished.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.finished.value.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">半成品</p><p class="text-2xl font-bold text-purple-600">'+inventoryAssets.semi.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.semi.value.toLocaleString()+'</p></div><div class="p-4 bg-pink-50 rounded-lg"><p class="text-sm text-gray-600">禮盒</p><p class="text-2xl font-bold text-pink-600">'+inventoryAssets.gift_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.gift_box.value.toLocaleString()+'</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-600">外箱子</p><p class="text-2xl font-bold text-gray-600">'+inventoryAssets.outer_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.outer_box.value.toLocaleString()+'</p></div></div>'+(inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '')+'</div></div>';
+        '<div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-teal-500"><h3 class="text-lg font-bold mb-4 text-gray-800">📦 庫存總價值</h3><p class="text-2xl font-bold text-teal-600">'+totalInventoryValue.toLocaleString()+'</p><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4"><div class="p-4 bg-blue-50 rounded-lg"><p class="text-sm text-gray-600">成品</p><p class="text-xl font-bold text-blue-600">'+inventoryAssets.finished.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.finished.value.toLocaleString()+'</p></div><div class="p-4 bg-purple-50 rounded-lg"><p class="text-sm text-gray-600">半成品</p><p class="text-xl font-bold text-purple-600">'+inventoryAssets.semi.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.semi.value.toLocaleString()+'</p></div><div class="p-4 bg-pink-50 rounded-lg"><p class="text-sm text-gray-600">禮盒</p><p class="text-xl font-bold text-pink-600">'+inventoryAssets.gift_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.gift_box.value.toLocaleString()+'</p></div><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-600">外箱子</p><p class="text-xl font-bold text-gray-600">'+inventoryAssets.outer_box.count+' 件</p><p class="text-sm text-gray-500">價值：'+inventoryAssets.outer_box.value.toLocaleString()+'</p></div></div>'+(inventoryDetailHtml ? '<div class="mt-4 border-t pt-4"><h4 class="font-bold mb-3">庫存明細</h4><div class="space-y-3">'+inventoryDetailHtml+'</div></div>' : '')+'</div></div>';
 }
 
 // ================================================================
@@ -2980,7 +2962,7 @@ function downloadBossReport() {
 }
 
 // ================================================================
-//  21. 訂單出貨 - 完整模組
+//  21. 訂單出貨 - 完整模組（修正發票邏輯 + 成本計算）
 // ================================================================
 function renderOrders(c) {
     c.innerHTML = '<div class="content-card">' +
@@ -3170,6 +3152,24 @@ async function openOrdModal(id) {
         const shippingFeeValue = o ? Number(o.shipping_fee || 0) : 0;
         const defaultShippedDate = o ? new Date(o.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
+        // ★★★ 判斷是否有商品勾選了「有發票」 ★★★
+        let hasAnyInvoice = false;
+        if (o) {
+            const items = D.orderItems.filter(item => item.order_id === o.id);
+            for (let i=0; i<items.length; i++) {
+                if (items[i].has_invoice) {
+                    hasAnyInvoice = true;
+                    break;
+                }
+            }
+        }
+
+        // ★★★ 預設發票類型：如果有商品勾選發票，則顯示「有發票」，否則「無發票」 ★★★
+        let defaultInvoiceType = hasAnyInvoice ? 'yes' : 'no';
+        if (o && o.invoice_type) {
+            defaultInvoiceType = o.invoice_type;
+        }
+
         const html = '<input type="hidden" id="o-id" value="' + (id || '') + '">' +
             '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
             '<div><label class="block text-sm font-bold mb-2">📅 出貨日期 *</label>' +
@@ -3190,7 +3190,7 @@ async function openOrdModal(id) {
             '<div class="form-row"><label style="min-width:100px;">代墊員工</label><select id="o-advance-emp" class="form-control w-full px-3 py-2 border rounded input-field">' + empOptions + '</select></div>' +
             '</div></div>' +
             '<div class="bg-green-50 p-4 rounded-lg mb-4 border border-green-200"><h3 class="font-bold mb-3">🎫 折價券與紅利點數</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">折價券金額</label><input type="number" id="o-coupon-amount" class="w-full px-3 py-2 border rounded input-field" value="' + Number(couponAmount) + '" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">官網發放折價券</p></div><div><label class="block text-xs font-bold mb-1">紅利點數折抵</label><input type="number" id="o-points-amount" class="w-full px-3 py-2 border rounded input-field" value="' + Number(pointsAmount) + '" min="0" step="0.01" oninput="calcOrd()"><p class="text-xs text-gray-600 mt-1">紅利點數折抵金額</p></div></div></div>' +
-            '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" ' + (invType === 'no' ? 'selected' : '') + '>無發票</option><option value="yes" ' + (invType === 'yes' ? 'selected' : '') + '>有發票</option><option value="tax_plus" ' + (invType === 'tax_plus' ? 'selected' : '') + '>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_no || '' : '') + '"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_title || '' : '') + '"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_tax_id || '' : '') + '"></div></div></div>' +
+            '<div class="bg-yellow-50 p-4 rounded-lg mb-4 border border-yellow-200"><h3 class="font-bold mb-3">🧾 發票資訊</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-3"><div><label class="block text-xs font-bold mb-1">發票類型</label><select id="o-invoice-type" class="w-full px-3 py-2 border rounded input-field" onchange="calcOrd()"><option value="no" ' + (defaultInvoiceType === 'no' ? 'selected' : '') + '>無發票</option><option value="yes" ' + (defaultInvoiceType === 'yes' ? 'selected' : '') + '>有發票</option><option value="tax_plus" ' + (defaultInvoiceType === 'tax_plus' ? 'selected' : '') + '>稅外加 (+5%)</option></select></div><div><label class="block text-xs font-bold mb-1">發票號碼</label><input type="text" id="o-invoice-no" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_no || '' : '') + '"></div><div><label class="block text-xs font-bold mb-1">抬頭</label><input type="text" id="o-invoice-title" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_title || '' : '') + '"></div><div><label class="block text-xs font-bold mb-1">統編</label><input type="text" id="o-invoice-tax" class="w-full px-3 py-2 border rounded input-field" value="' + (o ? o.invoice_tax_id || '' : '') + '"></div></div></div>' +
             '<div class="ord-total-sticky"><div class="flex justify-between items-center flex-wrap gap-2"><div class="text-xl font-bold">總金額：<span id="o-total">0</span></div><div class="text-right"><div class="text-sm text-gray-600">預估成本：<span id="o-cost">0</span></div><div class="text-sm text-gray-600">稅金：<span id="o-tax">0</span></div><div class="text-sm text-gray-600">折價券：<span id="o-coupon-display">0</span></div><div class="text-sm text-gray-600">紅利點數：<span id="o-points-display">0</span></div><div class="text-sm text-gray-600">通路佣金：<span id="o-ch-commission">0</span></div><div class="text-sm text-gray-600">付款手續費：<span id="o-pm-commission">0</span></div><div class="text-sm font-bold">毛利率：<span id="o-margin">0%</span></div></div></div></div>';
 
         openModal(id ? '編輯出貨單' : '新增出貨單', html, saveOrd);
@@ -3304,7 +3304,7 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice, isGift) {
     const checkedAttr = (hasInvoice && isFinished) ? 'checked' : '';
     const giftChecked = isGift ? 'checked' : '';
 
-    div.innerHTML = '<div class="prod-search-wrapper"><input type="text" class="pu-prod-search" placeholder="🔍 搜尋商品..." value="' + defaultName + '" autocomplete="off" oninput="filterOrdProdOptions(this, \'' + uid + '\')" onfocus="document.getElementById(\'ord_dropdown_' + uid + '\').classList.add(\'show\')" onblur="setTimeout(function(){document.getElementById(\'ord_dropdown_' + uid + '\').classList.remove(\'show\')},300)"><div class="pu-prod-select" id="ord_dropdown_' + uid + '">' + prodOptionsHtml + '</div><input type="hidden" class="pu-prod-id" value="' + (prod ? prod.id : '') + '"></div><input type="number" class="o-qty" value="' + (qty || 1) + '" min="1" oninput="calcOrd()"><input type="number" class="o-price" value="' + (price !== undefined ? price : defaultPrice) + '" step="0.01" oninput="calcOrd()">' + (isFinished ? '<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ' + checkedAttr + ' onchange="calcOrd()" id="inv_' + uid + '"><label for="inv_' + uid + '">有</label></div>' : '') + '<div class="invoice-check"><input type="checkbox" class="o-is-gift" ' + giftChecked + ' onchange="calcOrd()" id="gift_' + uid + '"><label for="gift_' + uid + '">🎁贈品</label></div><button type="button" onclick="this.parentElement.remove(); calcOrd()" class="del-btn">✕</button>';
+    div.innerHTML = '<div class="prod-search-wrapper"><input type="text" class="pu-prod-search" placeholder="🔍 搜尋商品..." value="' + defaultName + '" autocomplete="off" oninput="filterOrdProdOptions(this, \'' + uid + '\')" onfocus="document.getElementById(\'ord_dropdown_' + uid + '\').classList.add(\'show\')" onblur="setTimeout(function(){document.getElementById(\'ord_dropdown_' + uid + '\').classList.remove(\'show\')},300)"><div class="pu-prod-select" id="ord_dropdown_' + uid + '">' + prodOptionsHtml + '</div><input type="hidden" class="pu-prod-id" value="' + (prod ? prod.id : '') + '"></div><input type="number" class="o-qty" value="' + (qty || 1) + '" min="1" oninput="calcOrd()"><input type="number" class="o-price" value="' + (price !== undefined ? price : defaultPrice) + '" step="0.01" oninput="calcOrd()">' + (isFinished ? '<div class="invoice-check"><input type="checkbox" class="o-has-invoice" ' + checkedAttr + ' onchange="updateInvoiceTypeOnCheck()" id="inv_' + uid + '"><label for="inv_' + uid + '">有</label></div>' : '') + '<div class="invoice-check"><input type="checkbox" class="o-is-gift" ' + giftChecked + ' onchange="calcOrd()" id="gift_' + uid + '"><label for="gift_' + uid + '">🎁贈品</label></div><button type="button" onclick="this.parentElement.remove(); calcOrd(); updateInvoiceTypeOnCheck()" class="del-btn">✕</button>';
     box.appendChild(div);
     if (prod) {
         const hiddenInput = div.querySelector('.pu-prod-id');
@@ -3317,6 +3317,27 @@ function addOrdItem(typeFilter, prod, qty, price, hasInvoice, isGift) {
         }
     }
     setTimeout(calcOrd, 50);
+}
+
+// ★★★ 自動更新發票類型 ★★★
+function updateInvoiceTypeOnCheck() {
+    const checkboxes = document.querySelectorAll('#o-items .o-has-invoice');
+    let hasAnyChecked = false;
+    for (let i=0; i<checkboxes.length; i++) {
+        if (checkboxes[i].checked) {
+            hasAnyChecked = true;
+            break;
+        }
+    }
+    const invTypeSelect = document.getElementById('o-invoice-type');
+    if (invTypeSelect) {
+        if (hasAnyChecked) {
+            invTypeSelect.value = 'yes';
+        } else {
+            invTypeSelect.value = 'no';
+        }
+        calcOrd();
+    }
 }
 
 function filterOrdProdOptions(input, uid) {
@@ -3373,6 +3394,7 @@ function selectOrdProduct(el, uid) {
 function calcOrd() {
     let productSubtotal = 0;
     let totalCost = 0;
+    let hasAnyInvoice = false;
     const rows = document.querySelectorAll('#o-items .ord-item-row');
     for (let i=0; i<rows.length; i++) {
         const r = rows[i];
@@ -3385,12 +3407,13 @@ function calcOrd() {
         const price = parseFloat(r.querySelector('.o-price').value) || 0;
         const qty = parseInt(r.querySelector('.o-qty').value) || 0;
         const isGift = r.querySelector('.o-is-gift')?.checked || false;
+        const hasInvoice = r.querySelector('.o-has-invoice')?.checked || false;
+        if (hasInvoice) hasAnyInvoice = true;
         if (!isGift) {
             productSubtotal += price * qty;
         }
         let finalCost = costPrice;
-        const hasInvoiceCheck = r.querySelector('.o-has-invoice');
-        if (hasInvoiceCheck && hasInvoiceCheck.checked && product.type === 'finished') {
+        if (hasInvoice && product.type === 'finished') {
             finalCost = costPrice * 1.05;
         }
         totalCost += finalCost * qty;
@@ -3401,6 +3424,7 @@ function calcOrd() {
     if (shipPayer === 'customer') finalShipping = shippingFee;
     const invType = document.getElementById('o-invoice-type').value;
     let taxAmount = 0;
+    // ★★★ 有發票（yes 或 tax_plus）都要加稅 ★★★
     if (invType === 'yes' || invType === 'tax_plus') {
         taxAmount = productSubtotal * 0.05;
     }
@@ -3416,6 +3440,7 @@ function calcOrd() {
     const chCommission = amountAfterDiscount * (chRate / 100);
     const pmCommission = amountAfterDiscount * (pmRate / 100);
     const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
+    // ★★★ 總成本 = 商品成本 + 變動成本（運費+佣金+手續費）+ 稅金 ★★★
     const totalCostAll = totalCost + companyShippingCost + chCommission + pmCommission + taxAmount;
     const grossProfit = amountAfterDiscount - totalCostAll;
     const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
@@ -3517,6 +3542,7 @@ async function saveOrd() {
         const pmCommission = Math.round(totalAmount * (pmRate / 100));
         const companyShippingCost = companyShipping;
 
+        // ★★★ 總成本 = 商品成本 + 變動成本 + 稅金 ★★★
         const totalCostAll = totalProductCost + companyShippingCost + chCommission + pmCommission + taxAmount;
         const grossProfit = totalAmount - totalCostAll;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
@@ -3636,7 +3662,7 @@ async function saveOrd() {
             }
         }
 
-        // ★★★ 只建立運費費用記錄 ★★★
+        // ★★★ 只建立運費費用記錄（通路佣金和手續費不寫入 expenses） ★★★
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
@@ -3773,7 +3799,7 @@ async function viewOrdDetail(id) {
     const bank = D.banks.find(function(x) { return x.id === o.bank_account_id; });
     const itemsResp = await sb.from('order_items').select('*').eq('order_id', id);
     const items = itemsResp.data || [];
-    let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th><th class="p-2 text-center">贈品</th></tr></thead><tbody>';
+    let itemsHtml = '<table class="min-w-full text-sm mt-2"><thead><tr class="bg-gray-100"><th class="p-2 text-left">產品</th><th class="p-2 text-right">數量</th><th class="p-2 text-right">單價</th><th class="p-2 text-right">小計</th><th class="p-2 text-center">贈品</th><th class="p-2 text-center">發票</th></tr></thead><tbody>';
     let totalCost = 0;
     for (let i=0; i<items.length; i++) {
         const item = items[i];
@@ -3781,7 +3807,7 @@ async function viewOrdDetail(id) {
         const subtotal = item.quantity * item.unit_price;
         const cost = p ? (p.cost_price || 0) * item.quantity : 0;
         totalCost += cost;
-        itemsHtml += '<tr class="border-b"><td class="p-2">' + (p ? p.name : '未知') + '</td><td class="p-2 text-right">' + item.quantity + '</td><td class="p-2 text-right">' + item.unit_price + '</td><td class="p-2 text-right">' + subtotal.toLocaleString() + '</td><td class="p-2 text-center">' + (item.is_gift ? '🎁' : '') + '</td></tr>';
+        itemsHtml += '<tr class="border-b"><td class="p-2">' + (p ? p.name : '未知') + '</td><td class="p-2 text-right">' + item.quantity + '</td><td class="p-2 text-right">' + item.unit_price + '</td><td class="p-2 text-right">' + subtotal.toLocaleString() + '</td><td class="p-2 text-center">' + (item.is_gift ? '🎁' : '') + '</td><td class="p-2 text-center">' + (item.has_invoice ? '✅' : '') + '</td></tr>';
     }
     itemsHtml += '</tbody></table>';
     const invTypeText = o.invoice_type === 'tax_plus' ? '稅外加 (+5%)' : (o.invoice_type === 'yes' ? '有發票' : '無發票');
@@ -3792,7 +3818,6 @@ async function viewOrdDetail(id) {
 }
 
 console.log('✅ 全部模組已載入，所有功能完整。');
-console.log('✅ 全部模組已載入，所有功能完整。');
-</script>
+    </script>
 </body>
 </html>
