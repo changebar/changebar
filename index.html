@@ -2398,7 +2398,6 @@ async function delSub(id) {
         const sub = D.subs.find(s => s.id === id);
         if (!sub) { showAlert('❌ 找不到訂閱資料！'); return; }
         
-        // 退還銀行款項
         if (sub.bank_account_id && sub.amount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', sub.bank_account_id).single();
             if (bank.data) {
@@ -2605,7 +2604,7 @@ async function delEmp(id) {
 }
 
 // ================================================================
-//  19. 老闆查閱
+//  19. 老闆查閱（修正 subMonthlyTotal 重複宣告）
 // ================================================================
 function renderBoss(c) {
     const startY = parseInt(bossDateRange.start.split('-')[0]);
@@ -2645,6 +2644,7 @@ function renderBoss(c) {
     let exp = 0;
     for (let i=0; i<monthExpenses.length; i++) exp += monthExpenses[i].amount || 0;
 
+    // ★★★ 第一次宣告 subMonthlyTotal（訂閱攤提）★★★
     let subMonthlyTotal = 0;
     const targetMonth = bossDateRange.start;
     for (let i=0; i<D.subs.length; i++) {
@@ -2691,10 +2691,8 @@ function renderBoss(c) {
     let totalPaymentCommission = 0;
     let totalShippingCost = 0;
     
-    // 從訂單本身抓取費用
     for (let i=0; i<monthOrders.length; i++) {
         const o = monthOrders[i];
-        // 通路抽成：從訂單的總金額和通路費率計算
         const ch = D.channels.find(c => c.id === o.sales_channel_id);
         if (ch && o.total_amount) {
             totalChannelCommission += o.total_amount * (ch.commission_rate / 100);
@@ -2703,27 +2701,11 @@ function renderBoss(c) {
         if (pm && o.total_amount) {
             totalPaymentCommission += o.total_amount * (pm.commission_rate / 100);
         }
-        // 運費（公司吸收）
         totalShippingCost += o.absorbed_shipping_fee || 0;
     }
 
-    // 訂閱攤提
-    let subMonthlyTotal = 0;
-    const targetMonth = bossDateRange.start;
-    for (let i=0; i<D.subs.length; i++) {
-        const s = D.subs[i];
-        if (s.start_date && s.end_date && s.amount) {
-            const startDate = new Date(s.start_date);
-            const endDate = new Date(s.end_date);
-            const targetDate = new Date(targetMonth + '-01');
-            if (targetDate >= startDate && targetDate <= endDate) {
-                const diffMonths = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth()) + 1;
-                if (diffMonths > 0) {
-                    subMonthlyTotal += s.amount / diffMonths;
-                }
-            }
-        }
-    }
+    // ★★★ 移除重複的 subMonthlyTotal 宣告 ★★★
+    // 直接使用上面已宣告的 subMonthlyTotal
 
     // 運費費用從 expenses 抓（只抓運費）
     const shippingCat = D.expCats.find(c => c.name === '運費');
@@ -2764,7 +2746,7 @@ function renderBoss(c) {
     const totalCustomers = D.customers.length;
     const monthOrderCount = monthOrders.length;
 
-    // 淨利 = 營收 - 商品成本 - 運費 - 訂閱攤提 - 通路佣金 - 手續費
+    // 淨利
     const totalExpenses = totalShippingExpense + subMonthlyTotal;
     const monthlyProfit = rev - totalProductCost - totalShippingExpense - subMonthlyTotal - totalChannelCommission - totalPaymentCommission;
 
@@ -3418,7 +3400,6 @@ function calcOrd() {
     if (shipPayer === 'customer') finalShipping = shippingFee;
     const invType = document.getElementById('o-invoice-type').value;
     let taxAmount = 0;
-    // ★★★ 有發票就要加稅（yes 或 tax_plus） ★★★
     if (invType === 'yes' || invType === 'tax_plus') {
         taxAmount = productSubtotal * 0.05;
     }
@@ -3434,7 +3415,6 @@ function calcOrd() {
     const chCommission = amountAfterDiscount * (chRate / 100);
     const pmCommission = amountAfterDiscount * (pmRate / 100);
     const companyShippingCost = shipPayer === 'company' ? shippingFee : 0;
-    // ★★★ 總成本 = 商品成本 + 公司吸收運費 + 通路佣金 + 手續費 + 稅金 ★★★
     const totalCostAll = totalCost + companyShippingCost + chCommission + pmCommission + taxAmount;
     const grossProfit = amountAfterDiscount - totalCostAll;
     const margin = amountAfterDiscount > 0 ? (grossProfit / amountAfterDiscount) * 100 : 0;
@@ -3522,7 +3502,6 @@ async function saveOrd() {
         }
         const customerShipping = (shipPayer === 'customer') ? shippingFee : 0;
         const companyShipping = (shipPayer === 'company') ? shippingFee : 0;
-        // ★★★ 有發票就要加稅 ★★★
         const taxAmount = (invType === 'yes' || invType === 'tax_plus') ? productTotal * 0.05 : 0;
         const totalDiscount = coupon + points;
         let totalAmount = productTotal + customerShipping + taxAmount - totalDiscount;
@@ -3537,7 +3516,6 @@ async function saveOrd() {
         const pmCommission = Math.round(totalAmount * (pmRate / 100));
         const companyShippingCost = companyShipping;
 
-        // ★★★ 總成本 = 商品成本 + 運費 + 通路佣金 + 手續費 + 稅金 ★★★
         const totalCostAll = totalProductCost + companyShippingCost + chCommission + pmCommission + taxAmount;
         const grossProfit = totalAmount - totalCostAll;
         const margin = totalAmount > 0 ? (grossProfit / totalAmount) * 100 : 0;
@@ -3657,7 +3635,7 @@ async function saveOrd() {
             }
         }
 
-        // ★★★ 只建立運費費用記錄（通路佣金和手續費不寫入 expenses） ★★★
+        // ★★★ 只建立運費費用記錄 ★★★
         const expCats = D.expCats;
         const shippingCat = expCats.find(c => c.name === '運費');
         const descPrefix = dateStr + ' ' + (recvName || '客戶');
@@ -3665,7 +3643,6 @@ async function saveOrd() {
 
         const newExpenses = [];
 
-        // ★★★ 只有運費寫入 expenses ★★★
         if (companyShippingCost > 0 && shippingCat) {
             const isReimbursed = !advanceEmpId;
             newExpenses.push({
@@ -3680,8 +3657,6 @@ async function saveOrd() {
                 related_order_id: orderId
             });
         }
-
-        // ★★★ 通路佣金和手續費不寫入 expenses ★★★
 
         if (bankId && totalAmount > 0) {
             const bank = await sb.from('bank_accounts').select('balance').eq('id', bankId).single();
