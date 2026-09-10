@@ -117,12 +117,18 @@ li{margin:6px 0}
   width:100vw;margin-left:50%;transform:translateX(-50%);
   padding:72px 24px
 }
-.band h2{color:var(--white);font-size:44px;font-weight:900;margin:0 0 24px;padding-top:0;border-top:none;text-transform:uppercase;letter-spacing:-0.03em}
+.band h2{color:var(--white);font-size:44px;font-weight:900;margin:0 0 24px;padding-top:0;border-top:none;counter-increment:none;text-transform:uppercase;letter-spacing:-0.03em}
 .band h2::before{content:""}
 .band p,.band li{color:#d1d5db}
 .band ul{list-style:none;padding:0;columns:2;column-gap:48px}
 .band li{margin:10px 0;font-size:15px;break-inside:avoid}
 .band li::marker{color:var(--red)}
+.band .cta{
+  display:inline-block;margin-top:40px;padding:16px 48px;
+  background:var(--white);color:var(--black);font-weight:800;font-size:15px;
+  letter-spacing:0.02em;text-transform:uppercase;transition:background .2s ease
+}
+.band .cta:hover{background:var(--yellow);text-decoration:none}
 
 /* 頁尾 */
 .footer{
