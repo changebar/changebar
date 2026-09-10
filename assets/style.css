@@ -168,3 +168,33 @@ form .grid label{display:block;font-weight:700;color:var(--ink);font-size:14px;m
 form select,form input[type=number]{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:var(--white);color:var(--ink);margin-top:6px}
 .band-cta{padding:14px 40px;background:var(--accent);color:var(--white);border:none;border-radius:999px;font-weight:700;font-size:16px;cursor:pointer;transition:background .2s ease}
 .band-cta:hover{background:var(--accent-dark)}
+
+/* 問卷式試算表單 */
+.qstep{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin:20px 0;box-shadow:0 2px 10px rgba(28,71,50,.05)}
+.qstep-head{display:flex;align-items:center;gap:10px;margin:0 0 18px}
+.qstep-head .no{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:var(--green);color:#fff;font-size:13px;font-weight:800}
+.qstep-head .ttl{font-size:17px;font-weight:800;color:var(--ink)}
+.qstep-head .sub{font-size:13px;color:var(--muted)}
+.qrow{margin:0 0 18px}
+.qrow .qlabel{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.qrow .qlabel small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}
+.qopts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{position:relative}
+.opt input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.opt .pill{display:inline-block;padding:10px 18px;border:1px solid var(--line);border-radius:999px;background:var(--cream-soft);font-size:14px;color:var(--body);font-weight:500;transition:all .15s ease}
+.opt input:checked + .pill{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
+.opt input:focus-visible + .pill{outline:3px solid rgba(217,122,60,.35);outline-offset:2px}
+.opt input:hover + .pill{border-color:var(--green)}
+.sel{appearance:none;-webkit-appearance:none;width:100%;max-width:320px;padding:12px 40px 12px 16px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:var(--white) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="14" height="9" viewBox="0 0 14 9"><path d="M1 1l6 6 6-6" fill="none" stroke="%232E6B46" stroke-width="2" stroke-linecap="round"/></svg>') no-repeat right 14px center;color:var(--ink);font-family:inherit}
+.sel:focus{outline:3px solid rgba(217,122,60,.35);outline-offset:1px;border-color:var(--green)}
+.num{width:100%;max-width:160px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:var(--white);color:var(--ink);font-family:inherit}
+.num:focus{outline:3px solid rgba(217,122,60,.35);outline-offset:1px;border-color:var(--green)}
+.cmp{margin:28px 0}
+.cmp .bar{height:14px;border-radius:999px;background:#EDE4CF;position:relative;margin:8px 0 4px}
+.cmp .fill{position:absolute;top:0;bottom:0;left:0;border-radius:999px}
+.cmp .target{background:var(--green)}
+.cmp .current{background:var(--accent);opacity:.85}
+.cmp .lbl{font-size:13px;color:var(--body);font-weight:600}
+.result-verdict{font-size:20px;font-weight:800;color:var(--ink)}
+.result-verdict.ok{color:var(--green)}
+.result-verdict.gap{color:var(--accent)}

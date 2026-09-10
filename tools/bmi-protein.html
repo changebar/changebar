@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>蛋白質與 BMI 自我評估試算表｜健飽卡 ChangeBar</title>
-<meta name="description" content="選 5 個選項（性別、年齡層、身高、體重、運動量）即得：BMI 與分類、依衛福部 DRIs 第八版之每日蛋白質建議量（g/日），與健飽卡產品補充建議。本工具僅供參考，不構成醫療建議。">
-<meta property="og:title" content="蛋白質與 BMI 自我評估試算表｜健飽卡 ChangeBar">
-<meta property="og:description" content="選項式表單：5 個問題換得 BMI 分類與每日蛋白質建議量（g/日），並附產品補充建議。僅供參考，不構成醫療建議。">
+<title>蛋白質與 BMI 自我評估試算（問卷式）｜健飽卡 ChangeBar</title>
+<meta name="description" content="問卷式自我評估：3 個段落（基本資料、生活習慣、每日蛋白質攝取）估算 BMI 與每日蛋白質建議量，比較目標與目前攝取，並依差距給予健飽卡產品補充建議。本工具僅供參考，不構成醫療建議。">
+<meta property="og:title" content="蛋白質與 BMI 問卷式自我評估｜健飽卡 ChangeBar">
+<meta property="og:description" content="像問卷一樣回答基本資料、生活與飲食攝取，換得 BMI、每日蛋白質目標與產品補充建議。僅供參考，不構成醫療建議。">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="../assets/style.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"蛋白質與 BMI 自我評估試算表","url":"https://changebar.github.io/changebar/tools/bmi-protein.html","description":"選項式表單試算 BMI 與每日蛋白質建議量（依衛福部 DRIs 第八版），並附健飽卡產品補充建議。","publisher":{"@type":"Organization","name":"健飽卡 ChangeBar"}}}
+{"@context":"https://schema.org","@type":"WebPage","name":"蛋白質與 BMI 自我評估試算（問卷式）","url":"https://changebar.github.io/changebar/tools/bmi-protein.html","description":"問卷式表單：基本資料、生活習慣與每日蛋白質攝取，估算 BMI 與每日蛋白質建議量（依衛福部 DRIs 第八版），並附健飽卡產品補充建議。","publisher":{"@type":"Organization","name":"健飽卡 ChangeBar"}}}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
@@ -18,7 +18,7 @@
 ,
 {"@type":"Question","name":"一般人每天需要多少蛋白質？","acceptedAnswer":{"@type":"Answer","text":"依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間，並建議諮詢專業醫療或營養人員。"}}
 ,
-{"@type":"Question","name":"蛋白質一天一定要一次吃完嗎？","acceptedAnswer":{"@type":"Answer","text":"一般飲食原則：蛋白質分散在各餐攝取，有助於整日總量達標；具體分配方式建議依個人飲食與健康狀況諮詢專業人員。"}}
+{"@type":"Question","name":"這個問卷估算的蛋白質攝取量準確嗎？","acceptedAnswer":{"@type":"Answer","text":"問卷以常見食物之近似蛋白質參考值估算（每份蛋白質含量因個品與份量而異），屬於一般參考值；實際攝取量建議以產品營養標示為準，個別營養需求請諮詢專業醫療或營養人員。"}}
 ]}
 </script>
 </head>
@@ -26,66 +26,130 @@
 <header class="site"><span class="logo">健飽卡 ChangeBar</span><nav class="site"><a href="../">首頁</a><a href="../products/protein.html">蛋白粉</a><a href="../products/soy-milk-soup.html">豆漿湯體</a><a href="../products/ganjiu.html">甘酒</a><a href="../about.html">關於我們</a><a href="../blog/">文章</a><a href="../tools/bmi-protein.html">健康試算</a></nav></header>
 <main>
 <p class="breadcrumb"><a href="../">首頁</a> › 健康試算</p>
-<h1>蛋白質與 BMI 自我評估試算</h1>
-<div class="lead-answer">想知道自己「多重」以及「一天要吃多少蛋白質」？下方表單只需選 5 個選項（性別、年齡層、身高、體重、運動量），立刻算出 BMI 與依衛福部 DRIs 第八版之每日蛋白質建議量（g／日），並附上健飽卡產品補充建議。本工具為一般營養資訊，僅供參考，不構成醫療建議。</div>
+<h1>蛋白質與 BMI 自我評估</h1>
+<div class="lead-answer">像填問卷一樣，回答 3 段小題目：基本資料、生活習慣、每日蛋白質攝取。完成後會算出你的 BMI 與每日蛋白質目標範圍，並比較「目標 vs 目前估算攝取」，最後才依差距給予健飽卡產品補充建議。本工具為一般營養資訊，僅供參考，不構成醫療建議。</div>
 
-<section>
-<h2>試算表單</h2>
 <form id="calc" onsubmit="return false;">
-<div class="grid" style="grid-template-columns:repeat(2,1fr)">
-<label>性別
-<select id="sex"><option value="male">男</option><option value="female">女</option></select>
-</label>
-<label>年齡層
-<select id="age">
-<option value="a1">19–50 歲</option>
+<h2>基本資料</h2>
+<div class="qstep" style="margin-top:8px">
+<div class="qrow"><span class="qlabel">性別</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="sex" id="sx1" value="m" checked><label class="pill" for="sx1">男</label></span>
+<span class="opt"><input type="radio" name="sex" id="sx2" value="f"><label class="pill" for="sx2">女</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">年齡層</span>
+<select class="sel" id="age">
+<option value="a1" selected>19–50 歲</option>
 <option value="a2">51–70 歲</option>
 <option value="a3">71 歲以上</option>
-</select>
-</label>
-<label>身高（公分）
-<input type="number" id="height" min="100" max="230" step="0.1" placeholder="例如 170">
-</label>
-<label>體重（公斤）
-<input type="number" id="weight" min="25" max="200" step="0.1" placeholder="例如 65">
-</label>
-<label>每週運動量
-<select id="activity">
-<option value="s">低運動（久坐為主，無規律運動）</option>
-<option value="m">中等（每週 2–4 次、中等強度運動）</option>
-<option value="h">高（每週 5 次以上、較高強度訓練）</option>
-</select>
-</label>
-<label>&nbsp;
-<button type="button" class="band-cta" id="run" onclick="runCalc()">試算我的結果 →</button>
-</label>
+</select></div>
+<div class="qrow"><span class="qlabel">身高（公分）</span><input class="num" type="number" id="height" min="100" max="230" step="0.1" value="167"></div>
+<div class="qrow"><span class="qlabel">體重（公斤）</span><input class="num" type="number" id="weight" min="25" max="200" step="0.1" value="55"></div>
+</div><h2>生活習慣</h2>
+<div class="qstep">
+<div class="qrow"><span class="qlabel">每週規律運動量</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="act" value="s" checked><label class="pill">低（久坐為主）</label></span>
+<span class="opt"><input type="radio" name="act" value="m"><label class="pill">中等（2–4 次／週）</label></span>
+<span class="opt"><input type="radio" name="act" value="h"><label class="pill">高（5 次以上／週）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">每日起身活動（不含工作）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="move" value="0" checked><label class="pill">很少（多為久坐）</label></span>
+<span class="opt"><input type="radio" name="move" value="1"><label class="pill">約 1–2 小時</label></span>
+<span class="opt"><input type="radio" name="move" value="2"><label class="pill">2 小時以上</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">三餐規律性</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="meal" value="2" checked><label class="pill">每天都有 3 餐</label></span>
+<span class="opt"><input type="radio" name="meal" value="1"><label class="pill">常跳過或時間不固定</label></span>
+<span class="opt"><input type="radio" name="meal" value="0"><label class="pill">常以簡餐／飲料代替</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">平均每晚睡眠</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="sleep" value="0"><label class="pill">不到 6 小時</label></span>
+<span class="opt"><input type="radio" name="sleep" value="1" checked><label class="pill">6–7 小時</label></span>
+<span class="opt"><input type="radio" name="sleep" value="2"><label class="pill">7–8 小時</label></span>
+<span class="opt"><input type="radio" name="sleep" value="3"><label class="pill">8 小時以上</label></span>
+</div></div>
+</div><h2>每日蛋白質攝取</h2>
+<div class="qstep">
+<p class="source" style="margin:0 0 16px">請選「近一週平均每天」的量；括號內為每份之近似蛋白質參考值（依衛福部／國家衛生研究院之食物營養資料庫常見數值，實際因個品與份量而異）。</p>
+<div class="qrow"><span class="qlabel">蛋（1 顆約 7g）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_egg" value="0" checked><label class="pill">0 顆</label></span>
+<span class="opt"><input type="radio" name="q_egg" value="7"><label class="pill">1 顆（約 7g）</label></span>
+<span class="opt"><input type="radio" name="q_egg" value="14"><label class="pill">2 顆以上（約 14g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">牛奶／乳製品（1 杯約 250ml，約 8g）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_milk" value="0" checked><label class="pill">0 杯</label></span>
+<span class="opt"><input type="radio" name="q_milk" value="8"><label class="pill">1 杯（約 8g）</label></span>
+<span class="opt"><input type="radio" name="q_milk" value="16"><label class="pill">2 杯以上（約 16g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">魚（1 掌心約 15g）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_fish" value="0" checked><label class="pill">0 份</label></span>
+<span class="opt"><input type="radio" name="q_fish" value="15"><label class="pill">1 份（約 15g）</label></span>
+<span class="opt"><input type="radio" name="q_fish" value="30"><label class="pill">2 份以上（約 30g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">肉類（豬／牛，1 掌心約 12g）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_meat" value="0" checked><label class="pill">0 份</label></span>
+<span class="opt"><input type="radio" name="q_meat" value="12"><label class="pill">1 份（約 12g）</label></span>
+<span class="opt"><input type="radio" name="q_meat" value="24"><label class="pill">2 份以上（約 24g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">豆腐／豆漿／乾豆（1 份約 8g）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_soy" value="0" checked><label class="pill">0 份</label></span>
+<span class="opt"><input type="radio" name="q_soy" value="8"><label class="pill">1 份（約 8g）</label></span>
+<span class="opt"><input type="radio" name="q_soy" value="16"><label class="pill">2 份以上（約 16g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">堅果類</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_nut" value="0" checked><label class="pill">不吃</label></span>
+<span class="opt"><input type="radio" name="q_nut" value="2"><label class="pill">小把（約 10g，約 2g）</label></span>
+<span class="opt"><input type="radio" name="q_nut" value="8"><label class="pill">大把（約 30g，約 8g）</label></span>
+</div></div>
+<div class="qrow"><span class="qlabel">蛋白補充品（粉／液）</span>
+<div class="qopts">
+<span class="opt"><input type="radio" name="q_sup" value="0" checked><label class="pill">0 份</label></span>
+<span class="opt"><input type="radio" name="q_sup" value="20"><label class="pill">1 份（約 20g）</label></span>
+<span class="opt"><input type="radio" name="q_sup" value="40"><label class="pill">2 份以上（約 40g）</label></span>
+</div></div>
 </div>
-<p class="source">計算係數：DRIs 第八版（低 0.8／51–70 歲 1.0／71 歲以上 1.2 g/公斤）；中等運動量可參考 1.2–1.4 g/公斤，高運動量約 1.4–1.7 g/公斤（參考美國運動醫學會 ACSM 2009 年運動營養 Position Stand 之一般區間）。查證日期：2026-09-11。</p>
-</form>
-<div id="result" style="display:none">
-<h2>你的試算結果</h2>
-<div class="lead-answer" id="r-text"></div>
-<h2>蛋白質補充建議（依你的每日需求量）</h2>
+<button type="button" class="band-cta" onclick="runCalc()">開始評估 →</button>
+</form><section id="result" style="display:none">
+<h2>你的評估結果</h2>
+<div class="lead-answer" id="r-bmi"></div>
+<div class="cmp">
+<div class="lbl">你的目標範圍（依年齡層與運動量）</div>
+<div class="bar"><div class="fill target" id="bar-target"></div></div>
+<div class="lbl">你的目前每日攝取估算</div>
+<div class="bar"><div class="fill current" id="bar-current"></div></div>
+</div>
+<p class="result-verdict" id="r-verdict"></p>
+<p class="source" id="r-note"></p>
+<h3 style="margin:32px 0 8px">依結果的推薦產品</h3>
 <div class="grid">
 <div class="card"><span class="tag">蛋白質</span><h3>純素豌豆分離蛋白粉</h3><p>每包含 20g 植物性蛋白質，純素配方，可加入豆漿、燕麥或 Smoothie。<br><a href="../products/protein.html">了解產品 →</a></p></div>
 <div class="card"><span class="tag">湯品基底</span><h3>高蛋白豆漿湯體</h3><p>豆漿湯底，為湯品與料理提供豆香與蛋白質基礎。<br><a href="../products/soy-milk-soup.html">了解產品 →</a></p></div>
 <div class="card"><span class="tag">發酵食品</span><h3>日本甘糀（米麴甘酒）</h3><p>天然發酵食品，營養補給好選擇，可沖溫水飲用或加入料理。<br><a href="../products/ganjiu.html">了解產品 →</a></p></div>
 </div>
 <p class="source" id="r-pack"></p>
-</div>
 </section>
 
 <section>
 <h2>常見問題</h2>
 <details><summary>BMI 正常範圍是多少？</summary><p>依世界衛生組織（WHO）成人 BMI 分類：18.5 以下為過輕、18.5–24.9 為正常、25–29.9 為過重、30 以上為肥胖。BMI 為體重與身高的比值指標，無法反映體脂分布，請以整體飲食與健康檢查資訊綜合判斷。（來源：WHO 成人 BMI 分類，查證日期 2026-09-11）</p></details>
 <details><summary>一般人每天需要多少蛋白質？</summary><p>依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間（參考 ACSM 2009 年 Position Stand），具體目標建議諮詢專業醫療或營養人員。（查證日期：2026-09-11）</p></details>
-<details><summary>蛋白質一定要一天一次吃完嗎？</summary><p>一般飲食原則：蛋白質分散在各餐攝取，有助於整日總量達標；具體分配方式建議依個人飲食與健康狀況諮詢專業人員。</p></details>
+<details><summary>問卷估算的攝取量準確嗎？</summary><p>問卷以常見食物之近似蛋白質參考值估算（每份含量因個品與份量而異），屬一般參考值；實際攝取量請以產品營養標示為準，個別營養需求請諮詢專業醫療或營養人員。</p></details>
 </section>
 
 <section>
 <h2>來源與品牌事實</h2>
-<p>本頁數據來源（查證日期 2026-09-11）：衛福部《國人膳食營養參考攝取量（DRIs）第八版》（https://www.mohw.gov.tw/ 之膳食營養參考攝取量專區）；WHO 成人 BMI 分類（https://www.who.int/）；ACSM 2009 年 Nutrition and Athletic Performance Position Stand（一般運動營養區間）。品牌資訊：健飽卡 ChangeBar 屬養芯健康，產品含純素豌豆分離蛋白粉（每包 20g 植物性蛋白質）、日本甘糀（米麴甘酒）與高蛋白豆漿湯體；官網 https://change-bar.com/ 。</p>
-<div class="disclaimer">⚠️ 免責聲明：本內容僅供參考，不構成醫療建議。產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。本試算表之數值為一般成人之常見參考值，不適用於懷孕、哺乳、嬰幼兒、兒童、青少年、腎臟疾病患者及其他特殊健康狀況者；上述族群請依醫師或營養師之個別指引攝取蛋白質。</div>
+<p>本頁數據來源（查證日期 2026-09-11）：衛福部《國人膳食營養參考攝取量（DRIs）第八版》（https://www.mohw.gov.tw/）；WHO 成人 BMI 分類（https://www.who.int/）；ACSM 2009 年 Nutrition and Athletic Performance Position Stand；食物蛋白質每份參考值參照衛福部／國家衛生研究院之食物營養資料庫常見數值（https://food1.nhri.org.tw/）。品牌資訊：健飽卡 ChangeBar 屬養芯健康，產品含純素豌豆分離蛋白粉（每包 20g 植物性蛋白質）、日本甘糀（米麴甘酒）與高蛋白豆漿湯體；官網 https://change-bar.com/ 。</p>
+<div class="disclaimer">⚠️ 免責聲明：本內容僅供參考，不構成醫療建議。產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。本試算之數值與補充建議為一般成人之常見參考值，不適用於懷孕、哺乳、嬰幼兒、兒童、青少年、腎臟疾病患者及其他特殊健康狀況者；上述族群請依醫師或營養師之個別指引攝取蛋白質。</div>
 </section>
 
 <div class="band">
@@ -101,36 +165,54 @@
 </div>
 </div>
 </main>
-<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。</footer>
-<script>
+<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。</footer><script>
+function gv(n){ var r = document.querySelector('input[name="'+n+'"]:checked'); return r ? parseInt(r.value,10) : 0; }
 function runCalc(){
-  var sex = document.getElementById('sex').value;
   var age = document.getElementById('age').value;
+  var act = gv('act'); var actV = document.querySelector('input[name="act"]:checked').value;
   var hcm = parseFloat(document.getElementById('height').value);
   var wk = parseFloat(document.getElementById('weight').value);
-  var act = document.getElementById('activity').value;
   var out = document.getElementById('result');
-  var txt = document.getElementById('r-text');
-  var pack = document.getElementById('r-pack');
-  if (isNaN(hcm) || isNaN(wk)) { txt.innerHTML = '請先輸入身高與體重再試算。'; out.style.display = 'block'; return; }
+  if (isNaN(hcm) || isNaN(wk)) { alert('請先輸入身高與體重再評估。'); return; }
   var h = hcm / 100;
   var bmi = wk / (h * h);
-  var cat = '過輕';
-  if (bmi >= 30) cat = '肥胖'; else if (bmi >= 25) cat = '過重'; else if (bmi >= 18.5) cat = '正常';
-  var lo = 0.8, hi = 0.8;
-  if (act === 's') {
-    if (age === 'a2') lo = hi = 1.0; else if (age === 'a3') lo = hi = 1.2;
-  } else if (act === 'm') {
-    if (age === 'a2') { lo = 1.0; hi = 1.4; } else if (age === 'a3') { lo = 1.2; hi = 1.6; } else { lo = 0.8; hi = 1.4; }
+  var cat = bmi >= 30 ? '肥胖' : (bmi >= 25 ? '過重' : (bmi >= 18.5 ? '正常' : '過輕'));
+  var lo, hi;
+  if (actV === 's') { lo = hi = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); }
+  else if (actV === 'm') { lo = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); hi = (age === 'a2' ? 1.4 : (age === 'a3' ? 1.6 : 1.4)); }
+  else { lo = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); hi = 1.7; }
+  var gLo = Math.round(wk * lo), gHi = Math.round(wk * hi);
+  var cur = gv('q_egg') + gv('q_milk') + gv('q_fish') + gv('q_meat') + gv('q_soy') + gv('q_nut') + gv('q_sup');
+  var scale = Math.max(gHi * 1.15, cur * 1.15, 40);
+  document.getElementById('bar-target').style.left = Math.round(gLo / scale * 100) + '%';
+  document.getElementById('bar-target').style.width = Math.max(Math.round((gHi - gLo) / scale * 100), 2) + '%';
+  document.getElementById('bar-current').style.width = Math.round(Math.min(cur / scale, 1) * 100) + '%';
+  document.getElementById('r-bmi').innerHTML = 'BMI 約 <strong>' + bmi.toFixed(1) + '</strong>（WHO 分類：' + cat + '）｜每日蛋白質目標：<strong>' + gLo + '–' + gHi + ' g</strong>（依年齡層與運動量）｜目前估算攝取：<strong>約 ' + cur + ' g</strong>';
+  var vd = document.getElementById('r-verdict');
+  var pack = document.getElementById('r-pack');
+  var note = [];
+  var gap = gLo - cur;
+  if (gap > 0) {
+    vd.className = 'result-verdict gap';
+    vd.textContent = '與目標下限尚有約 ' + gap + ' g 之差距';
+    var pk = Math.ceil(gap / 20);
+    if (pk <= 2) { pack.textContent = '推薦產品：純素豌豆分離蛋白粉（每包 20g）約 ' + pk + ' 包／日可補足上述差距；早餐可搭配豆漿湯體（湯品或沖調）、日常熱飲可選甘酒。'; }
+    else { pack.textContent = '差距較寬（約 ' + gap + ' g）：建議先調整三餐之蛋白質來源（上方各題），再以蛋白粉（每包 20g）補足剩餘部分；若每日需超過 2 包，建議優先與專業人員討論飲食規劃。'; }
+  } else if (cur > gHi) {
+    vd.className = 'result-verdict ok';
+    vd.textContent = '目前估算攝取已高於目標上限，維持即可，無需刻意加量';
+    pack.textContent = '目前攝取已達標，暫不需額外補充；三款產品可依口味與場景選用：蛋白粉（輕食日）、豆漿湯體（湯品基底）、甘酒（溫飲）。';
   } else {
-    if (age === 'a2') { lo = 1.0; hi = 1.7; } else if (age === 'a3') { lo = 1.2; hi = 1.7; } else { lo = 0.8; hi = 1.7; }
+    vd.className = 'result-verdict ok';
+    vd.textContent = '目前估算攝取已在目標範圍內，維持現有飲食即可';
+    pack.textContent = '目前攝取在目標範圍，無須刻意加量；若某餐吃得較少，可備 1 包蛋白粉（每包 20g）作為方便來源。';
   }
-  var mid = (lo + hi) / 2;
-  var gLo = Math.round(wk * lo), gHi = Math.round(wk * hi), gMid = Math.round(wk * mid);
-  var pkLo = Math.ceil(gLo / 20), pkHi = Math.ceil(gHi / 20);
-  txt.innerHTML = 'BMI 約 <strong>' + bmi.toFixed(1) + '</strong>（WHO 分類：' + cat + '）<br>建議每日蛋白質攝取量：約 <strong>' + gLo + '–' + gHi + ' g</strong>（依運動量與年齡層之一般參考區間；常見建議值約 ' + gMid + ' g/日）。';
-  pack.innerHTML = '以健飽卡純素豌豆分離蛋白粉（每包 20g 植物性蛋白質）換算：約 ' + pkLo + '–' + pkHi + ' 包/日可涵蓋上述區間。蛋白可分散於各餐補充，亦可用豆漿湯體作為湯品之蛋白質來源。以上為一般營養資訊，不構成醫療建議。';
+  if (document.querySelector('input[name="sleep"]:checked').value === '0' || document.querySelector('input[name="sleep"]:checked').value === '3') { note.push('你回答睡眠時間不在 6–8 小時區間，建議依個人狀況調整作息。'); }
+  if (document.querySelector('input[name="meal"]:checked').value === '0') { note.push('你回答三餐常以簡餐或飲料代替，建議先確保三正餐之蛋白質來源。'); }
+  else if (document.querySelector('input[name="meal"]:checked').value === '1') { note.push('你回答三餐時間不太固定，建議先建立規律三餐，再以補充品輔助。'); }
+  document.getElementById('r-note').textContent = note.length ? note.join(' ') : '';
   out.style.display = 'block';
+  out.scrollIntoView({behavior: 'smooth'});
 }
 </script>
 </body>
