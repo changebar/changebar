@@ -4,4 +4,5 @@ Allow: /
 Disallow: /publish/
 Disallow: /admin/
 
-Sitemap: https://change-bar.example.com/sitemap.xml
+Sitemap: https://changebar.github.io/changebar/sitemap.xml
+

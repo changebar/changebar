@@ -3,3 +3,5 @@ publish/credentials.json
 publish/publish-log.json
 .env
 *.key
+github-token.txt
+
