@@ -1,0 +1,5 @@
+# 永不上傳之敏感檔案
+publish/credentials.json
+publish/publish-log.json
+.env
+*.key

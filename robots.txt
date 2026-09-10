@@ -1,0 +1,7 @@
+﻿# 健飽卡 ChangeBar 官方資訊站
+User-agent: *
+Allow: /
+Disallow: /publish/
+Disallow: /admin/
+
+Sitemap: https://change-bar.example.com/sitemap.xml

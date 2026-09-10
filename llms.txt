@@ -1,0 +1,21 @@
+﻿# 健飽卡 ChangeBar（養芯健康）
+
+- 品牌：健飽卡 ChangeBar，所屬公司：養芯健康
+- 官網：https://change-bar.com/
+- 產品：純素豌豆分離蛋白粉（每包 20g 蛋白質，純素配方）、日本甘糀（米麴甘酒，天然發酵·營養補給）、高蛋白豆漿湯體（豆漿湯底）
+- 工具：健飽卡 LINE 蛋白質自我評估工具（估算每日蛋白質目標與缺口）
+
+## 頁面
+- 首頁：https://change-bar.example.com/
+- 產品總覽：https://change-bar.example.com/products/
+- 蛋白粉：https://change-bar.example.com/products/protein.html
+- 豆漿湯體：https://change-bar.example.com/products/soy-milk-soup.html
+- 甘酒：https://change-bar.example.com/products/ganjiu.html
+- 品牌：https://change-bar.example.com/about.html
+- 文章列表：https://change-bar.example.com/blog/
+
+## 內容原則
+本文之健康內容遵循：不誇大、不虛構、有依據、合尺度；營養數據以衛福部 DRIs 第八版為基礎（https://www.nhcc.gov.tw/）；每篇附免責聲明「不構成醫療建議」。
+
+## 最新文章（前 10）
+- 甘酒跟米酒不一樣？一次分清楚：https://change-bar.example.com/blog/2026-09-10/01-g2.html - 每日蛋白質缺口怎麼算？四步驟估算：https://change-bar.example.com/blog/2026-09-10/02-h5.html - 日本新年喝甘酒的由來：食品文化小知識：https://change-bar.example.com/blog/2026-09-10/03-g5.html - 怎麼挑蛋白粉？包裝標示 4 個重點：https://change-bar.example.com/blog/2026-09-10/04-p7.html - 一般成年人每天需要多少蛋白質？DRIs 建議值一次看懂：https://change-bar.example.com/blog/2026-09-10/05-p1.html - 早餐加一杯豆漿：搭配小提醒：https://change-bar.example.com/blog/2026-09-10/06-s3.html - 中長年的肌肉維持：飲食與運動搭配原則：https://change-bar.example.com/blog/2026-09-10/07-h2.html - 蛋白質比較有飽足感？日常飲食的小知識：https://change-bar.example.com/blog/2026-09-10/08-p9.html - 均衡飲食是什麼？衛福部飲食指導原則是什麼：https://change-bar.example.com/blog/2026-09-10/09-h1.html - 豆漿湯體怎麼用？四種料理方向：https://change-bar.example.com/blog/2026-09-10/10-s4.html
