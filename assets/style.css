@@ -1,155 +1,157 @@
-/* 健飽卡 ChangeBar 健康資訊站 — 風格：#50 Swiss Modernism 2.0（現代化版）
-   來源：https://github.com/joshhu/uitest → styles/50-swiss-modernism.html
-   設計語言：Inter/Helvetica 無襯線、12 欄網格、黑色粗線分隔、數字編號章節、
-   原色點綴（紅 #dc2626／藍 #2563eb／黃 #facc15）、大量留白、高對比大字 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+﻿/* ChangeBar 品牌風格 — 與 change-bar.com 官網視覺一致（森林綠 × 奶油米 × 橘棕 × 金色）
+   色值取自官網实际图檔取色（ref\change-bar-site\extracted\，2026-09-11 查證）
+   頁面結構與所有合規文字不變；僅外觀 token 更換。 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
 :root{
-  --black:#000;--white:#fff;--gray:#6b7280;--light:#e5e7eb;
-  --red:#dc2626;--blue:#2563eb;--yellow:#facc15;
-  --max:1152px
+  --ink:#1C4732;--ink-soft:#3E5C4A;--body:#5B574C;--muted:#8B8577;
+  --cream:#F7F1E3;--cream-soft:#FFFDF7;--panel:#1F4A2E;--panel-deep:#16381F;
+  --accent:#D97A3C;--accent-dark:#C06428;--green:#2E6B46;--gold:#F0BE3C;--gold-soft:#FBE9BE;
+  --line:#E5DAC3;--white:#fff;--shadow:0 10px 30px rgba(28,71,50,.10);--radius:18px;--max:1152px
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 html,body{overflow-x:hidden}
 body{
-  margin:0;background:var(--white);color:var(--black);
-  font-family:'Inter','Helvetica Neue','Segoe UI','Microsoft JhengHei','Noto Sans TC',sans-serif;
+  margin:0;background:var(--cream);color:var(--body);
+  font-family:'Inter','Noto Sans TC','Helvetica Neue','Segoe UI','Microsoft JhengHei',sans-serif;
   font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased
 }
-a{color:var(--black);text-decoration:none}
-a:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+a{color:var(--ink);text-decoration:none}
+a:hover{color:var(--accent);text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
 
-/* 頂列（固定、白底、黑色粗下線） */
+/* 導覽列（奶油淺底、柔和下線） */
 header.site{
-  position:sticky;top:0;z-index:100;background:var(--white);
-  border-bottom:2px solid var(--black);
+  position:sticky;top:0;z-index:100;background:rgba(247,241,227,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
   display:flex;align-items:center;justify-content:space-between;
-  max-width:var(--max);margin:0 auto;padding:18px 24px
+  max-width:var(--max);margin:0 auto;padding:16px 24px
 }
-header.site .logo{font-weight:800;font-size:20px;letter-spacing:-0.03em}
-header.site .logo::before{content:"";display:inline-block;width:10px;height:10px;background:var(--red);margin-right:10px}
-nav.site a{margin-left:28px;font-size:14px;font-weight:600;color:#374151}
-nav.site a:hover{color:var(--black);text-decoration:none}
+header.site .logo{font-weight:900;font-size:20px;letter-spacing:-0.02em;color:var(--ink)}
+header.site .logo::before{content:"";display:inline-block;width:12px;height:12px;background:var(--green);border-radius:4px;margin-right:10px}
+nav.site a{margin-left:28px;font-size:14px;font-weight:600;color:var(--ink-soft)}
+nav.site a:hover{color:var(--accent);text-decoration:none}
 
-/* 內容區 */
+/* 主內容區 */
 main{max-width:var(--max);margin:0 auto;padding:72px 24px 48px;counter-reset:sec}
 h1{
-  font-size:clamp(44px,6vw,76px);font-weight:900;letter-spacing:-0.04em;line-height:0.95;
-  margin:0 0 24px;text-transform:uppercase
+  font-size:clamp(40px,6vw,72px);font-weight:900;letter-spacing:-0.02em;line-height:1.08;
+  margin:0 0 24px;color:var(--ink)
 }
-/* 首頁非對稱 12 欄 hero（Swiss Modernism 2.0 示範頁之版式） */
-.hero{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding:8px 0 56px;border-bottom:2px solid var(--black)}
+/* 非對稱 hero（保留 12 欄結構，色調改為品牌綠橘） */
+.hero{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding:8px 0 56px;border-bottom:1px solid var(--line)}
 .hero-title{grid-column:1/9}
 .hero-copy{grid-column:9/13;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
-.hero-copy p{color:#4b5563;font-size:18px;margin:0;max-width:none}
-.hero-copy span{color:#9ca3af;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em}
-.hero-title h1{font-size:clamp(56px,8vw,120px);margin:0}
+.hero-copy p{color:var(--body);font-size:18px;margin:0;max-width:none}
+.hero-copy span{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em}
+.hero-title h1{font-size:clamp(48px,7vw,96px);margin:0}
 h2{
-  position:relative;counter-increment:sec;font-size:30px;font-weight:800;letter-spacing:-0.02em;
-  margin:72px 0 20px;padding-top:24px;border-top:2px solid var(--black)
+  position:relative;counter-increment:sec;font-size:30px;font-weight:800;letter-spacing:-0.01em;
+  margin:72px 0 20px;padding-top:28px;border-top:1px solid var(--line);color:var(--ink)
 }
 h2::before{
-  content:counter(sec,decimal-leading-zero) " — ";color:var(--red);font-weight:900;
-  letter-spacing:0.08em;font-size:14px;text-transform:uppercase;margin-right:6px
+  content:counter(sec,decimal-leading-zero) " —";color:var(--accent);font-weight:800;
+  letter-spacing:0.08em;font-size:14px;margin-right:6px
 }
-h3{font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0}
+h3{font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0;color:var(--ink)}
 p{max-width:72ch}
-.meta{color:var(--gray);font-size:16px;margin:0 0 12px}
-.breadcrumb{font-size:13px;color:var(--gray);margin-bottom:40px;text-transform:uppercase;letter-spacing:0.1em}
-.breadcrumb a{color:var(--gray)}
-.breadcrumb a:hover{color:var(--black)}
+.meta{color:var(--muted);font-size:16px;margin:0 0 12px}
+.breadcrumb{font-size:13px;color:var(--muted);margin-bottom:40px;letter-spacing:0.1em}
+.breadcrumb a{color:var(--muted)}
+.breadcrumb a:hover{color:var(--accent)}
 
-/* 網格與卡片（黑框＋原色頂線輪替） */
+/* 卡片（圓角 + 柔和陰影 + 頂部品牌色條） */
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:32px 0}
 .card{
-  background:var(--white);border:1px solid var(--black);border-top:6px solid var(--black);
-  padding:28px 24px;transition:transform .2s ease,box-shadow .2s ease
+  background:var(--white);border:1px solid var(--line);border-top:6px solid var(--green);
+  border-radius:var(--radius);padding:28px 24px;
+  transition:transform .2s ease,box-shadow .2s ease;box-shadow:0 2px 10px rgba(28,71,50,.05)
 }
-.card:nth-child(3n+1){border-top-color:var(--black)}
-.card:nth-child(3n+2){border-top-color:var(--red)}
-.card:nth-child(3n+3){border-top-color:var(--blue)}
-.card:hover{transform:translateY(-4px);box-shadow:8px 8px 0 var(--black)}
-.card h3{font-size:20px;font-weight:800;margin:0 0 10px}
-.card p{font-size:14px;color:#374151;margin:0}
+.card:nth-child(3n+1){border-top-color:var(--green)}
+.card:nth-child(3n+2){border-top-color:var(--accent)}
+.card:nth-child(3n+3){border-top-color:var(--gold)}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.card h3{font-size:20px;font-weight:800;margin:0 0 10px;color:var(--ink)}
+.card p{font-size:14px;color:var(--body);margin:0}
 .card a{font-weight:700}
-.card a:hover{color:var(--red)}
+.card a:hover{color:var(--accent)}
 .card .tag{
-  display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;
-  color:var(--white);background:var(--black);padding:4px 10px;margin-bottom:14px
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.12em;
+  color:var(--white);background:var(--green);padding:4px 12px;margin-bottom:14px;border-radius:999px
 }
-.card:nth-child(3n+2) .tag{background:var(--red)}
-.card:nth-child(3n+3) .tag{background:var(--blue)}
+.card:nth-child(3n+2) .tag{background:var(--accent)}
+.card:nth-child(3n+3) .tag{background:#C79A2E}
 
 /* 答案塊（GEO lead answer） */
 .lead-answer{
-  border-left:6px solid var(--blue);background:#f9fafb;padding:16px 24px;
-  font-size:18px;font-weight:500;line-height:1.6;margin:32px 0;max-width:none
+  border-left:6px solid var(--green);border-radius:14px;background:var(--cream-soft);
+  padding:20px 24px;font-size:17px;font-weight:500;line-height:1.6;margin:32px 0;max-width:none
 }
 
 /* 提示／通知 */
 .notice{
-  background:var(--yellow);border:1px solid var(--black);padding:16px 20px;
-  font-size:15px;font-weight:500;margin:32px 0;max-width:none
+  background:var(--gold-soft);border:1px solid #EBD08A;border-radius:14px;
+  padding:16px 20px;font-size:15px;font-weight:500;color:#6A5A24;margin:32px 0;max-width:none
 }
 .disclaimer{
-  border:1px solid var(--black);border-left:6px solid var(--red);
-  padding:16px 24px;font-size:14px;color:#374151;margin:48px 0;max-width:none;background:#fafafa
+  border:1px solid var(--line);border-left:6px solid var(--accent);border-radius:14px;
+  padding:16px 24px;font-size:14px;color:var(--body);margin:48px 0;max-width:none;background:var(--cream-soft)
 }
-.source{font-size:13px;color:var(--gray)}
+.source{font-size:13px;color:var(--muted)}
 .badge{
-  display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;
-  border:1px solid var(--black);padding:4px 10px;margin-right:8px
+  display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.12em;
+  border:1px solid var(--line);border-radius:999px;background:var(--white);color:var(--ink-soft);
+  padding:4px 12px;margin-right:8px
 }
 
 /* 表格 */
 table{border-collapse:collapse;width:100%;font-size:14px;margin:24px 0}
 th,td{padding:10px 12px;text-align:left;vertical-align:top}
 th{
-  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;
-  border-bottom:2px solid var(--black);background:var(--white)
+  font-size:11px;font-weight:800;letter-spacing:0.12em;
+  border-bottom:2px solid var(--green);background:var(--cream);color:var(--ink)
 }
-td{border-bottom:1px solid var(--light)}
+td{border-bottom:1px solid var(--line)}
 
 /* 可折疊 */
-details{border:1px solid var(--black);padding:16px 20px;margin:12px 0}
-summary{font-weight:700;cursor:pointer;font-size:15px}
-details p{font-size:14px;color:#374151;margin:8px 0 0}
+details{border:1px solid var(--line);border-radius:14px;background:var(--white);padding:16px 20px;margin:12px 0}
+summary{font-weight:700;cursor:pointer;font-size:15px;color:var(--ink)}
+details p{font-size:14px;color:var(--body);margin:8px 0 0}
 
 ul{padding-left:20px}
 li{margin:6px 0}
 
-/* 黑色原則帶（Swiss Modernism CTA 區塊） */
+/* 深綠 CTA 帶（品牌深綠面板 + 橘色圓角按鈕） */
 .band{
-  background:var(--black);color:var(--white);
+  background:var(--panel);color:var(--cream);
   width:100vw;margin-left:50%;transform:translateX(-50%);
   padding:72px 24px
 }
-.band h2{color:var(--white);font-size:44px;font-weight:900;margin:0 0 24px;padding-top:0;border-top:none;counter-increment:none;text-transform:uppercase;letter-spacing:-0.03em}
+.band h2{color:var(--cream);font-size:40px;font-weight:800;margin:0 0 24px;padding-top:0;border-top:none;counter-increment:none;letter-spacing:-0.02em}
 .band h2::before{content:""}
-.band p,.band li{color:#d1d5db}
+.band p,.band li{color:#CDE0CF}
 .band ul{list-style:none;padding:0;columns:2;column-gap:48px}
 .band li{margin:10px 0;font-size:15px;break-inside:avoid}
-.band li::marker{color:var(--red)}
+.band li::marker{color:var(--gold)}
 .band .cta{
   display:inline-block;margin-top:40px;padding:16px 48px;
-  background:var(--white);color:var(--black);font-weight:800;font-size:15px;
-  letter-spacing:0.02em;text-transform:uppercase;transition:background .2s ease
+  background:var(--accent);color:var(--white);font-weight:700;font-size:16px;
+  border-radius:999px;transition:background .2s ease
 }
-.band .cta:hover{background:var(--yellow);text-decoration:none}
+.band .cta:hover{background:var(--accent-dark);text-decoration:none}
 
 /* 頁尾 */
 .footer{
-  border-top:2px solid var(--black);padding:24px;font-size:13px;color:var(--gray);
+  border-top:1px solid var(--line);background:var(--cream);padding:24px;font-size:13px;color:var(--muted);
   text-align:center;max-width:none
 }
-.footer a{color:#374151}
+.footer a{color:var(--ink-soft)}
 
 /* 響應式 */
 @media(max-width:900px){
   .grid{grid-template-columns:1fr;gap:16px}
   .hero{grid-template-columns:1fr;padding-bottom:32px}
   .hero-title,.hero-copy{grid-column:auto}
-  .hero-title h1{font-size:clamp(40px,10vw,64px)}
+  .hero-title h1{font-size:clamp(36px,9vw,56px)}
   .hero-copy{justify-content:flex-start}
   .band ul{columns:1}
   h1{font-size:40px}
