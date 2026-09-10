@@ -1,4 +1,4 @@
-﻿/* ChangeBar 品牌風格 — 與 change-bar.com 官網視覺一致（森林綠 × 奶油米 × 橘棕 × 金色）
+/* ChangeBar 品牌風格 — 與 change-bar.com 官網視覺一致（森林綠 × 奶油米 × 橘棕 × 金色）
    色值取自官網实际图檔取色（ref\change-bar-site\extracted\，2026-09-11 查證）
    頁面結構與所有合規文字不變；僅外觀 token 更換。 */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
@@ -162,3 +162,9 @@ li{margin:6px 0}
   nav.site a{margin:0 16px 0 0}
   main{padding:48px 16px 32px}
 }
+
+/* 試算表單 */
+form .grid label{display:block;font-weight:700;color:var(--ink);font-size:14px;margin-bottom:16px}
+form select,form input[type=number]{width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:12px;font-size:15px;background:var(--white);color:var(--ink);margin-top:6px}
+.band-cta{padding:14px 40px;background:var(--accent);color:var(--white);border:none;border-radius:999px;font-weight:700;font-size:16px;cursor:pointer;transition:background .2s ease}
+.band-cta:hover{background:var(--accent-dark)}

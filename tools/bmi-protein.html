@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蛋白質與 BMI 自我評估試算表｜健飽卡 ChangeBar</title>
+<meta name="description" content="選 5 個選項（性別、年齡層、身高、體重、運動量）即得：BMI 與分類、依衛福部 DRIs 第八版之每日蛋白質建議量（g/日），與健飽卡產品補充建議。本工具僅供參考，不構成醫療建議。">
+<meta property="og:title" content="蛋白質與 BMI 自我評估試算表｜健飽卡 ChangeBar">
+<meta property="og:description" content="選項式表單：5 個問題換得 BMI 分類與每日蛋白質建議量（g/日），並附產品補充建議。僅供參考，不構成醫療建議。">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="../assets/style.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"蛋白質與 BMI 自我評估試算表","url":"https://changebar.github.io/changebar/tools/bmi-protein.html","description":"選項式表單試算 BMI 與每日蛋白質建議量（依衛福部 DRIs 第八版），並附健飽卡產品補充建議。","publisher":{"@type":"Organization","name":"健飽卡 ChangeBar"}}}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+{"@type":"Question","name":"BMI 的正常範圍是多少？","acceptedAnswer":{"@type":"Answer","text":"依世界衛生組織（WHO）成人 BMI 分類：18.5 以下為過輕、18.5–24.9 為正常、25–29.9 為過重、30 以上為肥胖。BMI 為體重與身高的比值指標，無法反映體脂分布，需以整體飲食與健康檢查資訊綜合判斷。"}}
+,
+{"@type":"Question","name":"一般人每天需要多少蛋白質？","acceptedAnswer":{"@type":"Answer","text":"依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間，並建議諮詢專業醫療或營養人員。"}}
+,
+{"@type":"Question","name":"蛋白質一天一定要一次吃完嗎？","acceptedAnswer":{"@type":"Answer","text":"一般飲食原則：蛋白質分散在各餐攝取，有助於整日總量達標；具體分配方式建議依個人飲食與健康狀況諮詢專業人員。"}}
+]}
+</script>
+</head>
+<body>
+<header class="site"><span class="logo">健飽卡 ChangeBar</span><nav class="site"><a href="../">首頁</a><a href="../products/protein.html">蛋白粉</a><a href="../products/soy-milk-soup.html">豆漿湯體</a><a href="../products/ganjiu.html">甘酒</a><a href="../about.html">關於我們</a><a href="../blog/">文章</a><a href="../tools/bmi-protein.html">健康試算</a></nav></header>
+<main>
+<p class="breadcrumb"><a href="../">首頁</a> › 健康試算</p>
+<h1>蛋白質與 BMI 自我評估試算</h1>
+<div class="lead-answer">想知道自己「多重」以及「一天要吃多少蛋白質」？下方表單只需選 5 個選項（性別、年齡層、身高、體重、運動量），立刻算出 BMI 與依衛福部 DRIs 第八版之每日蛋白質建議量（g／日），並附上健飽卡產品補充建議。本工具為一般營養資訊，僅供參考，不構成醫療建議。</div>
+
+<section>
+<h2>試算表單</h2>
+<form id="calc" onsubmit="return false;">
+<div class="grid" style="grid-template-columns:repeat(2,1fr)">
+<label>性別
+<select id="sex"><option value="male">男</option><option value="female">女</option></select>
+</label>
+<label>年齡層
+<select id="age">
+<option value="a1">19–50 歲</option>
+<option value="a2">51–70 歲</option>
+<option value="a3">71 歲以上</option>
+</select>
+</label>
+<label>身高（公分）
+<input type="number" id="height" min="100" max="230" step="0.1" placeholder="例如 170">
+</label>
+<label>體重（公斤）
+<input type="number" id="weight" min="25" max="200" step="0.1" placeholder="例如 65">
+</label>
+<label>每週運動量
+<select id="activity">
+<option value="s">低運動（久坐為主，無規律運動）</option>
+<option value="m">中等（每週 2–4 次、中等強度運動）</option>
+<option value="h">高（每週 5 次以上、較高強度訓練）</option>
+</select>
+</label>
+<label>&nbsp;
+<button type="button" class="band-cta" id="run" onclick="runCalc()">試算我的結果 →</button>
+</label>
+</div>
+<p class="source">計算係數：DRIs 第八版（低 0.8／51–70 歲 1.0／71 歲以上 1.2 g/公斤）；中等運動量可參考 1.2–1.4 g/公斤，高運動量約 1.4–1.7 g/公斤（參考美國運動醫學會 ACSM 2009 年運動營養 Position Stand 之一般區間）。查證日期：2026-09-11。</p>
+</form>
+<div id="result" style="display:none">
+<h2>你的試算結果</h2>
+<div class="lead-answer" id="r-text"></div>
+<h2>蛋白質補充建議（依你的每日需求量）</h2>
+<div class="grid">
+<div class="card"><span class="tag">蛋白質</span><h3>純素豌豆分離蛋白粉</h3><p>每包含 20g 植物性蛋白質，純素配方，可加入豆漿、燕麥或 Smoothie。<br><a href="../products/protein.html">了解產品 →</a></p></div>
+<div class="card"><span class="tag">湯品基底</span><h3>高蛋白豆漿湯體</h3><p>豆漿湯底，為湯品與料理提供豆香與蛋白質基礎。<br><a href="../products/soy-milk-soup.html">了解產品 →</a></p></div>
+<div class="card"><span class="tag">發酵食品</span><h3>日本甘糀（米麴甘酒）</h3><p>天然發酵食品，營養補給好選擇，可沖溫水飲用或加入料理。<br><a href="../products/ganjiu.html">了解產品 →</a></p></div>
+</div>
+<p class="source" id="r-pack"></p>
+</div>
+</section>
+
+<section>
+<h2>常見問題</h2>
+<details><summary>BMI 正常範圍是多少？</summary><p>依世界衛生組織（WHO）成人 BMI 分類：18.5 以下為過輕、18.5–24.9 為正常、25–29.9 為過重、30 以上為肥胖。BMI 為體重與身高的比值指標，無法反映體脂分布，請以整體飲食與健康檢查資訊綜合判斷。（來源：WHO 成人 BMI 分類，查證日期 2026-09-11）</p></details>
+<details><summary>一般人每天需要多少蛋白質？</summary><p>依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間（參考 ACSM 2009 年 Position Stand），具體目標建議諮詢專業醫療或營養人員。（查證日期：2026-09-11）</p></details>
+<details><summary>蛋白質一定要一天一次吃完嗎？</summary><p>一般飲食原則：蛋白質分散在各餐攝取，有助於整日總量達標；具體分配方式建議依個人飲食與健康狀況諮詢專業人員。</p></details>
+</section>
+
+<section>
+<h2>來源與品牌事實</h2>
+<p>本頁數據來源（查證日期 2026-09-11）：衛福部《國人膳食營養參考攝取量（DRIs）第八版》（https://www.mohw.gov.tw/ 之膳食營養參考攝取量專區）；WHO 成人 BMI 分類（https://www.who.int/）；ACSM 2009 年 Nutrition and Athletic Performance Position Stand（一般運動營養區間）。品牌資訊：健飽卡 ChangeBar 屬養芯健康，產品含純素豌豆分離蛋白粉（每包 20g 植物性蛋白質）、日本甘糀（米麴甘酒）與高蛋白豆漿湯體；官網 https://change-bar.com/ 。</p>
+<div class="disclaimer">⚠️ 免責聲明：本內容僅供參考，不構成醫療建議。產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。本試算表之數值為一般成人之常見參考值，不適用於懷孕、哺乳、嬰幼兒、兒童、青少年、腎臟疾病患者及其他特殊健康狀況者；上述族群請依醫師或營養師之個別指引攝取蛋白質。</div>
+</section>
+
+<div class="band">
+<div style="max-width:var(--max);margin:0 auto">
+<h2>把每日蛋白質目標帶進三餐</h2>
+<ul>
+<li>蛋白粉：每包 20g 植物性蛋白質，純素、無麩質配方</li>
+<li>豆漿湯體：湯品基底，提供豆香與蛋白質基礎</li>
+<li>甘酒：天然發酵食品，可沖溫水或加入料理</li>
+<li>官網另有一對一營養體能免費評估（LINE 官方帳號）</li>
+</ul>
+<a class="cta" href="https://change-bar.com/">前往官網了解產品與訂閱方案 →</a>
+</div>
+</div>
+</main>
+<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。</footer>
+<script>
+function runCalc(){
+  var sex = document.getElementById('sex').value;
+  var age = document.getElementById('age').value;
+  var hcm = parseFloat(document.getElementById('height').value);
+  var wk = parseFloat(document.getElementById('weight').value);
+  var act = document.getElementById('activity').value;
+  var out = document.getElementById('result');
+  var txt = document.getElementById('r-text');
+  var pack = document.getElementById('r-pack');
+  if (isNaN(hcm) || isNaN(wk)) { txt.innerHTML = '請先輸入身高與體重再試算。'; out.style.display = 'block'; return; }
+  var h = hcm / 100;
+  var bmi = wk / (h * h);
+  var cat = '過輕';
+  if (bmi >= 30) cat = '肥胖'; else if (bmi >= 25) cat = '過重'; else if (bmi >= 18.5) cat = '正常';
+  var lo = 0.8, hi = 0.8;
+  if (act === 's') {
+    if (age === 'a2') lo = hi = 1.0; else if (age === 'a3') lo = hi = 1.2;
+  } else if (act === 'm') {
+    if (age === 'a2') { lo = 1.0; hi = 1.4; } else if (age === 'a3') { lo = 1.2; hi = 1.6; } else { lo = 0.8; hi = 1.4; }
+  } else {
+    if (age === 'a2') { lo = 1.0; hi = 1.7; } else if (age === 'a3') { lo = 1.2; hi = 1.7; } else { lo = 0.8; hi = 1.7; }
+  }
+  var mid = (lo + hi) / 2;
+  var gLo = Math.round(wk * lo), gHi = Math.round(wk * hi), gMid = Math.round(wk * mid);
+  var pkLo = Math.ceil(gLo / 20), pkHi = Math.ceil(gHi / 20);
+  txt.innerHTML = 'BMI 約 <strong>' + bmi.toFixed(1) + '</strong>（WHO 分類：' + cat + '）<br>建議每日蛋白質攝取量：約 <strong>' + gLo + '–' + gHi + ' g</strong>（依運動量與年齡層之一般參考區間；常見建議值約 ' + gMid + ' g/日）。';
+  pack.innerHTML = '以健飽卡純素豌豆分離蛋白粉（每包 20g 植物性蛋白質）換算：約 ' + pkLo + '–' + pkHi + ' 包/日可涵蓋上述區間。蛋白可分散於各餐補充，亦可用豆漿湯體作為湯品之蛋白質來源。以上為一般營養資訊，不構成醫療建議。';
+  out.style.display = 'block';
+}
+</script>
+</body>
+</html>
