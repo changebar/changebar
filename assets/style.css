@@ -1,53 +1,145 @@
-/* 健飽卡 ChangeBar 健康資訊站 — 風格：#01 Minimalism & Swiss Style
-   來源：https://github.com/joshhu/uitest → styles/01-minimalism.html
-   色彩：#000 / #fff / #808080 / #F5F1E8；字體 Inter；12 欄網格、大量留白、高對比 */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-:root{--ink:#111;--gray:#808080;--line:#e5e5e5;--beige:#F5F1E8;--white:#fff;--max:1024px}
+/* 健飽卡 ChangeBar 健康資訊站 — 風格：#50 Swiss Modernism 2.0（現代化版）
+   來源：https://github.com/joshhu/uitest → styles/50-swiss-modernism.html
+   設計語言：Inter/Helvetica 無襯線、12 欄網格、黑色粗線分隔、數字編號章節、
+   原色點綴（紅 #dc2626／藍 #2563eb／黃 #facc15）、大量留白、高對比大字 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+:root{
+  --black:#000;--white:#fff;--gray:#6b7280;--light:#e5e7eb;
+  --red:#dc2626;--blue:#2563eb;--yellow:#facc15;
+  --max:1152px
+}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:'Inter','Helvetica Neue','Microsoft JhengHei','Noto Sans TC',sans-serif;color:var(--ink);background:var(--white);line-height:1.7;font-size:16px}
-a{color:var(--ink);text-decoration:none}
-a:hover{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
-header.site{background:var(--white);border-bottom:1px solid var(--line);padding:0}
-header.site > div, header.site{max-width:var(--max);margin:0 auto}
-header.site{display:flex;align-items:center;justify-content:space-between;padding:20px 24px}
-header.site .logo{font-weight:700;font-size:18px;letter-spacing:-0.01em}
-nav.site a{margin-left:24px;font-size:14px;color:#555}
-nav.site a:hover{color:var(--ink);text-decoration:none}
-main{max-width:var(--max);margin:0 auto;padding:64px 24px 96px}
-h1{font-size:56px;line-height:1.05;font-weight:700;letter-spacing:-0.02em;margin:0 0 24px}
-h2{font-size:28px;font-weight:600;letter-spacing:-0.01em;margin:64px 0 16px}
-h3{font-size:20px;font-weight:600;margin:0}
+html,body{overflow-x:hidden}
+body{
+  margin:0;background:var(--white);color:var(--black);
+  font-family:'Inter','Helvetica Neue','Segoe UI','Microsoft JhengHei','Noto Sans TC',sans-serif;
+  font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased
+}
+a{color:var(--black);text-decoration:none}
+a:hover{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px}
+
+/* 頂列（固定、白底、黑色粗下線） */
+header.site{
+  position:sticky;top:0;z-index:100;background:var(--white);
+  border-bottom:2px solid var(--black);
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:var(--max);margin:0 auto;padding:18px 24px
+}
+header.site .logo{font-weight:800;font-size:20px;letter-spacing:-0.03em}
+header.site .logo::before{content:"";display:inline-block;width:10px;height:10px;background:var(--red);margin-right:10px}
+nav.site a{margin-left:28px;font-size:14px;font-weight:600;color:#374151}
+nav.site a:hover{color:var(--black);text-decoration:none}
+
+/* 內容區 */
+main{max-width:var(--max);margin:0 auto;padding:72px 24px 48px;counter-reset:sec}
+h1{
+  font-size:clamp(44px,6vw,76px);font-weight:900;letter-spacing:-0.04em;line-height:0.95;
+  margin:0 0 24px;text-transform:uppercase
+}
+h2{
+  position:relative;counter-increment:sec;font-size:30px;font-weight:800;letter-spacing:-0.02em;
+  margin:72px 0 20px;padding-top:24px;border-top:2px solid var(--black)
+}
+h2::before{
+  content:counter(sec,decimal-leading-zero) " — ";color:var(--red);font-weight:900;
+  letter-spacing:0.08em;font-size:14px;text-transform:uppercase;margin-right:6px
+}
+h3{font-size:20px;font-weight:700;letter-spacing:-0.01em;margin:0}
 p{max-width:72ch}
-.meta{color:var(--gray);font-size:14px;margin:0 0 8px}
-.breadcrumb{font-size:13px;color:var(--gray);margin-bottom:32px}
+.meta{color:var(--gray);font-size:16px;margin:0 0 12px}
+.breadcrumb{font-size:13px;color:var(--gray);margin-bottom:40px;text-transform:uppercase;letter-spacing:0.1em}
 .breadcrumb a{color:var(--gray)}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
-.card{background:var(--white);border:1px solid var(--line);padding:24px}
-.card h3{font-size:20px;margin:0 0 8px}
-.card p{font-size:14px;color:#555;margin:0}
-.card .tag{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--gray);margin-bottom:10px}
-.badge{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--gray);border:1px solid var(--line);padding:4px 10px;margin-right:8px}
-.lead-answer{border-left:2px solid var(--ink);padding:8px 0 8px 20px;font-size:18px;line-height:1.6;color:#333;margin:24px 0}
-.notice{background:var(--beige);border:1px solid var(--line);padding:16px 20px;font-size:14px;margin:24px 0;max-width:none}
-.disclaimer{border:1px solid var(--line);padding:16px 20px;font-size:14px;color:#555;margin:32px 0;max-width:none;background:var(--white)}
+.breadcrumb a:hover{color:var(--black)}
+
+/* 網格與卡片（黑框＋原色頂線輪替） */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin:32px 0}
+.card{
+  background:var(--white);border:1px solid var(--black);border-top:6px solid var(--black);
+  padding:28px 24px;transition:transform .2s ease,box-shadow .2s ease
+}
+.card:nth-child(3n+1){border-top-color:var(--black)}
+.card:nth-child(3n+2){border-top-color:var(--red)}
+.card:nth-child(3n+3){border-top-color:var(--blue)}
+.card:hover{transform:translateY(-4px);box-shadow:8px 8px 0 var(--black)}
+.card h3{font-size:20px;font-weight:800;margin:0 0 10px}
+.card p{font-size:14px;color:#374151;margin:0}
+.card a{font-weight:700}
+.card a:hover{color:var(--red)}
+.card .tag{
+  display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;
+  color:var(--white);background:var(--black);padding:4px 10px;margin-bottom:14px
+}
+.card:nth-child(3n+2) .tag{background:var(--red)}
+.card:nth-child(3n+3) .tag{background:var(--blue)}
+
+/* 答案塊（GEO lead answer） */
+.lead-answer{
+  border-left:6px solid var(--blue);background:#f9fafb;padding:16px 24px;
+  font-size:18px;font-weight:500;line-height:1.6;margin:32px 0;max-width:none
+}
+
+/* 提示／通知 */
+.notice{
+  background:var(--yellow);border:1px solid var(--black);padding:16px 20px;
+  font-size:15px;font-weight:500;margin:32px 0;max-width:none
+}
+.disclaimer{
+  border:1px solid var(--black);border-left:6px solid var(--red);
+  padding:16px 24px;font-size:14px;color:#374151;margin:48px 0;max-width:none;background:#fafafa
+}
 .source{font-size:13px;color:var(--gray)}
+.badge{
+  display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;
+  border:1px solid var(--black);padding:4px 10px;margin-right:8px
+}
+
+/* 表格 */
 table{border-collapse:collapse;width:100%;font-size:14px;margin:24px 0}
 th,td{padding:10px 12px;text-align:left;vertical-align:top}
-th{font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:var(--gray);font-weight:600;border-bottom:2px solid var(--ink);background:transparent}
-td{border-bottom:1px solid var(--line)}
-details{background:var(--white);border:1px solid var(--line);padding:16px 20px;margin:12px 0}
-summary{font-weight:600;cursor:pointer;font-size:15px}
-details p{font-size:14px;color:#555;margin:8px 0 0}
+th{
+  font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;
+  border-bottom:2px solid var(--black);background:var(--white)
+}
+td{border-bottom:1px solid var(--light)}
+
+/* 可折疊 */
+details{border:1px solid var(--black);padding:16px 20px;margin:12px 0}
+summary{font-weight:700;cursor:pointer;font-size:15px}
+details p{font-size:14px;color:#374151;margin:8px 0 0}
+
 ul{padding-left:20px}
 li{margin:6px 0}
-.footer{border-top:1px solid var(--line);padding:32px 24px;font-size:13px;color:var(--gray);text-align:center;max-width:none}
-.footer a{color:#555}
-/* 黑色原則帶（Swiss 資訊區） */
-.band{background:var(--ink);color:var(--white);padding:56px 24px}
-.band h2{color:var(--white);margin:0 0 16px;font-size:24px}
-.band p,.band li{color:#bbb}
-.band ul{list-style:none;padding:0}
-.band li{margin:8px 0;font-size:14px}
-@media(max-width:900px){h1{font-size:40px}.grid{grid-template-columns:1fr;gap:20px}}
-@media(max-width:640px){header.site{flex-direction:column;gap:12px;align-items:flex-start}nav.site{display:flex;flex-wrap:wrap}nav.site a{margin:0 16px 0 0}h1{font-size:32px}main{padding:40px 16px 64px}}
+
+/* 黑色原則帶（Swiss Modernism CTA 區塊） */
+.band{
+  background:var(--black);color:var(--white);
+  width:100vw;margin-left:50%;transform:translateX(-50%);
+  padding:72px 24px
+}
+.band h2{color:var(--white);font-size:44px;font-weight:900;margin:0 0 24px;padding-top:0;border-top:none;text-transform:uppercase;letter-spacing:-0.03em}
+.band h2::before{content:""}
+.band p,.band li{color:#d1d5db}
+.band ul{list-style:none;padding:0;columns:2;column-gap:48px}
+.band li{margin:10px 0;font-size:15px;break-inside:avoid}
+.band li::marker{color:var(--red)}
+
+/* 頁尾 */
+.footer{
+  border-top:2px solid var(--black);padding:24px;font-size:13px;color:var(--gray);
+  text-align:center;max-width:none
+}
+.footer a{color:#374151}
+
+/* 響應式 */
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr;gap:16px}
+  .band ul{columns:1}
+  h1{font-size:40px}
+  h2{font-size:24px;margin-top:48px}
+}
+@media(max-width:640px){
+  header.site{flex-direction:column;align-items:flex-start;gap:12px}
+  nav.site a{margin:0 16px 0 0}
+  main{padding:48px 16px 32px}
+}
