@@ -37,6 +37,13 @@ h1{
   font-size:clamp(44px,6vw,76px);font-weight:900;letter-spacing:-0.04em;line-height:0.95;
   margin:0 0 24px;text-transform:uppercase
 }
+/* 首頁非對稱 12 欄 hero（Swiss Modernism 2.0 示範頁之版式） */
+.hero{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;padding:8px 0 56px;border-bottom:2px solid var(--black)}
+.hero-title{grid-column:1/9}
+.hero-copy{grid-column:9/13;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
+.hero-copy p{color:#4b5563;font-size:18px;margin:0;max-width:none}
+.hero-copy span{color:#9ca3af;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em}
+.hero-title h1{font-size:clamp(56px,8vw,120px);margin:0}
 h2{
   position:relative;counter-increment:sec;font-size:30px;font-weight:800;letter-spacing:-0.02em;
   margin:72px 0 20px;padding-top:24px;border-top:2px solid var(--black)
@@ -140,6 +147,10 @@ li{margin:6px 0}
 /* 響應式 */
 @media(max-width:900px){
   .grid{grid-template-columns:1fr;gap:16px}
+  .hero{grid-template-columns:1fr;padding-bottom:32px}
+  .hero-title,.hero-copy{grid-column:auto}
+  .hero-title h1{font-size:clamp(40px,10vw,64px)}
+  .hero-copy{justify-content:flex-start}
   .band ul{columns:1}
   h1{font-size:40px}
   h2{font-size:24px;margin-top:48px}
