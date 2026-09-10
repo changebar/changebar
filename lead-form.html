@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>評估結果與聯絡資訊｜健飽卡 ChangeBar</title>
+<meta name="description" content="完成蛋白質與 BMI 問卷評估後，填寫姓名與電話以取得你的完整評估結果與健飽卡產品建議。資料依個人資料保護法用途公開，僅用於產品資訊與營養諮詢聯絡。">
+<meta name="robots" content="noindex">
+<meta property="og:title" content="評估結果與聯絡資訊｜健飽卡 ChangeBar">
+<meta property="og:description" content="填寫姓名與電話以取得你的評估結果與產品建議。">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><span class="logo">健飽卡 ChangeBar</span><nav class="site"><a href="./">首頁</a><a href="products/protein.html">蛋白粉</a><a href="products/soy-milk-soup.html">豆漿湯體</a><a href="products/ganjiu.html">甘酒</a><a href="about.html">關於我們</a><a href="blog/">文章</a><a href="tools/bmi-protein.html">健康試算</a></nav></header>
+<main>
+<p class="breadcrumb"><a href="./">首頁</a> › 評估結果</p>
+<h1>填寫聯絡資訊，取得你的評估結果</h1>
+<div class="lead-answer">你已完成問卷評估。依站方流程，請留下<strong>姓名與電話</strong>，送出的當下即可查看你的完整評估結果（BMI、每日蛋白質目標與目前攝取比較、依結果的產品建議）。我們亦可以電話或訊息為你解答結果與健飽卡產品資訊。</div>
+<div id="no-data" style="display:none">
+<div class="notice">尚未偵測到問卷資料。請先<a href="tools/bmi-protein.html">完成「蛋白質與 BMI 自我評估」問卷</a>，再回來填寫此頁。</div>
+</div>
+<div id="form-wrap">
+<form id="lead" onsubmit="return false;">
+<div class="qstep">
+<div class="qrow"><span class="qlabel">姓名（必填）</span>
+<input class="num" type="text" id="f-name" autocomplete="name" placeholder="例如：王小明" style="max-width:320px"></div>
+<div class="qrow"><span class="qlabel">聯絡電話（必填，手機或市話）</span>
+<input class="num" type="tel" id="f-phone" autocomplete="tel" placeholder="例如：0912345678" style="max-width:320px"></div>
+<div class="qrow"><span class="qlabel">個人資料保護法告知與同意</span>
+<label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--body);line-height:1.6">
+<input type="checkbox" id="f-ok" style="margin-top:4px">
+<span>本人已知悉：健飽卡 ChangeBar（養芯健康）收集姓名與電話之目的為「提供本次評估結果、產品資訊與營養諮詢之聯絡（以電話或訊息）」，處理與使用期間同於上述目的所需期間，且不轉售予第三方；並知悉本人得依個人資料保護法行使查閱、複製、更正、刪除及聲明不同意之權利。詳見<a href="privacy.html">隱私政策</a>。</span>
+</label></div>
+<div class="qrow"><button type="button" class="band-cta" onclick="submitLead()">送出並查看結果 →</button></div>
+</div>
+<p class="source" id="f-err" style="color:var(--accent);font-weight:700;display:none"></p>
+</form>
+</div><section id="result" style="display:none">
+<h2>你的評估結果</h2>
+<div class="lead-answer" id="r-bmi"></div>
+<div class="cmp">
+<div class="lbl">你的目標範圍（依年齡層與運動量）</div>
+<div class="bar"><div class="fill target" id="bar-target"></div></div>
+<div class="lbl">你的目前每日攝取估算</div>
+<div class="bar"><div class="fill current" id="bar-current"></div></div>
+</div>
+<p class="result-verdict" id="r-verdict"></p>
+<p class="source" id="r-note"></p>
+<h3 style="margin:32px 0 8px">依結果的推薦產品</h3>
+<div class="grid">
+<div class="card"><span class="tag">蛋白質</span><h3>純素豌豆分離蛋白粉</h3><p>每包含 20g 植物性蛋白質，純素配方，可加入豆漿、燕麥或 Smoothie。<br><a href="products/protein.html">了解產品 →</a></p></div>
+<div class="card"><span class="tag">湯品基底</span><h3>高蛋白豆漿湯體</h3><p>豆漿湯底，為湯品與料理提供豆香與蛋白質基礎。<br><a href="products/soy-milk-soup.html">了解產品 →</a></p></div>
+<div class="card"><span class="tag">發酵食品</span><h3>日本甘糀（米麴甘酒）</h3><p>天然發酵食品，營養補給好選擇，可沖溫水飲用或加入料理。<br><a href="products/ganjiu.html">了解產品 →</a></p></div>
+</div>
+<p class="source" id="r-pack"></p>
+<div class="notice">感謝！你的評估資料已送出。我們會以電話或訊息為您解答評估結果與產品資訊；若希望以其他管道聯絡，歡迎前往<a href="https://change-bar.com/">健飽卡官網</a>（LINE 官方帳號一對一評估）。</div>
+</section>
+</main>
+<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。<br>個人資料依<a href="privacy.html">隱私政策</a>與個人資料保護法處理。免責聲明：本頁評估數值僅供參考，不構成醫療建議；產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。</footer><script>
+// 送出端點：填入 Google Apps Script Web App 網址後即完成串接（程式碼見 ref/lead-capture-apps-script.gs）
+var LEAD_ENDPOINT = '';
+function showErr(m){ var e = document.getElementById('f-err'); e.textContent = m; e.style.display = m ? 'block' : 'none'; }
+function render(d){
+  var h = d.hcm / 100, bmi = d.wk / (h * h);
+  var cat = bmi >= 30 ? '肥胖' : (bmi >= 25 ? '過重' : (bmi >= 18.5 ? '正常' : '過輕'));
+  var lo, hi;
+  if (d.act === 's') { lo = hi = (d.age === 'a2' ? 1.0 : (d.age === 'a3' ? 1.2 : 0.8)); }
+  else if (d.act === 'm') { lo = (d.age === 'a2' ? 1.0 : (d.age === 'a3' ? 1.2 : 0.8)); hi = (d.age === 'a2' ? 1.4 : (d.age === 'a3' ? 1.6 : 1.4)); }
+  else { lo = (d.age === 'a2' ? 1.0 : (d.age === 'a3' ? 1.2 : 0.8)); hi = 1.7; }
+  var gLo = Math.round(d.wk * lo), gHi = Math.round(d.wk * hi);
+  var cur = d.q_egg + d.q_milk + d.q_fish + d.q_meat + d.q_soy + d.q_nut + d.q_sup;
+  var scale = Math.max(gHi * 1.15, cur * 1.15, 40);
+  document.getElementById('bar-target').style.left = Math.round(gLo / scale * 100) + '%';
+  document.getElementById('bar-target').style.width = Math.max(Math.round((gHi - gLo) / scale * 100), 2) + '%';
+  document.getElementById('bar-current').style.width = Math.round(Math.min(cur / scale, 1) * 100) + '%';
+  document.getElementById('r-bmi').innerHTML = 'BMI 約 <strong>' + bmi.toFixed(1) + '</strong>（WHO 分類：' + cat + '）｜每日蛋白質目標：<strong>' + gLo + '–' + gHi + ' g</strong>（依年齡層與運動量）｜目前估算攝取：<strong>約 ' + cur + ' g</strong>';
+  var vd = document.getElementById('r-verdict'), pack = document.getElementById('r-pack'), notes = [];
+  var gap = gLo - cur;
+  if (gap > 0) {
+    vd.className = 'result-verdict gap'; vd.textContent = '與目標下限尚有約 ' + gap + ' g 之差距';
+    var pk = Math.ceil(gap / 20);
+    pack.textContent = pk <= 2 ? '推薦產品：純素豌豆分離蛋白粉（每包 20g）約 ' + pk + ' 包／日可補足上述差距；早餐可搭配豆漿湯體（湯品或沖調）、日常熱飲可選甘酒。' : '差距約 ' + gap + ' g：建議先調整三餐之蛋白質來源（蛋、乳、魚、肉、豆類），再以蛋白粉（每包 20g）補足剩餘部分；每日若需超過 2 包，建議先與專業人員討論飲食規劃。';
+  } else if (cur > gHi) {
+    vd.className = 'result-verdict ok'; vd.textContent = '目前估算攝取已高於目標上限，維持即可，無需刻意加量';
+    pack.textContent = '目前攝取已達標，暫不需額外補充；三款產品可依口味與場景選用：蛋白粉（輕食日）、豆漿湯體（湯品基底）、甘酒（溫飲）。';
+  } else {
+    vd.className = 'result-verdict ok'; vd.textContent = '目前估算攝取已在目標範圍內，維持現有飲食即可';
+    pack.textContent = '目前攝取在目標範圍，無須刻意加量；若某餐吃得較少，可備 1 包蛋白粉（每包 20g）作為方便來源。';
+  }
+  if (d.sleep === '0' || d.sleep === '3') { notes.push('你回答睡眠時間不在 6–8 小時區間，建議依個人狀況調整作息。'); }
+  if (d.meal === '0') { notes.push('你回答三餐常以簡餐或飲料代替，建議先確保三正餐之蛋白質來源。'); }
+  else if (d.meal === '1') { notes.push('你回答三餐時間不太固定，建議先建立規律三餐，再以補充品輔助。'); }
+  document.getElementById('r-note').textContent = notes.join(' ');
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('result').scrollIntoView({behavior: 'smooth'});
+}
+function submitLead(){
+  var d = null;
+  try { d = JSON.parse(sessionStorage.getItem('cbCalc')); } catch (e) {}
+  if (!d) { document.getElementById('no-data').style.display = 'block'; document.getElementById('form-wrap').style.display = 'none'; document.getElementById('result').style.display = 'none'; return; }
+  var name = document.getElementById('f-name').value.trim();
+  var phone = document.getElementById('f-phone').value.replace(/[\s-]/g, '');
+  if (name.length < 2) { showErr('請填寫姓名。'); return; }
+  if (!/^0\d{8,9}$/.test(phone)) { showErr('電話格式不正確：請填 09 開頭之 10 位手機，或 0 開頭共 9 位之市話。'); return; }
+  if (!document.getElementById('f-ok').checked) { showErr('請先勾選「個人資料保護法告知與同意」。'); return; }
+  showErr('');
+  if (!LEAD_ENDPOINT) { showErr('聯絡通道暫未啟用：目前無法送出，你可以稍後再試，或先前往健飽卡官網 LINE 官方帳號（https://change-bar.com/）取得評估。'); return; }
+  var body = 'data=' + encodeURIComponent(JSON.stringify(Object.assign({name: name, phone: phone}, d))) + '&source=lead-form';
+  fetch(LEAD_ENDPOINT, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: body }).then(function(res){
+    if (res.ok) { render(d); } else { showErr('送出失敗（' + res.status + '），請稍後再試，或改用官網 LINE 管道。'); }
+  }).catch(function(){ showErr('送出失敗（網路問題），請稍後再試，或改用官網 LINE 管道。'); });
+}
+window.addEventListener('DOMContentLoaded', function(){
+  if (!sessionStorage.getItem('cbCalc')) { document.getElementById('no-data').style.display = 'block'; document.getElementById('form-wrap').style.display = 'none'; }
+});
+</script>
+</body>
+</html>

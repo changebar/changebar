@@ -4,22 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>蛋白質與 BMI 自我評估試算（問卷式）｜健飽卡 ChangeBar</title>
-<meta name="description" content="問卷式自我評估：3 個段落（基本資料、生活習慣、每日蛋白質攝取）估算 BMI 與每日蛋白質建議量，比較目標與目前攝取，並依差距給予健飽卡產品補充建議。本工具僅供參考，不構成醫療建議。">
+<meta name="description" content="問卷式自我評估：基本資料、生活習慣與每日蛋白質攝取，估算 BMI 與每日蛋白質建議量，並比較目標與目前攝取。填寫姓名與電話後即可取得你的完整評估結果與產品建議。本工具僅供參考，不構成醫療建議。">
 <meta property="og:title" content="蛋白質與 BMI 問卷式自我評估｜健飽卡 ChangeBar">
-<meta property="og:description" content="像問卷一樣回答基本資料、生活與飲食攝取，換得 BMI、每日蛋白質目標與產品補充建議。僅供參考，不構成醫療建議。">
+<meta property="og:description" content="像問卷一樣回答三段小題，換得 BMI、每日蛋白質目標與產品補充建議。僅供參考，不構成醫療建議。">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="../assets/style.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebPage","name":"蛋白質與 BMI 自我評估試算（問卷式）","url":"https://changebar.github.io/changebar/tools/bmi-protein.html","description":"問卷式表單：基本資料、生活習慣與每日蛋白質攝取，估算 BMI 與每日蛋白質建議量（依衛福部 DRIs 第八版），並附健飽卡產品補充建議。","publisher":{"@type":"Organization","name":"健飽卡 ChangeBar"}}}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"BMI 的正常範圍是多少？","acceptedAnswer":{"@type":"Answer","text":"依世界衛生組織（WHO）成人 BMI 分類：18.5 以下為過輕、18.5–24.9 為正常、25–29.9 為過重、30 以上為肥胖。BMI 為體重與身高的比值指標，無法反映體脂分布，需以整體飲食與健康檢查資訊綜合判斷。"}}
-,
-{"@type":"Question","name":"一般人每天需要多少蛋白質？","acceptedAnswer":{"@type":"Answer","text":"依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間，並建議諮詢專業醫療或營養人員。"}}
-,
-{"@type":"Question","name":"這個問卷估算的蛋白質攝取量準確嗎？","acceptedAnswer":{"@type":"Answer","text":"問卷以常見食物之近似蛋白質參考值估算（每份蛋白質含量因個品與份量而異），屬於一般參考值；實際攝取量建議以產品營養標示為準，個別營養需求請諮詢專業醫療或營養人員。"}}
-]}
+{"@context":"https://schema.org","@type":"WebPage","name":"蛋白質與 BMI 自我評估試算（問卷式）","url":"https://changebar.github.io/changebar/tools/bmi-protein.html","description":"問卷式表單：基本資料、生活習慣與每日蛋白質攝取，估算 BMI 與每日蛋白質建議量（依衛福部 DRIs 第八版），填寫聯絡資料後顯示評估結果與健飽卡產品補充建議。","publisher":{"@type":"Organization","name":"健飽卡 ChangeBar"}}}
 </script>
 </head>
 <body>
@@ -27,16 +18,16 @@
 <main>
 <p class="breadcrumb"><a href="../">首頁</a> › 健康試算</p>
 <h1>蛋白質與 BMI 自我評估</h1>
-<div class="lead-answer">像填問卷一樣，回答 3 段小題目：基本資料、生活習慣、每日蛋白質攝取。完成後會算出你的 BMI 與每日蛋白質目標範圍，並比較「目標 vs 目前估算攝取」，最後才依差距給予健飽卡產品補充建議。本工具為一般營養資訊，僅供參考，不構成醫療建議。</div>
+<div class="lead-answer">像填問卷一樣，回答 3 段小題目：基本資料、生活習慣、每日蛋白質攝取。完成後按下「開始評估」，留下姓名與電話（依個人資料保護法，資料僅用於產品資訊與營養諮詢聯絡），即可取得你的 BMI、每日蛋白質目標範圍、與目前攝取之比較，以及依結果的健飽卡產品建議。本工具為一般營養資訊，僅供參考，不構成醫療建議。</div>
 
 <form id="calc" onsubmit="return false;">
 <h2>基本資料</h2>
 <div class="qstep" style="margin-top:8px">
 <div class="qrow"><span class="qlabel">性別</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="sex" id="sx1" value="m" checked><label class="pill" for="sx1">男</label></span>
-<span class="opt"><input type="radio" name="sex" id="sx2" value="f"><label class="pill" for="sx2">女</label></span>
-</div></div>
+<select class="sel" id="sex">
+<option value="m" selected>男</option>
+<option value="f">女</option>
+</select></div>
 <div class="qrow"><span class="qlabel">年齡層</span>
 <select class="sel" id="age">
 <option value="a1" selected>19–50 歲</option>
@@ -48,102 +39,86 @@
 </div><h2>生活習慣</h2>
 <div class="qstep">
 <div class="qrow"><span class="qlabel">每週規律運動量</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="act" value="s" checked><label class="pill">低（久坐為主）</label></span>
-<span class="opt"><input type="radio" name="act" value="m"><label class="pill">中等（2–4 次／週）</label></span>
-<span class="opt"><input type="radio" name="act" value="h"><label class="pill">高（5 次以上／週）</label></span>
-</div></div>
+<select class="sel" id="act">
+<option value="s" selected>低（久坐為主）</option>
+<option value="m">中等（2–4 次／週）</option>
+<option value="h">高（5 次以上／週）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">每日起身活動（不含工作）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="move" value="0" checked><label class="pill">很少（多為久坐）</label></span>
-<span class="opt"><input type="radio" name="move" value="1"><label class="pill">約 1–2 小時</label></span>
-<span class="opt"><input type="radio" name="move" value="2"><label class="pill">2 小時以上</label></span>
-</div></div>
+<select class="sel" id="move">
+<option value="0" selected>很少（多為久坐）</option>
+<option value="1">約 1–2 小時</option>
+<option value="2">2 小時以上</option>
+</select></div>
 <div class="qrow"><span class="qlabel">三餐規律性</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="meal" value="2" checked><label class="pill">每天都有 3 餐</label></span>
-<span class="opt"><input type="radio" name="meal" value="1"><label class="pill">常跳過或時間不固定</label></span>
-<span class="opt"><input type="radio" name="meal" value="0"><label class="pill">常以簡餐／飲料代替</label></span>
-</div></div>
+<select class="sel" id="meal">
+<option value="2" selected>每天都有 3 餐</option>
+<option value="1">常跳過或時間不固定</option>
+<option value="0">常以簡餐／飲料代替</option>
+</select></div>
 <div class="qrow"><span class="qlabel">平均每晚睡眠</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="sleep" value="0"><label class="pill">不到 6 小時</label></span>
-<span class="opt"><input type="radio" name="sleep" value="1" checked><label class="pill">6–7 小時</label></span>
-<span class="opt"><input type="radio" name="sleep" value="2"><label class="pill">7–8 小時</label></span>
-<span class="opt"><input type="radio" name="sleep" value="3"><label class="pill">8 小時以上</label></span>
-</div></div>
-</div><h2>每日蛋白質攝取</h2>
+<select class="sel" id="sleep">
+<option value="0">不到 6 小時</option>
+<option value="1" selected>6–7 小時</option>
+<option value="2">7–8 小時</option>
+<option value="3">8 小時以上</option>
+</select></div>
+</div>
+
+<h2>每日蛋白質攝取</h2>
 <div class="qstep">
 <p class="source" style="margin:0 0 16px">請選「近一週平均每天」的量；括號內為每份之近似蛋白質參考值（依衛福部／國家衛生研究院之食物營養資料庫常見數值，實際因個品與份量而異）。</p>
 <div class="qrow"><span class="qlabel">蛋（1 顆約 7g）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_egg" value="0" checked><label class="pill">0 顆</label></span>
-<span class="opt"><input type="radio" name="q_egg" value="7"><label class="pill">1 顆（約 7g）</label></span>
-<span class="opt"><input type="radio" name="q_egg" value="14"><label class="pill">2 顆以上（約 14g）</label></span>
-</div></div>
+<select class="sel" id="q_egg">
+<option value="0" selected>0 顆</option>
+<option value="7">1 顆（約 7g）</option>
+<option value="14">2 顆以上（約 14g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">牛奶／乳製品（1 杯約 250ml，約 8g）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_milk" value="0" checked><label class="pill">0 杯</label></span>
-<span class="opt"><input type="radio" name="q_milk" value="8"><label class="pill">1 杯（約 8g）</label></span>
-<span class="opt"><input type="radio" name="q_milk" value="16"><label class="pill">2 杯以上（約 16g）</label></span>
-</div></div>
+<select class="sel" id="q_milk">
+<option value="0" selected>0 杯</option>
+<option value="8">1 杯（約 8g）</option>
+<option value="16">2 杯以上（約 16g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">魚（1 掌心約 15g）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_fish" value="0" checked><label class="pill">0 份</label></span>
-<span class="opt"><input type="radio" name="q_fish" value="15"><label class="pill">1 份（約 15g）</label></span>
-<span class="opt"><input type="radio" name="q_fish" value="30"><label class="pill">2 份以上（約 30g）</label></span>
-</div></div>
+<select class="sel" id="q_fish">
+<option value="0" selected>0 份</option>
+<option value="15">1 份（約 15g）</option>
+<option value="30">2 份以上（約 30g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">肉類（豬／牛，1 掌心約 12g）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_meat" value="0" checked><label class="pill">0 份</label></span>
-<span class="opt"><input type="radio" name="q_meat" value="12"><label class="pill">1 份（約 12g）</label></span>
-<span class="opt"><input type="radio" name="q_meat" value="24"><label class="pill">2 份以上（約 24g）</label></span>
-</div></div>
+<select class="sel" id="q_meat">
+<option value="0" selected>0 份</option>
+<option value="12">1 份（約 12g）</option>
+<option value="24">2 份以上（約 24g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">豆腐／豆漿／乾豆（1 份約 8g）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_soy" value="0" checked><label class="pill">0 份</label></span>
-<span class="opt"><input type="radio" name="q_soy" value="8"><label class="pill">1 份（約 8g）</label></span>
-<span class="opt"><input type="radio" name="q_soy" value="16"><label class="pill">2 份以上（約 16g）</label></span>
-</div></div>
+<select class="sel" id="q_soy">
+<option value="0" selected>0 份</option>
+<option value="8">1 份（約 8g）</option>
+<option value="16">2 份以上（約 16g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">堅果類</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_nut" value="0" checked><label class="pill">不吃</label></span>
-<span class="opt"><input type="radio" name="q_nut" value="2"><label class="pill">小把（約 10g，約 2g）</label></span>
-<span class="opt"><input type="radio" name="q_nut" value="8"><label class="pill">大把（約 30g，約 8g）</label></span>
-</div></div>
+<select class="sel" id="q_nut">
+<option value="0" selected>不吃</option>
+<option value="2">小把（約 10g，約 2g）</option>
+<option value="8">大把（約 30g，約 8g）</option>
+</select></div>
 <div class="qrow"><span class="qlabel">蛋白補充品（粉／液）</span>
-<div class="qopts">
-<span class="opt"><input type="radio" name="q_sup" value="0" checked><label class="pill">0 份</label></span>
-<span class="opt"><input type="radio" name="q_sup" value="20"><label class="pill">1 份（約 20g）</label></span>
-<span class="opt"><input type="radio" name="q_sup" value="40"><label class="pill">2 份以上（約 40g）</label></span>
-</div></div>
+<select class="sel" id="q_sup">
+<option value="0" selected>0 份</option>
+<option value="20">1 份（約 20g）</option>
+<option value="40">2 份以上（約 40g）</option>
+</select></div>
 </div>
 <button type="button" class="band-cta" onclick="runCalc()">開始評估 →</button>
-</form><section id="result" style="display:none">
-<h2>你的評估結果</h2>
-<div class="lead-answer" id="r-bmi"></div>
-<div class="cmp">
-<div class="lbl">你的目標範圍（依年齡層與運動量）</div>
-<div class="bar"><div class="fill target" id="bar-target"></div></div>
-<div class="lbl">你的目前每日攝取估算</div>
-<div class="bar"><div class="fill current" id="bar-current"></div></div>
-</div>
-<p class="result-verdict" id="r-verdict"></p>
-<p class="source" id="r-note"></p>
-<h3 style="margin:32px 0 8px">依結果的推薦產品</h3>
-<div class="grid">
-<div class="card"><span class="tag">蛋白質</span><h3>純素豌豆分離蛋白粉</h3><p>每包含 20g 植物性蛋白質，純素配方，可加入豆漿、燕麥或 Smoothie。<br><a href="../products/protein.html">了解產品 →</a></p></div>
-<div class="card"><span class="tag">湯品基底</span><h3>高蛋白豆漿湯體</h3><p>豆漿湯底，為湯品與料理提供豆香與蛋白質基礎。<br><a href="../products/soy-milk-soup.html">了解產品 →</a></p></div>
-<div class="card"><span class="tag">發酵食品</span><h3>日本甘糀（米麴甘酒）</h3><p>天然發酵食品，營養補給好選擇，可沖溫水飲用或加入料理。<br><a href="../products/ganjiu.html">了解產品 →</a></p></div>
-</div>
-<p class="source" id="r-pack"></p>
-</section>
-
-<section>
+<p class="source" style="margin-top:10px">按下「開始評估」後，會帶你填寫姓名與電話以完成評估；資料依個人資料保護法用途公開，僅用於產品資訊與營養諮詢聯絡。</p>
+</form><section>
 <h2>常見問題</h2>
 <details><summary>BMI 正常範圍是多少？</summary><p>依世界衛生組織（WHO）成人 BMI 分類：18.5 以下為過輕、18.5–24.9 為正常、25–29.9 為過重、30 以上為肥胖。BMI 為體重與身高的比值指標，無法反映體脂分布，請以整體飲食與健康檢查資訊綜合判斷。（來源：WHO 成人 BMI 分類，查證日期 2026-09-11）</p></details>
 <details><summary>一般人每天需要多少蛋白質？</summary><p>依衛福部《國人膳食營養參考攝取量（DRIs）第八版》：19–50 歲成人約 0.8g/公斤體重、51–70 歲約 1.0g/公斤、71 歲以上約 1.2g/公斤。運動量較高者可參考 1.2–1.7g/公斤區間（參考 ACSM 2009 年 Position Stand），具體目標建議諮詢專業醫療或營養人員。（查證日期：2026-09-11）</p></details>
 <details><summary>問卷估算的攝取量準確嗎？</summary><p>問卷以常見食物之近似蛋白質參考值估算（每份含量因個品與份量而異），屬一般參考值；實際攝取量請以產品營養標示為準，個別營養需求請諮詢專業醫療或營養人員。</p></details>
+<details><summary>我的姓名與電話會被如何使用？</summary><p>依個人資料保護法，我們於收集前公開：收集目的（產品資訊與營養諮詢之聯絡、本評估結果之提供）、處理期間與使用方式（以電話或訊息為您解答評估結果與健飽卡產品資訊），以及您得行使之權利（查閱、複製、更正、刪除、及以聲明不同意拒絕收集）。詳見<a href="../privacy.html">隱私政策</a>。</p></details>
 </section>
 
 <section>
@@ -165,54 +140,26 @@
 </div>
 </div>
 </main>
-<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。</footer><script>
-function gv(n){ var r = document.querySelector('input[name="'+n+'"]:checked'); return r ? parseInt(r.value,10) : 0; }
+<footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。</footer>
+<script>
+function sv(id){ return parseInt(document.getElementById(id).value, 10); }
 function runCalc(){
-  var age = document.getElementById('age').value;
-  var act = gv('act'); var actV = document.querySelector('input[name="act"]:checked').value;
   var hcm = parseFloat(document.getElementById('height').value);
   var wk = parseFloat(document.getElementById('weight').value);
-  var out = document.getElementById('result');
   if (isNaN(hcm) || isNaN(wk)) { alert('請先輸入身高與體重再評估。'); return; }
-  var h = hcm / 100;
-  var bmi = wk / (h * h);
-  var cat = bmi >= 30 ? '肥胖' : (bmi >= 25 ? '過重' : (bmi >= 18.5 ? '正常' : '過輕'));
-  var lo, hi;
-  if (actV === 's') { lo = hi = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); }
-  else if (actV === 'm') { lo = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); hi = (age === 'a2' ? 1.4 : (age === 'a3' ? 1.6 : 1.4)); }
-  else { lo = (age === 'a2' ? 1.0 : (age === 'a3' ? 1.2 : 0.8)); hi = 1.7; }
-  var gLo = Math.round(wk * lo), gHi = Math.round(wk * hi);
-  var cur = gv('q_egg') + gv('q_milk') + gv('q_fish') + gv('q_meat') + gv('q_soy') + gv('q_nut') + gv('q_sup');
-  var scale = Math.max(gHi * 1.15, cur * 1.15, 40);
-  document.getElementById('bar-target').style.left = Math.round(gLo / scale * 100) + '%';
-  document.getElementById('bar-target').style.width = Math.max(Math.round((gHi - gLo) / scale * 100), 2) + '%';
-  document.getElementById('bar-current').style.width = Math.round(Math.min(cur / scale, 1) * 100) + '%';
-  document.getElementById('r-bmi').innerHTML = 'BMI 約 <strong>' + bmi.toFixed(1) + '</strong>（WHO 分類：' + cat + '）｜每日蛋白質目標：<strong>' + gLo + '–' + gHi + ' g</strong>（依年齡層與運動量）｜目前估算攝取：<strong>約 ' + cur + ' g</strong>';
-  var vd = document.getElementById('r-verdict');
-  var pack = document.getElementById('r-pack');
-  var note = [];
-  var gap = gLo - cur;
-  if (gap > 0) {
-    vd.className = 'result-verdict gap';
-    vd.textContent = '與目標下限尚有約 ' + gap + ' g 之差距';
-    var pk = Math.ceil(gap / 20);
-    if (pk <= 2) { pack.textContent = '推薦產品：純素豌豆分離蛋白粉（每包 20g）約 ' + pk + ' 包／日可補足上述差距；早餐可搭配豆漿湯體（湯品或沖調）、日常熱飲可選甘酒。'; }
-    else { pack.textContent = '差距較寬（約 ' + gap + ' g）：建議先調整三餐之蛋白質來源（上方各題），再以蛋白粉（每包 20g）補足剩餘部分；若每日需超過 2 包，建議優先與專業人員討論飲食規劃。'; }
-  } else if (cur > gHi) {
-    vd.className = 'result-verdict ok';
-    vd.textContent = '目前估算攝取已高於目標上限，維持即可，無需刻意加量';
-    pack.textContent = '目前攝取已達標，暫不需額外補充；三款產品可依口味與場景選用：蛋白粉（輕食日）、豆漿湯體（湯品基底）、甘酒（溫飲）。';
-  } else {
-    vd.className = 'result-verdict ok';
-    vd.textContent = '目前估算攝取已在目標範圍內，維持現有飲食即可';
-    pack.textContent = '目前攝取在目標範圍，無須刻意加量；若某餐吃得較少，可備 1 包蛋白粉（每包 20g）作為方便來源。';
-  }
-  if (document.querySelector('input[name="sleep"]:checked').value === '0' || document.querySelector('input[name="sleep"]:checked').value === '3') { note.push('你回答睡眠時間不在 6–8 小時區間，建議依個人狀況調整作息。'); }
-  if (document.querySelector('input[name="meal"]:checked').value === '0') { note.push('你回答三餐常以簡餐或飲料代替，建議先確保三正餐之蛋白質來源。'); }
-  else if (document.querySelector('input[name="meal"]:checked').value === '1') { note.push('你回答三餐時間不太固定，建議先建立規律三餐，再以補充品輔助。'); }
-  document.getElementById('r-note').textContent = note.length ? note.join(' ') : '';
-  out.style.display = 'block';
-  out.scrollIntoView({behavior: 'smooth'});
+  var data = {
+    sex: document.getElementById('sex').value,
+    age: document.getElementById('age').value,
+    hcm: hcm, wk: wk,
+    act: document.getElementById('act').value,
+    move: document.getElementById('move').value,
+    meal: document.getElementById('meal').value,
+    sleep: document.getElementById('sleep').value,
+    q_egg: sv('q_egg'), q_milk: sv('q_milk'), q_fish: sv('q_fish'),
+    q_meat: sv('q_meat'), q_soy: sv('q_soy'), q_nut: sv('q_nut'), q_sup: sv('q_sup')
+  };
+  try { sessionStorage.setItem('cbCalc', JSON.stringify(data)); } catch (e) {}
+  location.href = '../lead-form.html';
 }
 </script>
 </body>
