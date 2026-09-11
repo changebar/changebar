@@ -59,7 +59,7 @@
 </main>
 <footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。<br>個人資料依<a href="privacy.html">隱私政策</a>與個人資料保護法處理。免責聲明：本頁評估數值僅供參考，不構成醫療建議；產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。</footer><script>
 // 送出端點：填入 Google Apps Script Web App 網址後即完成串接（程式碼見 ref/lead-capture-apps-script.gs）
-var LEAD_ENDPOINT = '';
+var LEAD_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw5T_BnY6Nk3orww_hVYP4ByB_n9EXTPSKMmzUMJKjuCdtHGxJVnozLW07T6PCFbdk/exec';
 function showErr(m){ var e = document.getElementById('f-err'); e.textContent = m; e.style.display = m ? 'block' : 'none'; }
 function render(d){
   var h = d.hcm / 100, bmi = d.wk / (h * h);
