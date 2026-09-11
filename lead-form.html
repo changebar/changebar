@@ -107,8 +107,11 @@ function submitLead(){
   showErr('');
   if (!LEAD_ENDPOINT) { showErr('聯絡通道暫未啟用：目前無法送出，你可以稍後再試，或先前往健飽卡官網 LINE 官方帳號（https://change-bar.com/）取得評估。'); return; }
   var body = 'data=' + encodeURIComponent(JSON.stringify(Object.assign({name: name, phone: phone}, d))) + '&source=lead-form';
-  fetch(LEAD_ENDPOINT, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: body }).then(function(res){
-    if (res.ok) { render(d); } else { showErr('送出失敗（' + res.status + '），請稍後再試，或改用官網 LINE 管道。'); }
+  fetch(LEAD_ENDPOINT, { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body }).then(function(res){
+    if (!res.ok) { showErr('送出失敗（' + res.status + '），請稍後再試，或改用官網 LINE 管道。'); return; }
+    return res.json().catch(function(){ throw new Error('bad-response'); }).then(function(j){
+      if (j && j.ok) { render(d); } else { showErr('送出失敗（端點回傳錯誤），請稍後再試，或改用官網 LINE 管道。'); }
+    });
   }).catch(function(){ showErr('送出失敗（網路問題），請稍後再試，或改用官網 LINE 管道。'); });
 }
 window.addEventListener('DOMContentLoaded', function(){
