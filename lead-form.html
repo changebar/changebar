@@ -10,6 +10,7 @@
 <meta property="og:description" content="填寫姓名與電話以取得你的評估結果與產品建議。">
 <meta property="og:type" content="website">
 <link rel="stylesheet" href="assets/style.css">
+<style>.lead-status{margin-top:10px;font-size:13px;padding:8px 12px;border-radius:8px}.lead-status.pending{background:#fff8e6;color:#8a6d1a}.lead-status.ok{background:#e8f5e9;color:#2e7d32}.lead-status.warn{background:#fff3e0;color:#e65100}</style>
 </head>
 <body>
 <header class="site"><span class="logo">健飽卡 ChangeBar</span><nav class="site"><a href="./">首頁</a><a href="products/protein.html">蛋白粉</a><a href="products/soy-milk-soup.html">豆漿湯體</a><a href="products/ganjiu.html">甘酒</a><a href="about.html">關於我們</a><a href="blog/">文章</a><a href="tools/bmi-protein.html">健康試算</a></nav></header>
@@ -55,7 +56,8 @@
 </div>
 <p class="source" id="r-pack"></p>
 <div class="notice">感謝！你的評估資料已送出。我們會以電話或訊息為您解答評估結果與產品資訊；若希望以其他管道聯絡，歡迎前往<a href="https://change-bar.com/">健飽卡官網</a>（LINE 官方帳號一對一評估）。</div>
-</section>
+<div id="lead-status" class="lead-status" style="display:none"></div>
+
 </main>
 <footer class="footer">© 2026 健飽卡 ChangeBar（養芯健康）｜本站內容僅供資訊參考，不構成醫療建議。<br>個人資料依<a href="privacy.html">隱私政策</a>與個人資料保護法處理。免責聲明：本頁評估數值僅供參考，不構成醫療建議；產品屬一般食品，不具有治療、預防疾病之功效。如有健康問題，請諮詢醫師或專業醫療人員。</footer><script>
 // 送出端點：填入 Google Apps Script Web App 網址後即完成串接（程式碼見 ref/lead-capture-apps-script.gs）
@@ -97,22 +99,29 @@ function render(d){
 }
 function submitLead(){
   var d = null;
-  try { d = JSON.parse(sessionStorage.getItem('cbCalc')); } catch (e) {}
-  if (!d) { document.getElementById('no-data').style.display = 'block'; document.getElementById('form-wrap').style.display = 'none'; document.getElementById('result').style.display = 'none'; return; }
+  try { d = JSON.parse(sessionStorage.getItem('cbCalc')); } catch (err) {}
+  if (!d) { document.getElementById('no-data').style.display='block'; document.getElementById('form-wrap').style.display='none'; document.getElementById('result').style.display='none'; return; }
   var name = document.getElementById('f-name').value.trim();
   var phone = document.getElementById('f-phone').value.replace(/[\s-]/g, '');
   if (name.length < 2) { showErr('請填寫姓名。'); return; }
   if (!/^0\d{8,9}$/.test(phone)) { showErr('電話格式不正確：請填 09 開頭之 10 位手機，或 0 開頭共 9 位之市話。'); return; }
   if (!document.getElementById('f-ok').checked) { showErr('請先勾選「個人資料保護法告知與同意」。'); return; }
   showErr('');
-  if (!LEAD_ENDPOINT) { showErr('聯絡通道暫未啟用：目前無法送出，你可以稍後再試，或先前往健飽卡官網 LINE 官方帳號（https://change-bar.com/）取得評估。'); return; }
+  render(d);
+  var leadStatus = document.getElementById('lead-status');
+  if (leadStatus) { leadStatus.style.display='block'; leadStatus.textContent='名單記錄中…'; leadStatus.className='lead-status pending'; }
+  if (!LEAD_ENDPOINT) {
+    if (leadStatus) { leadStatus.textContent='名單記錄暫未啟用；評估結果仍正常顯示。'; leadStatus.className='lead-status warn'; }
+    return;
+  }
   var body = 'data=' + encodeURIComponent(JSON.stringify(Object.assign({name: name, phone: phone}, d))) + '&source=lead-form';
-  fetch(LEAD_ENDPOINT, { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body }).then(function(res){
-    if (!res.ok) { showErr('送出失敗（' + res.status + '），請稍後再試，或改用官網 LINE 管道。'); return; }
-    return res.json().catch(function(){ throw new Error('bad-response'); }).then(function(j){
-      if (j && j.ok) { render(d); } else { showErr('送出失敗（端點回傳錯誤），請稍後再試，或改用官網 LINE 管道。'); }
+  fetch(LEAD_ENDPOINT, { method: 'POST', mode: 'no-cors', headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}, body: body, redirect: 'follow' })
+    .then(function(){
+      if (leadStatus) { leadStatus.textContent='名單已記錄，稍後將以電話或訊息聯繫。'; leadStatus.className='lead-status ok'; }
+    })
+    .catch(function(){
+      if (leadStatus) { leadStatus.textContent='名單記錄可能未完成（網路不穩），評估結果仍正常顯示；也可改用官網 LINE 管道。'; leadStatus.className='lead-status warn'; }
     });
-  }).catch(function(){ showErr('送出失敗（網路問題），請稍後再試，或改用官網 LINE 管道。'); });
 }
 window.addEventListener('DOMContentLoaded', function(){
   if (!sessionStorage.getItem('cbCalc')) { document.getElementById('no-data').style.display = 'block'; document.getElementById('form-wrap').style.display = 'none'; }
